@@ -9,41 +9,53 @@
             font-family: Arial, sans-serif;
             background-color: #f4f4f9;
             color: #333;
-            text-align: center;
-            padding: 20px;
             margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
         }
         .container {
-            max-width: 500px;
-            margin: 0 auto;
+            width: 100%;
+            max-width: 480px;
             background: #fff;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            position: relative;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            box-sizing: border-box;
+        }
+        /* Header-Bereich mit Titel und Verlassen-Button nebeneinander */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+        }
+        h1 {
+            font-size: 18px;
+            margin: 0;
+            color: #222;
+            text-align: left;
         }
         .close-app-btn {
-            position: absolute;
-            top: 15px;
-            right: 15px;
             background-color: #dc3545;
             color: white;
             border: none;
-            padding: 8px 12px;
-            font-size: 14px;
-            border-radius: 50px;
+            padding: 6px 12px;
+            font-size: 13px;
+            border-radius: 20px;
             cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            flex: none;
-            width: auto;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .close-app-btn:active {
             background-color: #b02a37;
         }
-        h1 {
-            font-size: 24px;
-            margin-bottom: 20px;
-            margin-top: 10px;
+        .subtitle {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 12px;
+            text-align: center;
         }
         .btn-group {
             display: flex;
@@ -54,26 +66,24 @@
             background-color: #4285F4;
             color: white;
             border: none;
-            padding: 15px 20px;
-            font-size: 16px;
-            border-radius: 50px;
+            padding: 12px 15px;
+            font-size: 15px;
+            border-radius: 12px;
             cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             flex: 1;
-            transition: background-color 0.3s;
+            font-weight: bold;
+            transition: background-color 0.2s;
         }
         button:active {
-            background-color: #3367D6;
+            opacity: 0.9;
         }
         button.recording {
-            background-color: #EA4335;
+            background-color: #EA4335 !important;
             animation: pulse 1.5s infinite;
         }
         button.todo-btn {
             background-color: #34A853;
-        }
-        button.todo-btn:active {
-            background-color: #2b8c44;
         }
         .login-btn {
             background-color: #fbbc05;
@@ -81,45 +91,57 @@
             font-weight: bold;
             margin-bottom: 15px;
             width: 100%;
+            border-radius: 10px;
         }
         .secondary-btn {
-            background-color: #6c757d;
-            font-size: 14px;
-            padding: 8px 12px;
-            border-radius: 20px;
-            flex: 1;
+            background-color: #e9ecef;
+            color: #333;
+            font-size: 13px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            box-shadow: none;
+            flex: none;
+            font-weight: normal;
         }
         .secondary-btn:active {
-            background-color: #5a6268;
+            background-color: #dee2e6;
         }
         .speak-btn {
-            background-color: #0d6efd;
+            background-color: #e7f1ff;
+            color: #0d6efd;
         }
         .danger-btn {
-            background-color: #dc3545;
-            font-size: 14px;
-            padding: 8px 12px;
-            border-radius: 20px;
+            background-color: #fff5f5;
+            color: #dc3545;
+            border: 1px solid #f5c6cb;
+            font-size: 13px;
+            padding: 10px;
+            border-radius: 10px;
             width: 100%;
-            margin-top: 8px;
+            margin-top: 10px;
+            box-shadow: none;
+            font-weight: bold;
         }
         .danger-btn:active {
-            background-color: #b02a37;
+            background-color: #f8d7da;
         }
         @keyframes pulse {
             0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234, 67, 53, 0.4); }
-            70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(234, 67, 53, 0); }
+            70% { transform: scale(1.02); box-shadow: 0 0 0 8px rgba(234, 67, 53, 0); }
             100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234, 67, 53, 0); }
         }
         #status {
-            margin-top: 15px;
+            margin: 10px 0 15px 0;
             font-weight: bold;
-            color: #555;
-            word-break: break-word;
-            font-size: 14px;
+            color: #444;
+            font-size: 13px;
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
         }
         .section-box {
-            margin-top: 25px;
+            margin-top: 20px;
             text-align: left;
             border-top: 1px solid #eee;
             padding-top: 15px;
@@ -128,38 +150,36 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         .section-box h3 {
-            font-size: 16px;
+            font-size: 15px;
             margin: 0;
-            color: #444;
+            color: #333;
         }
         .event-item {
             background: #f8f9fa;
-            padding: 10px 15px;
+            padding: 10px 12px;
             border-radius: 8px;
-            margin-bottom: 8px;
-            font-size: 14px;
+            margin-bottom: 6px;
+            font-size: 13px;
             border-left: 4px solid #4285F4;
             cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         .event-item:hover {
-            background: #e9ecef;
-            transform: translateX(2px);
+            background: #f1f3f5;
         }
         .event-delete-btn {
             background: #dc3545;
             color: white;
             border: none;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            font-size: 14px;
+            border-radius: 6px;
+            width: 28px;
+            height: 28px;
+            font-size: 13px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -168,15 +188,12 @@
             flex: none;
             padding: 0;
         }
-        .event-delete-btn:active {
-            background-color: #b02a37;
-        }
         .todo-item {
             background: #f1f8f5;
-            padding: 10px 15px;
+            padding: 10px 12px;
             border-radius: 8px;
-            margin-bottom: 8px;
-            font-size: 14px;
+            margin-bottom: 6px;
+            font-size: 13px;
             border-left: 4px solid #34A853;
             display: flex;
             align-items: center;
@@ -195,7 +212,7 @@
             background: none;
             border: none;
             color: #cc0000;
-            font-size: 16px;
+            font-size: 15px;
             cursor: pointer;
             padding: 0 5px;
             box-shadow: none;
@@ -204,25 +221,32 @@
         #deleteManager {
             display: none;
             background: #fff8f8;
-            border: 1px dashed #dc3545;
+            border: 1px solid #f5c6cb;
             padding: 10px;
             border-radius: 8px;
-            margin-top: 10px;
+            margin-top: 8px;
+        }
+        .hint-text {
+            font-size: 11px;
+            color: #888;
+            margin-top: 6px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <!-- Button zum Verlassen der App -->
-        <button class="close-app-btn" onclick="exitApp()">❌ Verlassen</button>
-
-        <h1>Omas Sprach-Assistent</h1>
+        <!-- Aufgeräumter Header -->
+        <div class="app-header">
+            <h1>Omas Sprach-Assistent</h1>
+            <button class="close-app-btn" onclick="exitApp()">❌ Verlassen</button>
+        </div>
         
         <!-- Manueller Login-Button falls es klemmt -->
         <button id="loginBtn" class="login-btn" onclick="triggerLogin()" style="display:none;">🔐 Bei Google anmelden</button>
 
-        <p>Wähle aus, was du eintragen möchtest:</p>
+        <div class="subtitle">Wähle aus, was du eintragen möchtest:</div>
         
         <div class="btn-group">
             <button id="micEventBtn" onclick="startSpeechRecognition('event')">🎤 Termin</button>
@@ -233,27 +257,27 @@
 
         <div class="section-box">
             <div class="section-header">
-                <h3>Nächste Termine:</h3>
+                <h3>Nächste Termine</h3>
                 <div style="display: flex; gap: 5px;">
                     <button class="secondary-btn speak-btn" onclick="speakSummary()">🔊 Vorlesen</button>
                     <button class="secondary-btn" onclick="fetchUpcomingEvents()">🔄 Laden</button>
                 </div>
             </div>
-            <div id="eventsContainer">Noch nicht geladen.</div>
+            <div id="eventsContainer" style="font-size: 13px; color: #666; padding: 5px 0;">Noch nicht geladen.</div>
             
             <!-- Button zum Aufklappen der Termin-Löschliste -->
             <button class="danger-btn" onclick="toggleDeleteManager()">🗑️ Termine verwalten / löschen</button>
             <div id="deleteManager">
-                <p style="font-size: 13px; margin: 0 0 10px 0; font-weight: bold; color: #dc3545;">Klicke auf den roten Mülleimer, um einen Termin direkt zu löschen:</p>
+                <div style="font-size: 12px; margin-bottom: 8px; font-weight: bold; color: #dc3545;">Klicke auf den Mülleimer, um den Termin zu löschen:</div>
                 <div id="deleteEventsContainer">Lade Liste...</div>
             </div>
 
-            <div style="font-size: 11px; color: #777; margin-top: 8px; text-align: center;">💡 Klick auf Termin öffnet den Google Kalender</div>
+            <div class="hint-text">💡 Klick auf einen Termin öffnet den Google Kalender</div>
         </div>
 
         <div class="section-box">
-            <h3>Merkliste / To-Dos (Klick zum Abhaken):</h3>
-            <div id="todosContainer">Noch keine Notizen vorhanden.</div>
+            <h3>Merkliste / To-Dos <span style="font-size: 11px; font-weight: normal; color: #666;">(Klick zum Abhaken)</span></h3>
+            <div id="todosContainer" style="margin-top: 8px;">Noch keine Notizen vorhanden.</div>
         </div>
     </div>
 
@@ -402,7 +426,7 @@
                 }
 
                 const timedEvents = data.items.filter(item => item.start && item.start.dateTime);
-                rawEventsList = timedEvents; // Speichern für den Löschmanager
+                rawEventsList = timedEvents;
 
                 if (timedEvents.length === 0) {
                     container.innerHTML = 'Keine anstehenden Uhrzeit-Termine gefunden.';
@@ -414,17 +438,16 @@
                 let speechParts = [];
                 timedEvents.slice(0, 5).forEach((item, index) => {
                     const startDate = new Date(item.start.dateTime);
-                    const formattedDate = startDate.toLocaleDateString('de-DE', {weekday: 'long', day: '2-digit', month: '2-digit'});
+                    const formattedDate = startDate.toLocaleDateString('de-DE', {weekday: 'short', day: '2-digit', month: '2-digit'});
                     const formattedTime = startDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'}) + ' Uhr';
                     
                     speechParts.push(`${item.summary} am ${formattedDate} um ${formattedTime}`);
 
                     const div = document.createElement('div');
                     div.className = 'event-item';
-                    div.innerText = `${index + 1}. ${item.summary} (${formattedDate}, ${formattedTime})`;
+                    div.innerHTML = `<span><strong>${item.summary}</strong><br><span style="color:#666; font-size:12px;">📅 ${formattedDate}, ${formattedTime}</span></span>`;
                     
-                    div.onclick = function(e) {
-                        // Verhindern, dass es auslöst, wenn man woanders klickt
+                    div.onclick = function() {
                         const calendarUrl = item.htmlLink || 'https://calendar.google.com/';
                         window.open(calendarUrl, '_blank');
                     };
@@ -435,7 +458,6 @@
                 latestEventsText = "Deine nächsten Termine sind: " + speechParts.join(". ");
                 document.getElementById('status').innerText = 'Bereit...';
                 
-                // Falls der Löschmanager offen ist, direkt aktualisieren
                 if (document.getElementById('deleteManager').style.display === 'block') {
                     renderDeleteManagerList();
                 }
@@ -452,7 +474,7 @@
             container.innerHTML = '';
 
             if (rawEventsList.length === 0) {
-                container.innerHTML = '<div style="font-size: 13px; color: #777;">Keine Termine zum Löschen vorhanden.</div>';
+                container.innerHTML = '<div style="font-size: 12px; color: #777;">Keine Termine zum Löschen vorhanden.</div>';
                 return;
             }
 
@@ -466,7 +488,7 @@
                 div.style.background = '#ffffff';
 
                 const span = document.createElement('span');
-                span.innerText = `${item.summary} (${formattedDate}, ${formattedTime})`;
+                span.innerHTML = `<strong>${item.summary}</strong> <span style="color:#666; font-size:11px;">(${formattedDate}, ${formattedTime})</span>`;
 
                 const delBtn = document.createElement('button');
                 delBtn.className = 'event-delete-btn';
@@ -484,7 +506,7 @@
         }
 
         function deleteCalendarEvent(eventId, eventTitle) {
-            if (!confirm(`Möchtest du den Termin "${eventTitle}" wirklich unwiderruflich aus dem Google Kalender löschen?`)) {
+            if (!confirm(`Möchtest du den Termin "${eventTitle}" wirklich löschen?`)) {
                 return;
             }
 
@@ -498,15 +520,15 @@
             })
             .then(response => {
                 if (response.ok || response.status === 204) {
-                    document.getElementById('status').innerText = `✅ "${eventTitle}" erfolgreich gelöscht!`;
-                    fetchUpcomingEvents(); // Liste sofort neu laden
+                    document.getElementById('status').innerText = `✅ "${eventTitle}" gelöscht!`;
+                    fetchUpcomingEvents();
                 } else {
-                    document.getElementById('status').innerText = '❌ Fehler beim Löschen des Termins.';
+                    document.getElementById('status').innerText = '❌ Fehler beim Löschen.';
                 }
             })
             .catch(error => {
                 console.error(error);
-                document.getElementById('status').innerText = '❌ Netzwerkfehler beim Löschen.';
+                document.getElementById('status').innerText = '❌ Netzwerkfehler.';
             });
         }
 
@@ -533,7 +555,7 @@
                 const speechText = event.results[0][0].transcript;
                 
                 if (mode === 'event') {
-                    document.getElementById('status').innerText = 'Erkannt: "' + speechText + '" - Trage Termin ein...';
+                    document.getElementById('status').innerText = 'Erkannt: "' + speechText + '" - Trage ein...';
                     parseAndCreateEvent(speechText);
                 } else {
                     document.getElementById('status').innerText = 'Notiz hinzugefügt: "' + speechText + '"';
@@ -588,7 +610,7 @@
             container.innerHTML = '';
 
             if (todos.length === 0) {
-                container.innerHTML = '<div style="color: #777; font-size: 14px; text-align: center; padding: 5px;">Noch keine Notizen vorhanden.</div>';
+                container.innerHTML = '<div style="color: #888; font-size: 13px; text-align: center; padding: 4px;">Noch keine Notizen vorhanden.</div>';
                 return;
             }
 
@@ -690,16 +712,16 @@
             })
             .then(async response => {
                 if (response.ok) {
-                    document.getElementById('status').innerText = '✅ Termin erfolgreich eingetragen!';
+                    document.getElementById('status').innerText = '✅ Termin eingetragen!';
                     fetchUpcomingEvents();
                 } else {
                     const errData = await response.json();
                     console.error(errData);
-                    document.getElementById('status').innerText = '❌ Fehler: ' + (errData.error?.message || response.statusText);
+                    document.getElementById('status').innerText = '❌ Fehler beim Eintragen.';
                 }
             })
             .catch(error => {
-                document.getElementById('status').innerText = '❌ Netzwerkfehler: ' + error.message;
+                document.getElementById('status').innerText = '❌ Netzwerkfehler.';
             });
         }
     </script>
