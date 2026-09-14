@@ -311,7 +311,7 @@
             <div id="status">Bereit zum Sprechen...</div>
 
             <div class="hint-box">
-                💡 <i>"Nenn mich Dino"</i> • <i>"Ich muss..."</i> (To-Do) • <i>"Termin um..."</i> (Kalender)
+                💡 <i>"Nenn mich Dino"</i> • <i>"Ich muss..."</i> / <i>"Vergiss nicht..."</i> (To-Do) • <i>"Termin um..."</i> (Kalender)
             </div>
         </div>
 
@@ -377,7 +377,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v6.1-fixed";
+        const APP_VERSION = "v6.2-todo-fix";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -627,20 +627,20 @@ Gespeichertes Gedächtnis des Nutzers (Objekte und deren Ablageorte, sowie der N
 
 Analysiere die Eingabe des Nutzers: "${userText}"
 
-AUFGABEN-LOGIK & REGELN:
-1. NAMEN ÄNDERN: Sagt der Nutzer "Nenn mich [Name]" oder "Ich heiße [Name]", ist das action "store_memory" mit memory_key: "mein name" und memory_value: "[Name]".
-2. OBJEKT SPEICHERN: Sagt der Nutzer, wo etwas liegt (z.B. "Mein Schlüssel ist in der Schublade" oder "Das Buch liegt auf dem Tisch"), speichere es als action "store_memory".
-3. ORTE ABFRAGEN: Fragt der Nutzer, wo sich ein Gegenstand befindet (z.B. "Wo ist mein Schlüssel?"), suche im Gedächtnis nach dem passenden Gegenstand. 
-   - Ignoriere geringfügige Abweichungen in der Aussprache oder dem Begriff.
-   - Antworte als action "chat".
-   - **GRAMMATIK-REGEL FÜR ORTE (Sehr wichtig!):** Achte darauf, dass die Ortsangabe im Antwortsatz im **Dativ** steht (wo ist es? -> *in der* Vitrine, *auf dem* Tisch, *im* Schrank, *unter dem* Bett) und **niemals** im Akkusativ (*in die* Vitrine ist falsch für eine Ortsbeschreibung!). Korrigiere das automatisch, falls der Ablageort falsch abgespeichert wurde.
-   - Formuliere die Antwort natürlich direkt an den Nutzer (nutze seinen Namen, falls unter "mein name" hinterlegt).
-   - Falls der Gegenstand gar nicht im Gedächtnis ist, antworte ehrlich.
+ENTSCHEIDUNGS-LOGIK (WICHTIG - UNTERSCHEIDE TERMIN VS. TO-DO):
+1. **TO-DO / MERKLISTE ("todo")**: 
+   - Wähle IMMER "todo", wenn Formulierungen wie **"vergiss nicht"**, **"merk dir"**, **"schreib auf"**, **"ich muss noch"** oder **"auf die To-Do-Liste"** verwendet werden.
+   - **WICHTIG:** Auch wenn in einer solchen Notiz eine Uhrzeit oder ein Datum vorkommt (z.B. *"Vergiss nicht, dass ich Isabelle morgen um 14 Uhr abhole"*), ist das **KEIN** Kalendertermin, sondern ein **TO-DO**! Trage es in dem Fall **niemals** in den Kalender ein, sondern packe es komplett als Text auf die To-Do-Liste.
+2. **KALENDER-TERMIN ("calendar")**: 
+   - Wähle "calendar" NUR dann, wenn der Nutzer explizit möchte, dass ein fester **Termin** in seinen Google-Kalender eingetragen wird (z.B. *"Trag in den Kalender ein..."*, *"Ich habe einen Termin um..."*, *"Erstelle einen Termin..."*).
+3. **NAMEN ÄNDERN ("store_memory")**: Sagt der Nutzer "Nenn mich [Name]" oder "Ich heiße [Name]".
+4. **OBJEKT SPEICHERN ("store_memory")**: Sagt der Nutzer, wo etwas liegt (z.B. "Mein Schlüssel ist in der Schublade").
+5. **ORTE ABFRAGEN / TERMINE ANSEHEN / TO-DOS ANSEHEN ("get_calendar", "get_todos", "chat")**: Fragen nach Terminen, To-Dos oder normalen Unterhaltungen.
 
 Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 - "action": Entweder "calendar", "get_calendar", "get_todos", "todo", "store_memory", oder "chat".
-- "calendar_text": (Nur bei "calendar") Der Satz zur Termin-Extraktion.
-- "todo_text": (Nur bei "todo") Der To-Do-Inhalt.
+- "calendar_text": (Nur bei echten "calendar"-Befehlen) Der Satz zur Termin-Extraktion.
+- "todo_text": (Nur bei "todo") Der To-Do-Inhalt (z.B. der gesamte Satz oder die Aufgabe).
 - "memory_key": (Nur bei "store_memory") Der Name des Gegenstands oder "mein name".
 - "memory_value": (Nur bei "store_memory") Der Ablageort oder Name.
 - "reply": (Für "chat", "get_calendar", "get_todos" oder Bestätigung) Die fertige, natürliche Antwort an den Nutzer.`;
