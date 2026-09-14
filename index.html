@@ -312,7 +312,7 @@
         <!-- REITER 1: UNIVERSAL CHAT -->
         <div id="tab-speak" class="tab-content active">
             <div id="chatHistory" class="chat-history">
-                <div class="chat-bubble assistant">Hallo! Ich bin bereit. Sag mir einfach, wie du genannt werden möchtest (z.B. "Nenn mich Dino").</div>
+                <div class="chat-bubble assistant">Hallo Dino! Ich bin bereit. Sag mir einfach, was anliegt.</div>
             </div>
 
             <button id="masterMicBtn" class="big-btn">
@@ -322,7 +322,7 @@
             <div id="status">Bereit zum Sprechen...</div>
 
             <div class="hint-box">
-                💡 <i>"Nenn mich Dino"</i> • <i>"Ich muss Isabelle abholen"</i> (To-Do) • <i>"Morgen zum Friseur um 14 Uhr"</i> (Kalender)
+                💡 <i>"Termin: Friseur um 14 Uhr"</i> • <i>"Ich muss Isabelle abholen"</i> (To-Do)
             </div>
         </div>
 
@@ -388,7 +388,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v5.3-2026-09-14-todo-calendar-fix";
+        const APP_VERSION = "v5.5-2026-09-14-strict-todo-fix";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -563,7 +563,7 @@
         function speakSummary() {
             let speechText = latestEventsSpeechText;
             const activeTodos = todos.filter(t => !t.completed);
-            const currentUserName = userMemories["mein name"] || userMemories["name"] || "du";
+            const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
             if (activeTodos.length > 0) {
                 speechText += ` ${currentUserName}, du hast noch offene Aufgaben: `;
                 activeTodos.forEach(t => { speechText += t.text + ". "; });
@@ -635,9 +635,8 @@
                 }
 
                 if (foundLocation) {
-                    const currentUserName = userMemories["mein name"] || userMemories["name"] || "";
-                    const namePrefix = currentUserName ? `${currentUserName}, ` : "";
-                    const reply = `${namePrefix}dein ${queryItem} ist ${foundLocation}.`;
+                    const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
+                    const reply = `${currentUserName}, dein ${queryItem} ist ${foundLocation}.`;
                     appendChatBubble(reply, 'assistant');
                     document.getElementById('status').innerText = 'Bereit.';
                     speakTextOut(reply);
@@ -650,25 +649,31 @@
                 const currentTimeStr = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
                 const currentDateStr = now.toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
+                if (!userMemories["mein name"] && !userMemories["name"]) {
+                    userMemories["mein name"] = "Dino";
+                }
                 const memoriesStr = JSON.stringify(userMemories);
+                const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
+
                 const routerPrompt = `Du bist das Gehirn eines intelligenten Sprach-Assistenten. 
 Echte aktuelle Zeit des Geräts: ${currentTimeStr}, Datum: ${currentDateStr}.
-Vorhandenes Gedächtnis (inklusive des Namens des Nutzers unter "mein name" oder "name"): ${memoriesStr}
+Vorhandenes Gedächtnis des Nutzers: ${memoriesStr}
 
 Analysiere die Eingabe des Nutzers: "${userText}"
 
-STRIKTE REGELN FÜR DIE UNTERSCHEIDUNG (Termin vs. To-Do):
-1. Wenn der Satz eine **konkrete Uhrzeit** enthält (z.B. "um 14 Uhr", "um halb drei", "um 15:30 Uhr"), handelt es sich IMMER um einen **Termin** für den Kalender -> action: "calendar".
-2. Wenn der Satz *keine* konkrete Uhrzeit enthält, sondern eine reine Aufgabe beschreibt (z.B. "Ich muss Isabelle abholen", "Ich muss Milch kaufen"), handelt es sich um eine Aufgabe für die Merkliste -> action: "todo".
-3. Wenn der Nutzer sagt "Nenn mich [Name]" oder "Ich heiße [Name]", speichere das direkt als memory_key: "mein name" und memory_value: "[Name]" mit der action "store_memory".
+ABSOLUTE UND UNUMSTÖßLICHE REGELN:
+1. EXAKTER KALENDER-TERMIN ("action": "calendar"): Nur wenn im Satz eine konkrete Uhrzeit genannt wird (z.B. "um 14 Uhr", "um 15:30 Uhr"). Wenn KEINE Uhrzeit genannt wird, ist es NIEMALS ein Kalender-Termin!
+2. TO-DO / AUFGABE ("action": "todo"): Wenn der Satz KEINE konkrete Uhrzeit enthält (z.B. "ich muss Isabelle heute noch abholen", "ich muss Milch kaufen"), musst du IMMER "action": "todo" wählen! Setze den Text der Aufgabe in "todo_text".
+3. NAMEN MERKEN ("action": "store_memory"): Wenn der Nutzer sagt "Nenn mich [Name]" oder "Ich heiße [Name]".
+4. Verwende in der Antwort ("reply") IMMER den Namen des Nutzers (${currentUserName}).
 
 Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 - "action": Entweder "calendar", "get_calendar", "get_todos", "todo", "store_memory", oder "chat".
 - "calendar_text": (Nur bei "calendar") Der Satz zur Termin-Extraktion.
-- "todo_text": (Nur bei "todo") Der To-Do-Inhalt.
-- "memory_key": (Nur bei "store_memory") Das Merkmal (z.B. "mein name").
+- "todo_text": (Nur bei "todo") Der genaue To-Do-Inhalt (z.B. "Isabelle heute noch abholen").
+- "memory_key": (Nur bei "store_memory") Das Merkmal.
 - "memory_value": (Nur bei "store_memory") Der Wert.
-- "reply": (Für "chat", "get_calendar", "get_todos" oder Bestätigung) Eine natürliche Antwort an den Nutzer. Nutze dabei immer den im Gedächtnis gespeicherten Namen des Nutzers, falls vorhanden!`;
+- "reply": Eine natürliche Antwort an den Nutzer unter Verwendung seines Namens (${currentUserName}).`;
 
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
@@ -679,6 +684,126 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     body: JSON.stringify({
                         model: "openai/gpt-oss-120b",
                         messages: [{ role: "user", content: routerPrompt }],
+                        temperature: 0.0
+                    })
+                });
+
+                const data = await res.json();
+                let content = data.choices[0].message.content;
+                if (content.includes("```json")) {
+                    content = content.split("```json")[1].split("```")[0].trim();
+                } else if (content.includes("```")) {
+                    content = content.split("```")[1].split("```")[0].trim();
+                }
+
+                const parsed = JSON.parse(content);
+
+                if (parsed.action === "calendar") {
+                    if (!accessToken) {
+                        const reply = `${currentUserName}, bitte melde dich zuerst über den Google-Button an, damit ich Termine in deinen Kalender eintragen kann.`;
+                        appendChatBubble(reply, 'assistant');
+                        speakTextOut(reply);
+                        triggerLogin();
+                        return;
+                    }
+                    parseAndCreateEvent(userText);
+                } 
+                else if (parsed.action === "get_calendar") {
+                    const reply = latestEventsSpeechText;
+                    appendChatBubble(reply, 'assistant');
+                    document.getElementById('status').innerText = 'Bereit.';
+                    speakTextOut(reply);
+                }
+                else if (parsed.action === "get_todos") {
+                    const activeTodos = todos.filter(t => !t.completed);
+                    let reply = "";
+                    if (activeTodos.length === 0) {
+                        reply = `${currentUserName}, deine To-Do-Liste ist aktuell komplett leer. Super gemacht!`;
+                    } else {
+                        const todoTexts = activeTodos.map(t => t.text).join(", ");
+                        reply = `${currentUserName}, auf deiner To-Do-Liste stehen folgende offene Aufgaben: ${todoTexts}.`;
+                    }
+                    appendChatBubble(reply, 'assistant');
+                    document.getElementById('status').innerText = 'Bereit.';
+                    speakTextOut(reply);
+                }
+                else if (parsed.action === "todo") {
+                    const todoText = parsed.todo_text || userText;
+                    todos.push({ text: todoText, completed: false });
+                    saveTodos();
+                    const reply = `Ich habe "${todoText}" auf deine To-Do-Liste geschrieben, ${currentUserName}!`;
+                    appendChatBubble(reply, 'assistant');
+                    document.getElementById('status').innerText = 'Bereit.';
+                    speakTextOut(reply);
+                } 
+                else if (parsed.action === "store_memory") {
+                    userMemories[parsed.memory_key.toLowerCase()] = parsed.memory_value;
+                    localStorage.setItem('omas_memories', JSON.stringify(userMemories));
+                    
+                    let reply = parsed.reply || `Alles klar, ich habe es mir gemerkt, ${currentUserName}!`;
+                    appendChatBubble(reply, 'assistant');
+                    document.getElementById('status').innerText = 'Bereit.';
+                    speakTextOut(reply);
+                } 
+                else {
+                    appendChatBubble(parsed.reply, 'assistant');
+                    document.getElementById('status').innerText = 'Bereit.';
+                    speakTextOut(parsed.reply);
+                }
+
+            } catch (err) {
+                fallbackChat(userText, apiKey);
+            }
+        }
+
+        async function fallbackChat(userText, apiKey) {
+            try {
+                const now = new Date();
+                const currentTimeStr = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+                const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
+                const memoriesStr = JSON.stringify(userMemories);
+                const prompt = `Du bist ein treuer Sprach-Assistent. Nutze das Gedächtnis und sprich den Nutzer immer mit "${currentUserName}" an: ${memoriesStr}. Echte aktuelle Uhrzeit: ${currentTimeStr}. Beantworte die Frage liebevoll auf Deutsch: "${userText}"`;
+                
+                const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${apiKey.trim()}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        model: "openai/gpt-oss-120b",
+                        messages: [{ role: "user", content: prompt }],
+                        temperature: 0.7
+                    })
+                });
+
+                const data = await response.json();
+                const aiReply = data.choices[0].message.content;
+                appendChatBubble(aiReply, 'assistant');
+                document.getElementById('status').innerText = 'Bereit.';
+                speakTextOut(aiReply);
+            } catch (e) {
+                document.getElementById('status').innerText = '⚠️ Fehler.';
+                speakTextOut("Entschuldigung, das habe ich nicht ganz verstanden.");
+            }
+        }
+
+        async function parseAndCreateEvent(text) {
+            document.getElementById('status').innerText = 'Erstelle Termin...';
+            const apiKey = localStorage.getItem('omas_groq_key');
+            
+            try {
+                const prompt = `Extrahiere aus folgendem Satz einen Kalender-Termin als JSON mit den Feldern "summary" (Titel) und "startDateTime" (im ISO-Format YYYY-MM-DDTHH:mm:ss, aktuelles Jahr is 2026). Satz: "${text}"`;
+                
+                const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${apiKey.trim()}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        model: "openai/gpt-oss-120b",
+                        messages: [{ role: "user", content: prompt }],
                         temperature: 0.1
                     })
                 });
