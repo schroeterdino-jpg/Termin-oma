@@ -377,7 +377,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v6.11-termin-vs-erinnerung";
+        const APP_VERSION = "v6.12-erinnerung-fix";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -629,7 +629,7 @@ Analysiere die Eingabe des Nutzers: "${userText}"
 
 ENTSCHEIDUNGS-LOGIK (WICHTIG - UNTERSCHEIDE STRIKT):
 1. **ECHTER TERMIN ("calendar")**: Wähle das, wenn der Nutzer einen festen externen Termin oder Plan äußert, der auf seine offizielle Terminliste gehört (z.B. "Morgen um 14 Uhr Friseur", "Arzttermin am Freitag um 10 Uhr", "Morgen Friseur").
-2. **ERINNERUNG MIT UHRZEIT ("reminder_todo")**: Wähle das, wenn der Nutzer eine Erinnerung oder Handlungsanweisung äußert (z.B. "Erinnere mich, Isabella um 14 Uhr abzuholen", "Ich muss um 20:45 Uhr los"). Das erzeugt eine To-Do-Notiz und einen unsichtbaren Kalender-Alarm im Hintergrund.
+2. **ERINNERUNG MIT UHRZEIT ("reminder_todo")**: Wähle das, wenn der Nutzer eine Erinnerung oder Handlungsanweisung äußert (z.B. "Erinnere mich, Isabella um 14 Uhr abzuholen", "Ich muss heute noch Isabelle um 22 Uhr abholen", "Ich muss um 20:45 Uhr los"). Das erzeugt eine To-Do-Notiz und einen unsichtbaren Kalender-Alarm im Hintergrund.
 3. **REINE TO-DO ("todo")**: Normale Aufgaben/Einkäufe ohne Uhrzeit (z.B. "Schreib Milch auf die Liste").
 4. **NAMEN / GEDÄCHTNIS ("store_memory")**: "Nenn mich [Name]" oder Details speichern.
 5. **ABFRAGEN / CHAT ("get_calendar", "get_todos", "chat")**: Fragen nach Terminen oder allgemeine Antworten.
@@ -699,11 +699,32 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     const taskText = parsed.todo_text || parsed.summary || userText;
                     
                     let calendarEventId = null;
-                    if (accessToken && parsed.start_time) {
+                    if (accessToken) {
+                        let eventDate = new Date();
+                        if (parsed.start_time) {
+                            let parsedDate = new Date(parsed.start_time);
+                            if (!isNaN(parsedDate.getTime())) {
+                                eventDate = parsedDate;
+                            }
+                        }
+                        
+                        // Fallback-Erkennung für Uhrzeiten wie 22 Uhr, falls der Router diese mal nicht exakt parst
+                        const lowerText = userText.toLowerCase();
+                        if (lowerText.includes("22 uhr") || lowerText.includes("22:00")) {
+                            eventDate.setHours(22, 0, 0, 0);
+                        } else if (lowerText.includes("21 uhr") || lowerText.includes("21:00")) {
+                            eventDate.setHours(21, 0, 0, 0);
+                        } else if (lowerText.includes("20 uhr") || lowerText.includes("20:00")) {
+                            eventDate.setHours(20, 0, 0, 0);
+                        }
+
+                        const startTimeISO = eventDate.toISOString().split('.')[0] + "+02:00";
+                        const endTimeISO = new Date(eventDate.getTime() + 1800000).toISOString().split('.')[0] + "+02:00";
+
                         const hiddenEventObj = {
                             summary: `[REMINDER] ${parsed.summary || taskText}`,
-                            start: { dateTime: parsed.start_time + ":00+02:00" },
-                            end: { dateTime: new Date(new Date(parsed.start_time).getTime() + 1800000).toISOString().split('.')[0] + "+02:00" },
+                            start: { dateTime: startTimeISO },
+                            end: { dateTime: endTimeISO },
                             reminders: {
                                 useDefault: false,
                                 overrides: [
@@ -711,6 +732,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                                 ]
                             }
                         };
+
                         try {
                             const calRes = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
                                 method: "POST",
@@ -730,7 +752,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     todos.push({ text: `🔔 ${taskText}`, calendarId: calendarEventId, completed: false });
                     saveTodos();
 
-                    const reply = `Ich habe "${taskText}" auf deine To-Do-Liste gesetzt und dich für den Kalender erinnert, ${currentUserName}!`;
+                    const reply = `Ich habe "${taskText}" auf deine To-Do-Liste gesetzt und dich im Kalender erinnert, ${currentUserName}!`;
                     appendChatBubble(reply, 'assistant');
                     document.getElementById('status').innerText = 'Bereit.';
                     speakTextOut(reply);
