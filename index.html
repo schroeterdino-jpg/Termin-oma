@@ -389,7 +389,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v5.5-2026-09-14-direct-clicks";
+        const APP_VERSION = "v5.6-2026-09-14-fixed-regex";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -658,13 +658,20 @@
                     }
                 }
 
-                                if (foundLocation) {
+                if (foundLocation) {
                     const currentUserName = userMemories["mein name"] || userMemories["name"] || "";
                     const namePrefix = currentUserName ? `${currentUserName}, ` : "";
                     
-                    // Korrigiert "mein Kissen" automatisch zu "deinem Kissen"
-                    let cleanLocation = foundLocation.replace(/^mein\s+/i, "deinem ").replace(/^meine\s+/i, "deiner ");
-                    if (!cleanLocation.startsWith("unter") && !cleanLocation.startsWith("in") && !cleanLocation.startsWith("auf")) {
+                    // Korrigierte Bereinigung für Präpositionen und Besitzanzeigende Fürwörter
+                    let cleanLocation = foundLocation
+                        .replace(/^(unter|in|auf|an)\s+meinem\s+/i, "$1 ")
+                        .replace(/^(unter|in|auf|an)\s+meiner\s+/i, "$1 ")
+                        .replace(/^(unter|in|auf|an)\s+mein\s+/i, "$1 ")
+                        .replace(/^meinem\s+/i, "")
+                        .replace(/^meiner\s+/i, "")
+                        .replace(/^mein\s+/i, "");
+
+                    if (!cleanLocation.startsWith("unter") && !cleanLocation.startsWith("in") && !cleanLocation.startsWith("auf") && !cleanLocation.startsWith("an")) {
                         cleanLocation = "unter " + cleanLocation;
                     }
 
@@ -675,7 +682,6 @@
                     speakTextOut(reply);
                     return;
                 }
-
             }
 
             try {
