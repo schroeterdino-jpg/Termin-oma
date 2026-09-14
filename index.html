@@ -54,6 +54,7 @@
             margin-top: 20px;
             font-weight: bold;
             color: #555;
+            word-break: break-word;
         }
         #eventList {
             margin-top: 25px;
@@ -109,7 +110,7 @@
                 scope: SCOPES,
                 callback: (response) => {
                     if (response.error !== undefined) {
-                        document.getElementById('status').innerText = 'Fehler bei der Anmeldung.';
+                        document.getElementById('status').innerText = 'Fehler bei der Anmeldung: ' + response.error;
                         return;
                     }
                     accessToken = response.access_token;
@@ -121,7 +122,7 @@
 
         function startSpeechRecognition() {
             if (!accessToken) {
-                tokenClient.requestAccessToken({ prompt: 'consent' });
+                tokenClient.requestAccessToken({ prompt: '' });
             } else {
                 listenAndProcess();
             }
@@ -147,12 +148,12 @@
 
             recognition.onresult = function(event) {
                 const speechText = event.results[0][0].transcript;
-                document.getElementById('status').innerText = 'Erkannt: "' + speechText + '" - Analysiere Termin...';
+                document.getElementById('status').innerText = 'Erkannt: "' + speechText + '" - Analysiere...';
                 parseAndCreateEvent(speechText);
             };
 
             recognition.onerror = function(event) {
-                document.getElementById('status').innerText = 'Fehler bei der Spracherkennung: ' + event.error;
+                document.getElementById('status').innerText = 'Sprachfehler: ' + event.error;
                 resetButton();
             };
 
@@ -171,17 +172,17 @@
 
         function parseAndCreateEvent(text) {
             let eventDate = new Date(); // Standard: Heute
-            let hours = 10; // Standard-Uhrzeit falls keine genannt wird (10 Uhr)
+            let hours = 10; 
             let minutes = 0;
+            let reminderMinutes = 60; // Standard: 1 Stunde vorher
 
             const lowerText = text.toLowerCase();
 
-            // Prüfen ob "morgen" gesagt wurde
             if (lowerText.includes('morgen')) {
                 eventDate.setDate(eventDate.getDate() + 1);
             }
 
-            // Uhrzeit aus dem Text fischen (sucht nach Mustern wie "um 16 Uhr", "16:00", "um 9 Uhr")
+            // Uhrzeit erkennen (z.B. "16 Uhr", "16:00")
             const timeMatch = text.match(/(?:um\s+)?(\d{1,2})(?::(\d{2}))?\s*uhr/i);
             if (timeMatch) {
                 hours = parseInt(timeMatch[1], 10);
@@ -189,7 +190,6 @@
                     minutes = parseInt(timeMatch[2], 10);
                 }
             } else {
-                // Alternative Suche nach reinen Zahlen mit Uhrzeit im Text
                 const altMatch = text.match(/(\d{1,2}):(\d{2})/);
                 if (altMatch) {
                     hours = parseInt(altMatch[1], 10);
@@ -197,19 +197,33 @@
                 }
             }
 
-            eventDate.setHours(hours, minutes, 0, 0);
+            // Erinnerung erkennen (z.B. "2 stunden vorher")
+            if (lowerText.includes('2 stunden vorher')) {
+                reminderMinutes = 120;
+            } else if (lowerText.includes('3 stunden vorher')) {
+                reminderMinutes = 180;
+            } else if (lowerText.includes('halbe stunde vorher')) {
+                reminderMinutes = 30;
+            }
 
-            // Endzeit: Standardmäßig 1 Stunde nach Start
+            eventDate.setHours(hours, minutes, 0, 0);
             let endDate = new Date(eventDate.getTime() + 60 * 60 * 1000);
 
-            const event = {
+            const calendarEvent = {
                 'summary': text,
-                'description': 'Erstellt über Sprach-App',
+                'description': 'Erstellt über Omas Sprach-App',
                 'start': {
                     'dateTime': eventDate.toISOString()
                 },
                 'end': {
                     'dateTime': endDate.toISOString()
+                },
+                'reminders': {
+                    'useDefault': false,
+                    'overrides': [
+                        {'method': 'popup', 'minutes': reminderMinutes},
+                        {'method': 'email', 'minutes': reminderMinutes}
+                    ]
                 }
             };
 
@@ -219,21 +233,20 @@
                     'Authorization': 'Bearer ' + accessToken,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(event)
+                body: JSON.stringify(calendarEvent)
             })
-            .then(response => {
+            .then(async response => {
                 if (response.ok) {
-                    document.getElementById('status').innerText = '✅ Termin erfolgreich eingetragen!';
-                    addEventToList(text + ' (' + eventDate.toLocaleDateString('de-DE', {weekday: 'short', day: '2-digit', month: '2-digit'}) + ', ' + hours + ':00 Uhr)');
+                    document.getElementById('status').innerText = '✅ Termin erfolgreich im Kalender eingetragen!';
+                    addEventToList(text + ' (' + eventDate.toLocaleDateString('de-DE', {weekday: 'short', day: '2-digit', month: '2-digit'}) + ', ' + (hours < 10 ? '0' : '') + hours + ':' + (minutes < 10 ? '0' : '') + minutes + ' Uhr)');
                 } else {
-                    response.json().then(err => {
-                        console.error(err);
-                        document.getElementById('status').innerText = '❌ Fehler beim Speichern im Kalender.';
-                    });
+                    const errData = await response.json();
+                    console.error(errData);
+                    document.getElementById('status').innerText = '❌ Fehler: ' + (errData.error?.message || response.statusText);
                 }
             })
             .catch(error => {
-                document.getElementById('status').innerText = '❌ Netzwerkfehler.';
+                document.getElementById('status').innerText = '❌ Netzwerkfehler: ' + error.message;
             });
         }
 
