@@ -324,9 +324,9 @@
 
             <div class="hint-box">
                 💡 <b>Beispiele:</b><br>
-                • <i>"Schlüssel in Kühlschrank legen"</i> (Gedächtnis)<br>
+                • <i>"Schlüssel in Wohnzimmerschrank legen"</i> (Gedächtnis)<br>
                 • <i>"Wo ist mein Schlüssel?"</i> (Fragen)<br>
-                • <i>"Arzttermin morgen um 14 Uhr"</i> (Kalender - Uhrzeit Pflicht!)<br>
+                • <i>"Arzttermin morgen um 14 Uhr"</i> (Kalender)<br>
                 • <i>"Mit Isabel Schuhe einkaufen"</i> (Notiz)
             </div>
         </div>
@@ -390,8 +390,8 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        // AUTO-CACHE-BREAKER (Version erhöht, damit der Browser sofort umschaltet!)
-        const APP_VERSION = "v2.3-2026-09-14";
+        // AUTO-CACHE-BREAKER (Version v2.4 für präzise Ortserkennung)
+        const APP_VERSION = "v2.4-2026-09-14";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -646,7 +646,7 @@
                 return;
             }
 
-            // 2. SPEICHERN VON GEGENSTÄNDEN (Gedächtnis)
+            // 2. SPEICHERN VON GEGENSTÄNDEN (Gedächtnis) - VERBESSERT
             if (lower.includes(' in ') || lower.includes(' auf ') || lower.includes(' unter ') || lower.includes(' neben ') || lower.includes(' an ') || lower.includes('gelegt') || lower.includes('gepackt') || lower.includes('getan') || lower.includes('packe') || lower.includes('lege') || lower.includes('tue')) {
                 parseAndSaveMemory(text);
                 return;
@@ -687,7 +687,8 @@
             }
 
             let foundLocation = "";
-            const prepMatch = lower.match(/(?:in\s+den|in\s+die|in\s+dem|in\s+einen|in\s+eine|in|auf\s+den|auf\s+die|auf\s+dem|auf|unter|neben|an)\s+(?:den|die|das|dem)?\s*([a-zäöüß\s]+)/i);
+            // Verbessertes Regex: Nimmt das gesamte Zielwort/Wortgruppe nach der Präposition (inkl. zusammengesetzter Wörter)
+            const prepMatch = lower.match(/(?:in\s+den|in\s+die|in\s+dem|in\s+einen|in\s+eine|in|auf\s+den|auf\s+die|auf\s+dem|auf|unter|neben|an)\s+(?:den|die|das|dem|einen|eine|einer)?\s*([a-zäöüß]+(?:\s+[a-zäöüß]+)?)/i);
             
             if (prepMatch && prepMatch[1]) {
                 foundLocation = prepMatch[1].trim();
@@ -915,7 +916,7 @@
 
             let eventTitle = text
                 .replace(/heute|morgen/gi, '')
-                .replace(/(?:um\s+)?\d{1,2}(?::\d{2})?\s*uhr/gi, '')
+                .replace(/(?:um\s+)?\d{1,2}(?::(\d{2}))?\s*uhr/gi, '')
                 .replace(/erinnere mich.*$/i, '')
                 .replace(/sag mir.*$/i, '')
                 .replace(/\d+\s*(?:stunden?|minuten?).*$/i, '')
