@@ -82,11 +82,6 @@
             margin-bottom: 15px;
             width: 100%;
         }
-        .action-btn-row {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 10px;
-        }
         .secondary-btn {
             background-color: #6c757d;
             font-size: 14px;
@@ -99,6 +94,17 @@
         }
         .speak-btn {
             background-color: #0d6efd;
+        }
+        .danger-btn {
+            background-color: #dc3545;
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            width: 100%;
+            margin-top: 8px;
+        }
+        .danger-btn:active {
+            background-color: #b02a37;
         }
         @keyframes pulse {
             0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234, 67, 53, 0.4); }
@@ -138,10 +144,32 @@
             border-left: 4px solid #4285F4;
             cursor: pointer;
             transition: background 0.2s, transform 0.1s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .event-item:hover {
             background: #e9ecef;
             transform: translateX(2px);
+        }
+        .event-delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: none;
+            flex: none;
+            padding: 0;
+        }
+        .event-delete-btn:active {
+            background-color: #b02a37;
         }
         .todo-item {
             background: #f1f8f5;
@@ -172,6 +200,14 @@
             padding: 0 5px;
             box-shadow: none;
             flex: none;
+        }
+        #deleteManager {
+            display: none;
+            background: #fff8f8;
+            border: 1px dashed #dc3545;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -204,7 +240,15 @@
                 </div>
             </div>
             <div id="eventsContainer">Noch nicht geladen.</div>
-            <div style="font-size: 11px; color: #777; margin-top: 5px; text-align: center;">💡 Klick auf Termin öffnet den Google Kalender</div>
+            
+            <!-- Button zum Aufklappen der Termin-Löschliste -->
+            <button class="danger-btn" onclick="toggleDeleteManager()">🗑️ Termine verwalten / löschen</button>
+            <div id="deleteManager">
+                <p style="font-size: 13px; margin: 0 0 10px 0; font-weight: bold; color: #dc3545;">Klicke auf den roten Mülleimer, um einen Termin direkt zu löschen:</p>
+                <div id="deleteEventsContainer">Lade Liste...</div>
+            </div>
+
+            <div style="font-size: 11px; color: #777; margin-top: 8px; text-align: center;">💡 Klick auf Termin öffnet den Google Kalender</div>
         </div>
 
         <div class="section-box">
@@ -224,6 +268,7 @@
         let accessToken = null;
         let todos = JSON.parse(localStorage.getItem('omas_todos') || '[]');
         let latestEventsText = "Es sind keine anstehenden Termine geladen.";
+        let rawEventsList = [];
 
         window.onload = function () {
             tokenClient = google.accounts.oauth2.initTokenClient({
@@ -253,9 +298,7 @@
         };
 
         function exitApp() {
-            // Versucht das Fenster zu schließen (klappt, wenn per Script geöffnet)
             window.close();
-            // Fallback: Leitet auf Google/Startseite um, falls der Browser das Schließen blockiert
             setTimeout(() => {
                 window.location.href = 'https://www.google.de';
             }, 100);
@@ -293,11 +336,10 @@
                 return;
             }
 
-            window.speechSynthesis.cancel(); // Laufenden Text abbrechen
+            window.speechSynthesis.cancel();
 
             let speechText = latestEventsText;
             
-            // Unvollständige To-Dos hinzufügen, falls welche da sind
             const activeTodos = todos.filter(t => !t.completed);
             if (activeTodos.length > 0) {
                 speechText += " Ausserdem hast du noch folgende Notizen auf der Liste: ";
@@ -308,7 +350,7 @@
 
             const utterance = new SpeechSynthesisUtterance(speechText);
             utterance.lang = 'de-DE';
-            utterance.rate = 0.9; // Etwas langsamer, damit man gut zuhört
+            utterance.rate = 0.9;
             window.speechSynthesis.speak(utterance);
         }
 
@@ -319,6 +361,16 @@
                 return;
             }
             listenAndProcess(mode);
+        }
+
+        function toggleDeleteManager() {
+            const manager = document.getElementById('deleteManager');
+            if (manager.style.display === 'block') {
+                manager.style.display = 'none';
+            } else {
+                manager.style.display = 'block';
+                renderDeleteManagerList();
+            }
         }
 
         function fetchUpcomingEvents() {
@@ -344,11 +396,13 @@
                 if (!data.items || data.items.length === 0) {
                     container.innerHTML = 'Keine anstehenden Termine gefunden.';
                     latestEventsText = "Es sind keine anstehenden Termine im Kalender.";
+                    rawEventsList = [];
                     document.getElementById('status').innerText = 'Bereit...';
                     return;
                 }
 
                 const timedEvents = data.items.filter(item => item.start && item.start.dateTime);
+                rawEventsList = timedEvents; // Speichern für den Löschmanager
 
                 if (timedEvents.length === 0) {
                     container.innerHTML = 'Keine anstehenden Uhrzeit-Termine gefunden.';
@@ -369,7 +423,8 @@
                     div.className = 'event-item';
                     div.innerText = `${index + 1}. ${item.summary} (${formattedDate}, ${formattedTime})`;
                     
-                    div.onclick = function() {
+                    div.onclick = function(e) {
+                        // Verhindern, dass es auslöst, wenn man woanders klickt
                         const calendarUrl = item.htmlLink || 'https://calendar.google.com/';
                         window.open(calendarUrl, '_blank');
                     };
@@ -379,11 +434,79 @@
 
                 latestEventsText = "Deine nächsten Termine sind: " + speechParts.join(". ");
                 document.getElementById('status').innerText = 'Bereit...';
+                
+                // Falls der Löschmanager offen ist, direkt aktualisieren
+                if (document.getElementById('deleteManager').style.display === 'block') {
+                    renderDeleteManagerList();
+                }
             })
             .catch(err => {
                 console.error(err);
                 document.getElementById('eventsContainer').innerHTML = 'Fehler beim Laden.';
                 document.getElementById('status').innerText = 'Fehler beim Abrufen.';
+            });
+        }
+
+        function renderDeleteManagerList() {
+            const container = document.getElementById('deleteEventsContainer');
+            container.innerHTML = '';
+
+            if (rawEventsList.length === 0) {
+                container.innerHTML = '<div style="font-size: 13px; color: #777;">Keine Termine zum Löschen vorhanden.</div>';
+                return;
+            }
+
+            rawEventsList.forEach((item) => {
+                const startDate = new Date(item.start.dateTime);
+                const formattedDate = startDate.toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit'});
+                const formattedTime = startDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'}) + ' Uhr';
+
+                const div = document.createElement('div');
+                div.className = 'event-item';
+                div.style.background = '#ffffff';
+
+                const span = document.createElement('span');
+                span.innerText = `${item.summary} (${formattedDate}, ${formattedTime})`;
+
+                const delBtn = document.createElement('button');
+                delBtn.className = 'event-delete-btn';
+                delBtn.innerHTML = '🗑️';
+                delBtn.title = 'Termin löschen';
+                delBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteCalendarEvent(item.id, item.summary);
+                };
+
+                div.appendChild(span);
+                div.appendChild(delBtn);
+                container.appendChild(div);
+            });
+        }
+
+        function deleteCalendarEvent(eventId, eventTitle) {
+            if (!confirm(`Möchtest du den Termin "${eventTitle}" wirklich unwiderruflich aus dem Google Kalender löschen?`)) {
+                return;
+            }
+
+            document.getElementById('status').innerText = `Lösche "${eventTitle}"...`;
+
+            fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': 'Bearer ' + accessToken
+                }
+            })
+            .then(response => {
+                if (response.ok || response.status === 204) {
+                    document.getElementById('status').innerText = `✅ "${eventTitle}" erfolgreich gelöscht!`;
+                    fetchUpcomingEvents(); // Liste sofort neu laden
+                } else {
+                    document.getElementById('status').innerText = '❌ Fehler beim Löschen des Termins.';
+                }
+            })
+            .catch(error => {
+                console.error(error);
+                document.getElementById('status').innerText = '❌ Netzwerkfehler beim Löschen.';
             });
         }
 
