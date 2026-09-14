@@ -211,6 +211,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            cursor: pointer;
         }
         .event-delete-btn {
             background: #dc3545;
@@ -358,19 +359,19 @@
                 <label>Kontakt 1</label>
                 <input type="text" id="c1Name" class="contact-input" placeholder="Name">
                 <input type="tel" id="c1Phone" class="contact-input" placeholder="Telefonnummer">
-                <button onclick="saveContact(1)" class="save-contact-btn">Speichern</button>
+                <button id="saveC1Btn" class="save-contact-btn">Speichern</button>
             </div>
             <div class="contact-card">
                 <label>Kontakt 2</label>
                 <input type="text" id="c2Name" class="contact-input" placeholder="Name">
                 <input type="tel" id="c2Phone" class="contact-input" placeholder="Telefonnummer">
-                <button onclick="saveContact(2)" class="save-contact-btn">Speichern</button>
+                <button id="saveC2Btn" class="save-contact-btn">Speichern</button>
             </div>
             <div class="contact-card">
                 <label>Kontakt 3</label>
                 <input type="text" id="c3Name" class="contact-input" placeholder="Name">
                 <input type="tel" id="c3Phone" class="contact-input" placeholder="Telefonnummer">
-                <button onclick="saveContact(3)" class="save-contact-btn">Speichern</button>
+                <button id="saveC3Btn" class="save-contact-btn">Speichern</button>
             </div>
         </div>
 
@@ -388,7 +389,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v5.3-2026-09-14-flexible-search";
+        const APP_VERSION = "v5.4-2026-09-14-fixed-clicks";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -431,6 +432,10 @@
             document.getElementById('refreshEventsBtn').addEventListener('click', fetchUpcomingEvents);
 
             document.getElementById('saveGroqKeyBtn').addEventListener('click', saveGroqApiKey);
+
+            document.getElementById('saveC1Btn').addEventListener('click', () => saveContact(1));
+            document.getElementById('saveC2Btn').addEventListener('click', () => saveContact(2));
+            document.getElementById('saveC3Btn').addEventListener('click', () => saveContact(3));
         }
 
         function initApp() {
@@ -621,7 +626,6 @@
                 return;
             }
 
-            // VERBESSERTE LOKALE SUCHE NACH ABLAGEORTEN (FLEXIBEL)
             const lowerText = userText.toLowerCase();
             if (lowerText.startsWith("wo ist") || lowerText.includes("wo habe ich") || lowerText.includes("wo liegt")) {
                 let queryItem = lowerText
