@@ -341,7 +341,7 @@
         <!-- REITER 1: UNIVERSAL CHAT -->
         <div id="tab-speak" class="tab-content active">
             <div id="chatHistory" class="chat-history">
-                <div class="chat-bubble assistant">Hallo! Ich bin bereit. Frag mich etwas oder sag mir, wenn du etwas erledigen musst.</div>
+                <div class="chat-bubble assistant">Hallo liebe Silvia! Ich bin bereit. Sag mir, was ich mir merken soll, trag Termine ein oder frage mich etwas.</div>
             </div>
 
             <button id="masterMicBtn" class="big-btn">
@@ -351,7 +351,7 @@
             <div id="status">Bereit zum Sprechen...</div>
 
             <div class="hint-box">
-                💡 <i>"Ich muss..."</i> (To-Do) • <i>"Termin um..."</i> (Kalender) • Fragen & Wetter
+                💡 <i>"Ich muss..."</i> (To-Do) • <i>"Termin um..."</i> (Kalender) • Ablageorte & Fragen
             </div>
         </div>
 
@@ -411,7 +411,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v4.2-2026-09-14-all-in-one-fixed";
+        const APP_VERSION = "v4.3-2026-09-14-silvia-memory-fixed";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -425,16 +425,13 @@
         let tokenClient;
         let accessToken = null;
         let todos = JSON.parse(localStorage.getItem('omas_todos') || '[]');
+        let userMemories = JSON.parse(localStorage.getItem('omas_memories') || '{}'); // Gedächtnis für Ablageorte etc.
         let latestEventsSpeechText = "Es sind keine anstehenden Termine geladen.";
 
         let contacts = JSON.parse(localStorage.getItem('omas_contacts') || JSON.stringify([
             { name: "Simone", phone: "" },
             { name: "Kontakt 2", phone: "" }
         ]));
-
-        let chatMessages = [
-            { role: "system", content: "Du bist ein hilfsbereiter deutscher KI-Assistent. Antworte in klaren, natürlichen Sätzen auf Deutsch, da deine Antworten per Sprachausgabe vorgelesen werden." }
-        ];
 
         document.addEventListener('DOMContentLoaded', () => {
             initApp();
@@ -588,7 +585,7 @@
             let speechText = latestEventsSpeechText;
             const activeTodos = todos.filter(t => !t.completed);
             if (activeTodos.length > 0) {
-                speechText += " Außerdem hast du noch To-Dos: ";
+                speechText += " Silvia, du hast noch To-Dos: ";
                 activeTodos.forEach(t => { speechText += t.text + ". "; });
             }
             speakTextOut(speechText);
@@ -615,7 +612,7 @@
                 const text = event.results[0][0].transcript;
                 appendChatBubble(text, 'user');
                 document.getElementById('status').innerText = 'Verarbeite...';
-                sendQueryToGroq(text);
+                handleSmartCommand(text);
             };
 
             recognition.onerror = function(event) {
@@ -636,7 +633,8 @@
             btn.innerHTML = '🎤 Sprechen...';
         }
 
-        async function sendQueryToGroq(userText) {
+        // Zentraler intelligenter Router für Aktionen (Termin, To-Do, Memory oder Chat)
+        async function handleSmartCommand(userText) {
             const apiKey = localStorage.getItem('omas_groq_key');
             if (!apiKey) {
                 alert("Bitte zuerst im Reiter '⚙️ Key' deinen Groq API-Schlüssel eintragen!");
@@ -644,38 +642,89 @@
                 return;
             }
 
-            document.getElementById('status').innerText = 'Verarbeite...';
-            const lowerText = userText.toLowerCase();
-
-            // 1. To-Do / Merkliste Erkennung
-            if (lowerText.includes("muss") || lowerText.includes("erinnern") || lowerText.includes("zettel") || lowerText.includes("aufschreiben") || lowerText.includes("eintragen")) {
-                todos.push({ text: userText, completed: false });
-                saveTodos();
-                
-                const reply = `Ich habe "${userText}" auf deine To-Do-Liste geschrieben!`;
-                appendChatBubble(reply, 'assistant');
-                document.getElementById('status').innerText = 'Bereit.';
-                speakTextOut(reply);
-                return;
-            }
-
-            // 2. Google Kalender Termin Erkennung
-            if (lowerText.includes("termin") || lowerText.includes("kalender") || lowerText.includes("um uhr") || lowerText.includes("am nächsten")) {
-                if (!accessToken) {
-                    const reply = "Bitte melde dich zuerst über den Google-Button an, damit ich Termine eintragen kann.";
-                    appendChatBubble(reply, 'assistant');
-                    speakTextOut(reply);
-                    triggerLogin();
-                    return;
-                }
-                parseAndCreateEvent(userText);
-                return;
-            }
-
-            // 3. Normaler Chat (Wetter, Fragen, etc.)
-            chatMessages.push({ role: "user", content: userText });
-
             try {
+                // Wir lassen die KI als Router entscheiden, was der Benutzer möchte
+                const memoriesStr = JSON.stringify(userMemories);
+                const routerPrompt = `Du bist das Gehirn eines Assistenten für Silvia. 
+Vorhandenes Gedächtnis (gespeicherte Ablageorte/Fakten): ${memoriesStr}
+
+Analysiere die Eingabe des Nutzers: "${userText}"
+Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
+- "action": Entweder "calendar" (wenn ein Termin eingetragen werden soll), "todo" (wenn etwas auf die To-Do-Liste/Merkliste soll), "store_memory" (wenn sich Silvia merken möchte, wo sie etwas hingelegt hat, z.B. Portemonnaie), oder "chat" (für normale Fragen, Wetter, oder wenn sie fragt, wo etwas liegt).
+- "calendar_text": (Nur wenn action="calendar") Der Satz zur Termin-Extraktion.
+- "todo_text": (Nur wenn action="todo") Der To-Do-Inhalt.
+- "memory_key": (Nur wenn action="store_memory") Das Objekt, das weggelegt wurde (z.B. "portemonnaie").
+- "memory_value": (Nur wenn action="store_memory") Der Ort, wohin es gelegt wurde (z.B. "im küchenschrank").
+- "reply": (Für action="chat" oder als Bestätigung) Eine natürliche, liebevolle Antwort an Silvia (sprich sie immer mit Silvia an), die vorgelesen werden kann. Wenn sie fragt, wo etwas ist, schaue in das Gedächtnis und antworte ihr direkt!`;
+
+                const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${apiKey.trim()}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        model: "openai/gpt-oss-120b",
+                        messages: [{ role: "user", content: routerPrompt }],
+                        temperature: 0.1
+                    })
+                });
+
+                const data = await res.json();
+                let content = data.choices[0].message.content;
+                if (content.includes("```json")) {
+                    content = content.split("```json")[1].split("```")[0].trim();
+                } else if (content.includes("```")) {
+                    content = content.split("```")[1].split("```")[0].trim();
+                }
+
+                const parsed = JSON.parse(content);
+
+                if (parsed.action === "calendar") {
+                    if (!accessToken) {
+                        const reply = "Silvia, bitte melde dich zuerst über den Google-Button an, damit ich Termine in deinen Kalender eintragen kann.";
+                        appendChatBubble(reply, 'assistant');
+                        speakTextOut(reply);
+                        triggerLogin();
+                        return;
+                    }
+                    parseAndCreateEvent(userText);
+                } 
+                else if (parsed.action === "todo") {
+                    const todoText = parsed.todo_text || userText;
+                    todos.push({ text: todoText, completed: false });
+                    saveTodos();
+                    const reply = `Ich habe "${todoText}" auf deine To-Do-Liste geschrieben, Silvia!`;
+                    appendChatBubble(reply, 'assistant');
+                    document.getElementById('status').innerText = 'Bereit.';
+                    speakTextOut(reply);
+                } 
+                else if (parsed.action === "store_memory") {
+                    userMemories[parsed.memory_key.toLowerCase()] = parsed.memory_value;
+                    localStorage.setItem('omas_memories', JSON.stringify(userMemories));
+                    const reply = `Ich habe mir gemerkt, Silvia: ${parsed.memory_key} liegt ${parsed.memory_value}.`;
+                    appendChatBubble(reply, 'assistant');
+                    document.getElementById('status').innerText = 'Bereit.';
+                    speakTextOut(reply);
+                } 
+                else {
+                    // Normaler Chat / Fragen (inklusive Abfragen aus dem Gedächtnis)
+                    appendChatBubble(parsed.reply, 'assistant');
+                    document.getElementById('status').innerText = 'Bereit.';
+                    speakTextOut(parsed.reply);
+                }
+
+            } catch (err) {
+                // Fallback, falls JSON mal hakt: Standard-Chat aufrufen
+                fallbackChat(userText, apiKey);
+            }
+        }
+
+        async function fallbackChat(userText, apiKey) {
+            try {
+                const memoriesStr = JSON.stringify(userMemories);
+                const prompt = `Du bist Omas Sprach-Assistent. Deine Nutzerin ist Silvia. Sprich sie immer mit Silvia an. Hier ist dein aktuelles Gedächtnis über abgelegte Gegenstände: ${memoriesStr}. Beantworte die Frage liebevoll auf Deutsch: "${userText}"`;
+                
                 const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
                     headers: {
@@ -684,29 +733,23 @@
                     },
                     body: JSON.stringify({
                         model: "openai/gpt-oss-120b",
-                        messages: chatMessages,
+                        messages: [{ role: "user", content: prompt }],
                         temperature: 0.7
                     })
                 });
 
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
                 const data = await response.json();
                 const aiReply = data.choices[0].message.content;
-
-                chatMessages.push({ role: "assistant", content: aiReply });
                 appendChatBubble(aiReply, 'assistant');
-
                 document.getElementById('status').innerText = 'Bereit.';
                 speakTextOut(aiReply);
-
-            } catch (err) {
-                document.getElementById('status').innerText = '⚠️ KI-Fehler.';
-                speakTextOut("Es gab einen Fehler.");
+            } catch (e) {
+                document.getElementById('status').innerText = '⚠️ Fehler.';
+                speakTextOut("Entschuldigung Silvia, das habe ich nicht ganz verstanden.");
             }
         }
 
-        // Hilfsfunktion zum Erstellen von Google Kalender-Einträgen
+        // Google Kalender-Termin erstellen
         async function parseAndCreateEvent(text) {
             document.getElementById('status').innerText = 'Erstelle Termin...';
             const apiKey = localStorage.getItem('omas_groq_key');
@@ -755,7 +798,7 @@
                 });
 
                 if (calRes.ok) {
-                    const reply = `Termin "${parsed.summary}" wurde erfolgreich eingetragen!`;
+                    const reply = `Termin "${parsed.summary}" wurde erfolgreich in deinen Kalender eingetragen, Silvia!`;
                     appendChatBubble(reply, 'assistant');
                     speakTextOut(reply);
                     fetchUpcomingEvents();
@@ -763,7 +806,7 @@
                     throw new Error("Fehler beim Speichern im Kalender");
                 }
             } catch (e) {
-                const reply = "Entschuldigung, ich konnte den Termin nicht automatisch verstehen.";
+                const reply = "Entschuldigung Silvia, ich konnte den Termin für den Kalender nicht automatisch verstehen.";
                 appendChatBubble(reply, 'assistant');
                 speakTextOut(reply);
             }
@@ -795,7 +838,7 @@
                 container.innerHTML = '';
                 if (!data.items || data.items.length === 0) {
                     container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine Termine.</div>';
-                    latestEventsSpeechText = "Keine anstehenden Termine.";
+                    latestEventsSpeechText = "Silvia, es sind keine anstehenden Termine eingetragen.";
                     return;
                 }
                 let speechParts = [];
@@ -816,7 +859,7 @@
                     div.appendChild(del);
                     container.appendChild(div);
                 });
-                latestEventsSpeechText = "Deine nächsten Termine: " + speechParts.join(". ");
+                latestEventsSpeechText = "Silvia, deine nächsten Termine sind: " + speechParts.join(". ");
             });
         }
 
