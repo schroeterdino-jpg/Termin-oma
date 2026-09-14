@@ -341,7 +341,7 @@
         <!-- REITER 1: UNIVERSAL CHAT -->
         <div id="tab-speak" class="tab-content active">
             <div id="chatHistory" class="chat-history">
-                <div class="chat-bubble assistant">Hallo! Ich bin bereit. Frag mich etwas oder sag mir, wo du etwas hingelegt hast.</div>
+                <div class="chat-bubble assistant">Hallo! Ich bin bereit. Frag mich etwas oder sag mir, wenn du etwas erledigen musst.</div>
             </div>
 
             <button id="masterMicBtn" class="big-btn">
@@ -351,7 +351,7 @@
             <div id="status">Bereit zum Sprechen...</div>
 
             <div class="hint-box">
-                💡 <i>"Wo ist mein Schlüssel?"</i> • <i>"Wetter morgen?"</i>
+                💡 <i>"Ich muss..."</i> (To-Do) • <i>"Termin um..."</i> (Kalender) • Fragen & Wetter
             </div>
         </div>
 
@@ -411,7 +411,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v4.1-2026-09-14-all-in-one";
+        const APP_VERSION = "v4.2-2026-09-14-all-in-one-fixed";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -433,7 +433,7 @@
         ]));
 
         let chatMessages = [
-            { role: "system", content: "Du bist ein hilfsbereiter deutscher KI-Assistent. Antworte in klaren, natürlichen Sätzen auf Deutsch, da deine Antworten per Sprachausgabe vorgelesen werden. Merke dir Ablageorte von Gegenständen oder Notizen, wenn der Nutzer sie dir nennt." }
+            { role: "system", content: "Du bist ein hilfsbereiter deutscher KI-Assistent. Antworte in klaren, natürlichen Sätzen auf Deutsch, da deine Antworten per Sprachausgabe vorgelesen werden." }
         ];
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -644,6 +644,35 @@
                 return;
             }
 
+            document.getElementById('status').innerText = 'Verarbeite...';
+            const lowerText = userText.toLowerCase();
+
+            // 1. To-Do / Merkliste Erkennung
+            if (lowerText.includes("muss") || lowerText.includes("erinnern") || lowerText.includes("zettel") || lowerText.includes("aufschreiben") || lowerText.includes("eintragen")) {
+                todos.push({ text: userText, completed: false });
+                saveTodos();
+                
+                const reply = `Ich habe "${userText}" auf deine To-Do-Liste geschrieben!`;
+                appendChatBubble(reply, 'assistant');
+                document.getElementById('status').innerText = 'Bereit.';
+                speakTextOut(reply);
+                return;
+            }
+
+            // 2. Google Kalender Termin Erkennung
+            if (lowerText.includes("termin") || lowerText.includes("kalender") || lowerText.includes("um uhr") || lowerText.includes("am nächsten")) {
+                if (!accessToken) {
+                    const reply = "Bitte melde dich zuerst über den Google-Button an, damit ich Termine eintragen kann.";
+                    appendChatBubble(reply, 'assistant');
+                    speakTextOut(reply);
+                    triggerLogin();
+                    return;
+                }
+                parseAndCreateEvent(userText);
+                return;
+            }
+
+            // 3. Normaler Chat (Wetter, Fragen, etc.)
             chatMessages.push({ role: "user", content: userText });
 
             try {
@@ -675,6 +704,70 @@
                 document.getElementById('status').innerText = '⚠️ KI-Fehler.';
                 speakTextOut("Es gab einen Fehler.");
             }
+        }
+
+        // Hilfsfunktion zum Erstellen von Google Kalender-Einträgen
+        async function parseAndCreateEvent(text) {
+            document.getElementById('status').innerText = 'Erstelle Termin...';
+            const apiKey = localStorage.getItem('omas_groq_key');
+            
+            try {
+                const prompt = `Extrahiere aus folgendem Satz einen Kalender-Termin als JSON mit den Feldern "summary" (Titel) und "startDateTime" (im ISO-Format YYYY-MM-DDTHH:mm:ss, aktuelles Jahr ist 2026). Satz: "${text}"`;
+                
+                const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${apiKey.trim()}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        model: "openai/gpt-oss-120b",
+                        messages: [{ role: "user", content: prompt }],
+                        temperature: 0.1
+                    })
+                });
+
+                const data = await res.json();
+                let content = data.choices[0].message.content;
+                if (content.includes("```json")) {
+                    content = content.split("```json")[1].split("```")[0].trim();
+                } else if (content.includes("```")) {
+                    content = content.split("```")[1].split("```")[0].trim();
+                }
+
+                const parsed = JSON.parse(content);
+                const startDate = new Date(parsed.startDateTime);
+                const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1 Stunde Dauer
+
+                const eventResource = {
+                    summary: parsed.summary,
+                    start: { dateTime: startDate.toISOString() },
+                    end: { dateTime: endDate.toISOString() }
+                };
+
+                const calRes = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + accessToken,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(eventResource)
+                });
+
+                if (calRes.ok) {
+                    const reply = `Termin "${parsed.summary}" wurde erfolgreich eingetragen!`;
+                    appendChatBubble(reply, 'assistant');
+                    speakTextOut(reply);
+                    fetchUpcomingEvents();
+                } else {
+                    throw new Error("Fehler beim Speichern im Kalender");
+                }
+            } catch (e) {
+                const reply = "Entschuldigung, ich konnte den Termin nicht automatisch verstehen.";
+                appendChatBubble(reply, 'assistant');
+                speakTextOut(reply);
+            }
+            document.getElementById('status').innerText = 'Bereit.';
         }
 
         function appendChatBubble(text, sender) {
