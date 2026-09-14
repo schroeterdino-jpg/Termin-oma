@@ -27,7 +27,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         h1 {
             font-size: 22px;
@@ -58,6 +58,37 @@
             border-radius: 12px;
             border: none;
             cursor: pointer;
+        }
+        /* Reiter-Navigation (Tabs) */
+        .tab-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            background: #e4e6eb;
+            padding: 5px;
+            border-radius: 14px;
+        }
+        .tab-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: bold;
+            color: #555;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .tab-btn.active {
+            background: #fff;
+            color: #0d6efd;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
         }
         /* Große Aktions-Buttons */
         .big-btn {
@@ -110,7 +141,6 @@
             font-weight: bold;
             color: #222;
             margin-bottom: 12px;
-            margin-top: 25px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -214,43 +244,54 @@
         <!-- Login-Button falls nötig -->
         <button id="loginBtn" class="login-btn" onclick="triggerLogin()" style="display:none;">🔐 Bei Google anmelden</button>
 
-        <!-- SPRECHEN & EINTRAGEN -->
-        <div style="font-size: 15px; color: #555; margin-bottom: 15px; text-align: center; font-weight: bold;">
-            Wähle aus, was du sagen möchtest:
+        <!-- Reiter (Tabs) -->
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchTab('speak', event)">🎤 Sprechen</button>
+            <button class="tab-btn" onclick="switchTab('calendar', event)">📅 Termine & Notizen</button>
         </div>
 
-        <button id="micEventBtn" class="big-btn" onclick="startSpeechRecognition('event')">
-            🎤 Neuen Termin sprechen
-        </button>
-        
-        <button id="micTodoBtn" class="big-btn todo-btn" onclick="startSpeechRecognition('todo')">
-            🗣️ Notiz / To-Do sprechen
-        </button>
-        
-        <div id="status">Bereit zum Sprechen...</div>
+        <!-- SEITE 1: SPRECHEN & EINTRAGEN -->
+        <div id="tab-speak" class="tab-content active">
+            <div style="font-size: 15px; color: #555; margin-bottom: 15px; text-align: center; font-weight: bold;">
+                Wähle aus, was du sagen möchtest:
+            </div>
 
-        <div class="hint-box">
-            💡 Tipp: Sag z.B. <i>"Arzttermin morgen um 14 Uhr"</i>.
+            <button id="micEventBtn" class="big-btn" onclick="startSpeechRecognition('event')">
+                🎤 Neuen Termin sprechen
+            </button>
+            
+            <button id="micTodoBtn" class="big-btn todo-btn" onclick="startSpeechRecognition('todo')">
+                🗣️ Notiz / To-Do sprechen
+            </button>
+            
+            <div id="status">Bereit zum Sprechen...</div>
+
+            <div class="hint-box">
+                💡 Tipp: Sag z.B. <i>"Arzttermin morgen um 14 Uhr"</i>.
+            </div>
         </div>
 
-        <!-- TERMINE & LÖSCHEN -->
-        <div class="section-title">
-            <span>Anstehende Termine</span>
-        </div>
-        
-        <div class="action-row">
-            <button class="action-sub-btn" style="background: #cfe2ff; color: #084298;" onclick="speakSummary()">🔊 Vorlesen</button>
-            <button class="action-sub-btn" onclick="fetchUpcomingEvents()">🔄 Neu laden</button>
-        </div>
+        <!-- SEITE 2: TERMINE & NOTIZEN -->
+        <div id="tab-calendar" class="tab-content">
+            <div class="section-title">
+                <span>Anstehende Termine</span>
+            </div>
+            
+            <div class="action-row">
+                <button class="action-sub-btn" style="background: #cfe2ff; color: #084298;" onclick="speakSummary()">🔊 Vorlesen</button>
+                <button class="action-sub-btn" onclick="fetchUpcomingEvents()">🔄 Neu laden</button>
+            </div>
 
-        <div id="deleteEventsContainer" style="margin-top: 10px;">Lade Termine...</div>
+            <div id="deleteEventsContainer" style="margin-top: 10px;">Lade Termine...</div>
 
-        <!-- MERKLISTE / TO-DOS -->
-        <div class="section-title">
-            <span>Merkliste / To-Dos</span>
-            <span style="font-size: 13px; font-weight: normal; color: #666;">(Klick = Abhaken)</span>
+            <div style="margin-top: 25px;">
+                <div class="section-title">
+                    <span>Merkliste / To-Dos</span>
+                    <span style="font-size: 13px; font-weight: normal; color: #666;">(Klick = Abhaken)</span>
+                </div>
+                <div id="todosContainer">Noch keine Notizen.</div>
+            </div>
         </div>
-        <div id="todosContainer">Noch keine Notizen.</div>
     </div>
 
     <!-- Google GIS -->
@@ -292,6 +333,19 @@
 
             renderTodos();
         };
+
+        function switchTab(tabName, event) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+            if (tabName === 'speak') {
+                document.getElementById('tab-speak').classList.add('active');
+            } else {
+                document.getElementById('tab-calendar').classList.add('active');
+                fetchUpcomingEvents(); // Direkt frische Termine laden beim Seiten-Wechsel
+            }
+            event.currentTarget.classList.add('active');
+        }
 
         function exitApp() {
             window.close();
