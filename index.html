@@ -388,7 +388,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v4.8-2026-09-14-fullfix";
+        const APP_VERSION = "v4.9-2026-09-14-todolist-fix";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -632,12 +632,12 @@ Vorhandenes Gedächtnis (gespeicherte Ablageorte/Fakten): ${memoriesStr}
 
 Analysiere die Eingabe des Nutzers: "${userText}"
 Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
-- "action": Entweder "calendar" (Termin eintragen), "get_calendar" (wenn Silvia wissen will, welche Termine anstehen), "todo" (To-Do-Liste), "store_memory" (Ablageort merken), oder "chat" (normale Fragen).
+- "action": Entweder "calendar" (Termin eintragen), "get_calendar" (wenn Silvia wissen will, welche Termine anstehen), "get_todos" (wenn Silvia wissen will, was auf ihrer To-Do-Liste steht), "todo" (Neues To-Do hinzufügen), "store_memory" (Ablageort merken), oder "chat" (normale Fragen).
 - "calendar_text": (Nur bei "calendar") Der Satz zur Termin-Extraktion.
 - "todo_text": (Nur bei "todo") Der To-Do-Inhalt.
 - "memory_key": (Nur bei "store_memory") Das Objekt.
 - "memory_value": (Nur bei "store_memory") Der Ort.
-- "reply": (Für "chat", "get_calendar" oder Bestätigung) Eine natürliche, liebevolle Antwort an Silvia.`;
+- "reply": (Für "chat", "get_calendar", "get_todos" oder Bestätigung) Eine natürliche, liebevolle Antwort an Silvia.`;
 
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
@@ -674,6 +674,19 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 } 
                 else if (parsed.action === "get_calendar") {
                     const reply = latestEventsSpeechText;
+                    appendChatBubble(reply, 'assistant');
+                    document.getElementById('status').innerText = 'Bereit.';
+                    speakTextOut(reply);
+                }
+                else if (parsed.action === "get_todos") {
+                    const activeTodos = todos.filter(t => !t.completed);
+                    let reply = "";
+                    if (activeTodos.length === 0) {
+                        reply = "Silvia, deine To-Do-Liste ist aktuell komplett leer. Super gemacht!";
+                    } else {
+                        const todoTexts = activeTodos.map(t => t.text).join(", ");
+                        reply = `Silvia, auf deiner To-Do-Liste stehen folgende offene Aufgaben: ${todoTexts}.`;
+                    }
                     appendChatBubble(reply, 'assistant');
                     document.getElementById('status').innerText = 'Bereit.';
                     speakTextOut(reply);
