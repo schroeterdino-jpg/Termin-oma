@@ -144,12 +144,13 @@
             margin: 15px 0;
             font-weight: bold;
             color: #333;
-            font-size: 16px;
+            font-size: 15px;
             background: #f8f9fa;
             padding: 14px;
             border-radius: 12px;
             text-align: center;
             border-left: 5px solid #0d6efd;
+            word-break: break-word;
         }
         .section-title {
             font-size: 18px;
@@ -404,7 +405,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v3.1-2026-09-14";
+        const APP_VERSION = "v3.2-2026-09-14";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -644,7 +645,7 @@
             btn.innerHTML = '🎤 Sprechen...';
         }
 
-        // PRÄZISE GROQ KI AUSWERTUNG
+        // PRÄZISE GROQ KI AUSWERTUNG MIT STABILEM MODELL
         async function processWithGroqAI(text) {
             const apiKey = localStorage.getItem('omas_groq_key');
             if (!apiKey) {
@@ -654,7 +655,7 @@
             }
 
             try {
-                const prompt = `Analysiere diesen deutschen Sprachbefehl für einen Haushalts-Assistenten und antworte AUSSCHLIESSLICH als JSON.
+                const prompt = `Analysiere diesen deutschen Sprachbefehl für einen Haushalts-Assistenten und antworte AUSSCHLIESSLICH als kompaktes JSON.
 Sprachbefehl: "${text}"
 
 Bestimme den "intent":
@@ -666,25 +667,28 @@ Bestimme den "intent":
 JSON-Struktur:
 {
   "intent": "save_memory" | "query_memory" | "calendar" | "todo",
-  "item": "Name des Gegenstands im Nominativ (z.B. Portemonnaie, Schlüssel - korrigiere Tippfehler wie Popmanee direkt zu Portemonnaie)",
+  "item": "Name des Gegenstands im Nominativ (z.B. Portemonnaie, Schlüssel)",
   "location": "Genauer Ablageort im Nominativ (z.B. Küchentisch, Wohnzimmerschrank)"
 }`;
 
                 const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
                     headers: {
-                        "Authorization": `Bearer ${apiKey}`,
+                        "Authorization": `Bearer ${apiKey.trim()}`,
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
-                        model: "llama3-70b-8192",
+                        model: "llama-3.3-70b-versatile",
                         messages: [{ role: "user", content: prompt }],
                         temperature: 0.1,
                         response_format: { type: "json_object" }
                     })
                 });
 
-                if (!response.ok) throw new Error("API-Fehler");
+                if (!response.ok) {
+                    const errData = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errData}`);
+                }
 
                 const data = await response.json();
                 const res = JSON.parse(data.choices[0].message.content);
@@ -693,7 +697,7 @@ JSON-Struktur:
 
             } catch (err) {
                 console.error("Groq KI Fehler:", err);
-                document.getElementById('status').innerText = 'KI-Fehler aufgetreten. Bitte erneut versuchen.';
+                document.getElementById('status').innerText = 'API-Fehler: ' + err.message;
                 speakTextOut("Es gab einen Fehler bei der KI-Abfrage.");
             }
         }
