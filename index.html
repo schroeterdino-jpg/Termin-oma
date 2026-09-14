@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TerminApp für Oma</title>
+    <title>Termin- und NotizApp für Oma</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -25,17 +25,21 @@
             font-size: 24px;
             margin-bottom: 20px;
         }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
         button {
             background-color: #4285F4;
             color: white;
             border: none;
-            padding: 15px 30px;
-            font-size: 18px;
+            padding: 15px 20px;
+            font-size: 16px;
             border-radius: 50px;
             cursor: pointer;
-            margin: 10px 0;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            width: 100%;
+            flex: 1;
             transition: background-color 0.3s;
         }
         button:active {
@@ -45,24 +49,31 @@
             background-color: #EA4335;
             animation: pulse 1.5s infinite;
         }
+        button.todo-btn {
+            background-color: #34A853;
+        }
+        button.todo-btn:active {
+            background-color: #2b8c44;
+        }
         @keyframes pulse {
             0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234, 67, 53, 0.4); }
             70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(234, 67, 53, 0); }
             100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234, 67, 53, 0); }
         }
         #status {
-            margin-top: 20px;
+            margin-top: 15px;
             font-weight: bold;
             color: #555;
             word-break: break-word;
+            font-size: 14px;
         }
-        #eventList {
+        .section-box {
             margin-top: 25px;
             text-align: left;
             border-top: 1px solid #eee;
             padding-top: 15px;
         }
-        #eventList h3 {
+        .section-box h3 {
             font-size: 16px;
             margin-bottom: 10px;
             color: #444;
@@ -74,22 +85,66 @@
             margin-bottom: 8px;
             font-size: 14px;
             border-left: 4px solid #4285F4;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .event-item:hover {
+            background: #e9ecef;
+            transform: translateX(2px);
+        }
+        .todo-item {
+            background: #f1f8f5;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            border-left: 4px solid #34A853;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+        .todo-item.completed span {
+            text-decoration: line-through;
+            color: #888;
+        }
+        .todo-item.completed {
+            background: #f8f9fa;
+            border-left-color: #ccc;
+        }
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #cc0000;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 0 5px;
+            box-shadow: none;
+            flex: none;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Termin per Spracheingabe</h1>
-        <p>Drücke den Knopf und sage z.B.:<br><em>"Zahnarzt heute um 16 Uhr"</em></p>
+        <h1>Omas Sprach-Assistent</h1>
+        <p>Wähle aus, was du eintragen möchtest:</p>
         
-        <button id="micBtn" onclick="startSpeechRecognition()">🎤 Sprechen</button>
+        <div class="btn-group">
+            <button id="micEventBtn" onclick="startSpeechRecognition('event')">🎤 Termin</button>
+            <button id="micTodoBtn" class="todo-btn" onclick="startSpeechRecognition('todo')">🗣️ Notiz / To-Do</button>
+        </div>
         
         <div id="status">Bereit...</div>
 
-        <div id="eventList">
-            <h3>Eingetragene Termine:</h3>
+        <div class="section-box">
+            <h3>Nächste Termine (Klick öffnet Kalender):</h3>
             <div id="eventsContainer">Lade Termine aus dem Kalender...</div>
+        </div>
+
+        <div class="section-box">
+            <h3>Merkliste / To-Dos (Klick zum Abhaken):</h3>
+            <div id="todosContainer">Noch keine Notizen vorhanden.</div>
         </div>
     </div>
 
@@ -102,6 +157,7 @@
         
         let tokenClient;
         let accessToken = null;
+        let todos = JSON.parse(localStorage.getItem('omas_todos') || '[]');
 
         window.onload = function () {
             tokenClient = google.accounts.oauth2.initTokenClient({
@@ -118,14 +174,36 @@
                 },
             });
             tokenClient.requestAccessToken({ prompt: '' });
+            renderTodos();
         };
 
-        function startSpeechRecognition() {
-            if (!accessToken) {
-                tokenClient.requestAccessToken({ prompt: '' });
-            } else {
-                listenAndProcess();
+        // Akustisches Startsignal (Beep)
+        function playBeep() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.15);
+            } catch (e) {
+                console.log("Audio Context blockiert", e);
             }
+        }
+
+        function startSpeechRecognition(mode) {
+            if (mode === 'event' && !accessToken) {
+                tokenClient.requestAccessToken({ prompt: '' });
+                return;
+            }
+            listenAndProcess(mode);
         }
 
         function fetchUpcomingEvents() {
@@ -148,7 +226,6 @@
                     return;
                 }
 
-                // Nur Termine mit echter Uhrzeit anzeigen (ganztägige Geburtstage etc. ausblenden)
                 const timedEvents = data.items.filter(item => item.start.dateTime);
 
                 if (timedEvents.length === 0) {
@@ -165,6 +242,12 @@
                     const div = document.createElement('div');
                     div.className = 'event-item';
                     div.innerText = `${index + 1}. ${item.summary} (${formattedDate}, ${formattedTime})`;
+                    
+                    div.onclick = function() {
+                        const calendarUrl = item.htmlLink || 'https://calendar.google.com/';
+                        window.open(calendarUrl, '_blank');
+                    };
+
                     container.appendChild(div);
                 });
                 document.getElementById('status').innerText = 'Bereit...';
@@ -176,7 +259,7 @@
             });
         }
 
-        function listenAndProcess() {
+        function listenAndProcess(mode) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
                 alert('Spracherkennung wird von diesem Browser leider nicht unterstützt.');
@@ -186,38 +269,100 @@
             const recognition = new SpeechRecognition();
             recognition.lang = 'de-DE';
             
-            const btn = document.getElementById('micBtn');
+            const btn = mode === 'event' ? document.getElementById('micEventBtn') : document.getElementById('micTodoBtn');
 
             recognition.onstart = function() {
+                playBeep();
                 btn.classList.add('recording');
                 btn.innerText = '🔴 Höre zu...';
-                document.getElementById('status').innerText = '🎙️ Bitte sprich jetzt...';
+                document.getElementById('status').innerText = '🎙️ Sprich jetzt...';
             };
 
             recognition.onresult = function(event) {
                 const speechText = event.results[0][0].transcript;
-                document.getElementById('status').innerText = 'Erkannt: "' + speechText + '" - Sende an Kalender...';
-                parseAndCreateEvent(speechText);
+                
+                if (mode === 'event') {
+                    document.getElementById('status').innerText = 'Erkannt: "' + speechText + '" - Trage Termin ein...';
+                    parseAndCreateEvent(speechText);
+                } else {
+                    document.getElementById('status').innerText = 'Notiz hinzugefügt: "' + speechText + '"';
+                    addTodo(speechText);
+                }
             };
 
             recognition.onerror = function(event) {
                 document.getElementById('status').innerText = 'Sprachfehler: ' + event.error;
-                resetButton();
+                resetButtons();
             };
 
             recognition.onend = function() {
-                resetButton();
+                resetButtons();
             };
 
             recognition.start();
         }
 
-        function resetButton() {
-            const btn = document.getElementById('micBtn');
-            btn.classList.remove('recording');
-            btn.innerText = '🎤 Sprechen';
+        function resetButtons() {
+            const btnEvent = document.getElementById('micEventBtn');
+            const btnTodo = document.getElementById('micTodoBtn');
+            btnEvent.classList.remove('recording');
+            btnEvent.innerText = '🎤 Termin';
+            btnTodo.classList.remove('recording');
+            btnTodo.innerText = '🗣️ Notiz / To-Do';
         }
 
+        // To-Do Funktionen
+        function addTodo(text) {
+            todos.unshift({ text: text, completed: false });
+            saveAndRenderTodos();
+        }
+
+        function toggleTodo(index) {
+            todos[index].completed = !todos[index].completed;
+            saveAndRenderTodos();
+        }
+
+        function deleteTodo(event, index) {
+            event.stopPropagation(); // Verhindert das Umschalten beim Klick auf den Löschen-Button
+            todos.splice(index, 1);
+            saveAndRenderTodos();
+        }
+
+        function saveAndRenderTodos() {
+            localStorage.setItem('omas_todos', JSON.stringify(todos));
+            renderTodos();
+        }
+
+        function renderTodos() {
+            const container = document.getElementById('todosContainer');
+            container.innerHTML = '';
+
+            if (todos.length === 0) {
+                container.innerHTML = '<div style="color: #777; font-size: 14px; text-align: center; padding: 5px;">Noch keine Notizen vorhanden.</div>';
+                return;
+            }
+
+            todos.forEach((todo, index) => {
+                const div = document.createElement('div');
+                div.className = 'todo-item' + (todo.completed ? ' completed' : '');
+                
+                const span = document.createElement('span');
+                span.innerText = todo.text;
+                
+                const delBtn = document.createElement('button');
+                delBtn.className = 'delete-btn';
+                delBtn.innerHTML = '🗑️';
+                delBtn.onclick = (e) => deleteTodo(e, index);
+
+                div.appendChild(span);
+                div.appendChild(delBtn);
+                div.onclick = () => toggleTodo(index);
+
+                container.appendChild(div);
+            });
+        }
+
+        // Termin-Parser Funktion
         function parseAndCreateEvent(text) {
             let eventDate = new Date();
             let hours = 10; 
