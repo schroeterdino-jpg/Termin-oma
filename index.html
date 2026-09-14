@@ -408,7 +408,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v4.6-2026-09-14-eventsfix";
+        const APP_VERSION = "v4.7-2026-09-14-fullfix";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -584,7 +584,7 @@
             let speechText = latestEventsSpeechText;
             const activeTodos = todos.filter(t => !t.completed);
             if (activeTodos.length > 0) {
-                speechText += " Silvia, du hast noch To-Dos: ";
+                speechText += " Silvia, du hast noch offene Aufgaben: ";
                 activeTodos.forEach(t => { speechText += t.text + ". "; });
             }
             speakTextOut(speechText);
@@ -704,7 +704,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 else if (parsed.action === "store_memory") {
                     userMemories[parsed.memory_key.toLowerCase()] = parsed.memory_value;
                     localStorage.setItem('omas_memories', JSON.stringify(userMemories));
-                    const reply = `Ich habe mir gemerkt, Silvia: ${parsed.memory_key} liegt ${parsed.memory_value}.`;
+                    const reply = `I have remembered, Silvia: ${parsed.memory_key} is located ${parsed.memory_value}.`;
                     appendChatBubble(reply, 'assistant');
                     document.getElementById('status').innerText = 'Bereit.';
                     speakTextOut(reply);
@@ -829,7 +829,12 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 document.getElementById('loginBtn').style.display = 'block';
                 return;
             }
-            const now = new Date().toISOString();
+            
+            // Start ab heute 00:00 Uhr, damit heutige Termine nicht fehlen
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const now = today.toISOString();
+
             fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now}&maxResults=30&singleEvents=true&orderBy=startTime`, {
                 headers: { 'Authorization': 'Bearer ' + accessToken }
             })
@@ -844,19 +849,17 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     return;
                 }
 
-                // Wichtiger Filter: Geburtstage, Feiertage & Jahrestage ausblenden
+                // Filter für Geburtstage und Feiertage
                 const filteredItems = data.items.filter(item => {
                     const summary = (item.summary || "").toLowerCase();
                     if (summary.includes("geburtstag") || summary.includes("birthday")) return false;
                     if (summary.includes("feiertag") || summary.includes("holiday")) return false;
                     if (summary.includes("jahrestag")) return false;
-                    // Wenn es ein ganztägiger Termin ohne konkrete Uhrzeit ist, der von Google automatisch kommt (optional filterbar):
-                    if (item.start && item.start.date && (summary.includes("tag") || summary.includes("ferien"))) return false;
                     return true;
                 });
 
                 if (filteredItems.length === 0) {
-                    container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine wichtigen Termine (Geburtstage ausgeblendet).</div>';
+                    container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine wichtigen Termine.</div>';
                     latestEventsSpeechText = "Silvia, es sind keine wichtigen Termine anstehend.";
                     return;
                 }
@@ -888,7 +891,10 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     div.appendChild(del);
                     container.appendChild(div);
                 });
+                
                 latestEventsSpeechText = "Silvia, deine nächsten Termine sind: " + speechParts.join(". ");
+            }).catch(err => {
+                latestEventsSpeechText = "Silvia, ich konnte die Termine gerade nicht abrufen.";
             });
         }
 
