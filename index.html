@@ -148,7 +148,7 @@
 
             recognition.onresult = function(event) {
                 const speechText = event.results[0][0].transcript;
-                document.getElementById('status').innerText = 'Erkannt: "' + speechText + '" - Analysiere...';
+                document.getElementById('status').innerText = 'Erkannt: "' + speechText + '" - Sende an Kalender...';
                 parseAndCreateEvent(speechText);
             };
 
@@ -171,10 +171,10 @@
         }
 
         function parseAndCreateEvent(text) {
-            let eventDate = new Date(); // Standard: Heute
+            let eventDate = new Date();
             let hours = 10; 
             let minutes = 0;
-            let reminderMinutes = 60; // Standard: 1 Stunde vorher
+            let reminderMinutes = 60;
 
             const lowerText = text.toLowerCase();
 
@@ -182,7 +182,6 @@
                 eventDate.setDate(eventDate.getDate() + 1);
             }
 
-            // Uhrzeit erkennen (z.B. "16 Uhr", "16:00")
             const timeMatch = text.match(/(?:um\s+)?(\d{1,2})(?::(\d{2}))?\s*uhr/i);
             if (timeMatch) {
                 hours = parseInt(timeMatch[1], 10);
@@ -197,7 +196,6 @@
                 }
             }
 
-            // Erinnerung erkennen (z.B. "2 stunden vorher")
             if (lowerText.includes('2 stunden vorher')) {
                 reminderMinutes = 120;
             } else if (lowerText.includes('3 stunden vorher')) {
@@ -209,14 +207,33 @@
             eventDate.setHours(hours, minutes, 0, 0);
             let endDate = new Date(eventDate.getTime() + 60 * 60 * 1000);
 
+            // Hilfsfunktion, um das Datum sauber im lokalen Format (inkl. Zeitzone) für Google zu formatieren
+            function toLocalISOString(date) {
+                const pad = (n) => String(n).padStart(2, '0');
+                const yyyy = date.getFullYear();
+                const MM = pad(date.getMonth() + 1);
+                const dd = pad(date.getDate());
+                const hh = pad(date.getHours());
+                const mm = pad(date.getMinutes());
+                const ss = pad(date.getSeconds());
+                
+                // Offset für Deutschland ermitteln (+02:00 im Sommer)
+                const offsetMinutes = -date.getTimezoneOffset();
+                const sign = offsetMinutes >= 0 ? '+' : '-';
+                const absOffsetHours = pad(Math.floor(Math.abs(offsetMinutes) / 60));
+                const absOffsetMins = pad(Math.abs(offsetMinutes) % 60);
+
+                return `${yyyy}-${MM}-${dd}T${hh}:${mm}:${ss}${sign}${absOffsetHours}:${absOffsetMins}`;
+            }
+
             const calendarEvent = {
                 'summary': text,
                 'description': 'Erstellt über Omas Sprach-App',
                 'start': {
-                    'dateTime': eventDate.toISOString()
+                    'dateTime': toLocalISOString(eventDate)
                 },
                 'end': {
-                    'dateTime': endDate.toISOString()
+                    'dateTime': toLocalISOString(endDate)
                 },
                 'reminders': {
                     'useDefault': false,
