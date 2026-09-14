@@ -311,7 +311,7 @@
             <div id="status">Bereit zum Sprechen...</div>
 
             <div class="hint-box">
-                💡 <i>"Termin: Zahnarzt morgen um 15 Uhr"</i> (automatische Vorlaufzeit) • <i>"Isabelle um 22 Uhr abholen"</i> (To-Do + Wecker)
+                💡 <i>"Termin: Zahnarzt morgen um 15 Uhr"</i> • <i>"Isabelle um 22 Uhr abholen"</i>
             </div>
         </div>
 
@@ -377,7 +377,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v6.19-safe-init";
+        const APP_VERSION = "v6.20-time-fix";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -400,7 +400,6 @@
             { name: "Kontakt 3", phone: "" }
         ]));
 
-        // App sofort initialisieren, unabhängig von Google Scripts
         initApp();
 
         function initApp() {
@@ -414,7 +413,6 @@
                 const loginBtn = document.getElementById('loginBtn');
                 if (loginBtn) loginBtn.onclick = triggerLogin;
 
-                // Versuche Google Client im Hintergrund zu laden
                 let attempts = 0;
                 let checkInterval = setInterval(() => {
                     attempts++;
@@ -423,7 +421,6 @@
                         setupGoogleClient();
                     } else if (attempts > 20) {
                         clearInterval(checkInterval);
-                        // Falls Google blockiert ist, zeige den Login-Button manuell an, damit App nutzbar bleibt
                         if (loginBtn) loginBtn.style.display = 'block';
                     }
                 }, 200);
@@ -624,6 +621,50 @@
             }
         }
 
+        // Hilfsfunktion zur exakten Zeit- und Datums-Ermittlung aus dem gesprochenen Text
+        function parseTargetDateTime(userText) {
+            const targetDate = new Date();
+            const lowerText = userText.toLowerCase();
+
+            if (lowerText.includes("morgen")) {
+                targetDate.setDate(targetDate.getDate() + 1);
+            }
+
+            let hourFound = false;
+            let minuteFound = 0;
+
+            // 1. Suche nach Mustern wie "um 23 Uhr" oder "23:00" oder "23 Uhr 30"
+            const timeColonMatch = userText.match(/(\d{1,2}):(\d{2})/);
+            const uhrMatch = userText.match(/(\d{1,2})\s*uhr(?:\s*(\d{1,2}))?/i);
+
+            if (timeColonMatch) {
+                targetDate.setHours(parseInt(timeColonMatch[1], 10), parseInt(timeColonMatch[2], 10), 0, 0);
+                hourFound = true;
+            } else if (uhrMatch) {
+                let h = parseInt(uhrMatch[1], 10);
+                let m = uhrMatch[2] ? parseInt(uhrMatch[2], 10) : 0;
+                targetDate.setHours(h, m, 0, 0);
+                hourFound = true;
+            } else {
+                // Fallback: Suche nach Zahlen im Text, vermeide Jahreszahlen
+                const numbers = userText.match(/\b(0?[0-9]|1[0-9]|2[0-3])\b/g);
+                if (numbers && numbers.length > 0) {
+                    // Nimm die letzte realistische Stundenzahl im Befehl (z.B. "um 23 Uhr")
+                    let h = parseInt(numbers[numbers.length - 1], 10);
+                    if (h >= 0 && h <= 23) {
+                        targetDate.setHours(h, 0, 0, 0);
+                        hourFound = true;
+                    }
+                }
+            }
+
+            if (!hourFound) {
+                targetDate.setHours(targetDate.getHours() + 1, 0, 0, 0);
+            }
+
+            return targetDate;
+        }
+
         async function handleSmartCommand(userText) {
             const apiKey = localStorage.getItem('omas_groq_key');
             if (!apiKey) {
@@ -645,18 +686,17 @@ Gespeichertes Gedächtnis des Nutzers: ${memoriesStr}
 
 Analysiere die Eingabe des Nutzers: "${userText}"
 
-ENTSCHEIDUNGS-LOGIK (STRENG TRENNEN!):
-1. **ECHTER TERMIN ("calendar")**: Wähle das AUSSCHLIESSLICH bei echten festen Terminen, Verabredungen oder ortsgebundenen Events, wo man irgendwo hingeht, Besuch bekommt oder ein Ereignis stattfindet (z.B. "Termin: Zahnarzt heute um 15 Uhr", "Morgen Friseur um 14 Uhr", "Arzttermin am Freitag").
-2. **ERINNERUNG / AUFGABE MIT UHRZEIT ("reminder_todo")**: Wähle das, wenn der Nutzer eine Handlungsanweisung, eine Abholung oder eine Erledigung mit Uhrzeit nennt (z.B. "Erinnere mich, Isabelle um 18 Uhr vom Kindergarten abzuholen", "Ich muss um 14 Uhr anrufen", "Ich muss heute noch Isabella um 22 Uhr abholen"). Das wandert als To-Do auf die Liste und legt im Kalender einen Wecker an.
-3. **REINE TO-DO ("todo")**: Normale Aufgaben oder Einkäufe OHNE Uhrzeit (z.B. "Schreib Milch auf die Liste").
+ENTSCHEIDUNGS-LOGIK:
+1. **ECHTER TERMIN ("calendar")**: Feste Termine, Verabredungen oder ortsgebundene Events.
+2. **ERINNERUNG / AUFGABE MIT UHRZEIT ("reminder_todo")**: Handlungsanweisungen, Abholungen oder Erledigungen mit Uhrzeit (z.B. "Isabelle um 23 Uhr abholen"). Das wandert als To-Do auf die Liste und setzt im Google Kalender einen exakten Kalendereintrag mit Erinnerung.
+3. **REINE TO-DO ("todo")**: Aufgaben ohne Uhrzeit.
 4. **NAMEN / GEDÄCHTNIS ("store_memory")**: Details speichern.
-5. **ABFRAGEN / CHAT ("get_calendar", "get_todos", "chat")**: Fragen oder allgemeines.
+5. **ABFRAGEN / CHAT ("get_calendar", "get_todos", "chat")**: Fragen oder Allgemeines.
 
 Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 - "action": Entweder "calendar", "reminder_todo", "todo", "get_calendar", "get_todos", "store_memory", oder "chat".
-- "summary": (Für "calendar") Titel des Termins.
-- "start_time": (Für "calendar") ISO-8601 Format YYYY-MM-DDTHH:MM:SS.
-- "todo_text": (For "todo" oder "reminder_todo") Der genaue Text für die To-Do-Liste.
+- "summary": Titel des Termins oder der Erinnerung.
+- "todo_text": Exakter Text für die To-Do-Liste.
 - "memory_key", "memory_value", "reply": Entsprechende Werte.`;
 
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -685,52 +725,18 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 
                 if (parsed.action === "calendar") {
                     if (!accessToken) {
-                        alert("Bitte zuerst bei Google anmelden (Reiter Termine / Login-Button)!");
+                        alert("Bitte zuerst bei Google anmelden!");
                         return;
                     }
                     
                     let eventSummary = parsed.summary || userText;
-                    let targetDate = new Date();
-                    const lowerText = userText.toLowerCase();
-
-                    if (lowerText.includes("morgen")) {
-                        targetDate.setDate(targetDate.getDate() + 1);
-                    }
-
-                    let hourFound = false;
-                    const timeColonMatch = userText.match(/(\d{1,2}):(\d{2})/);
-                    if (timeColonMatch) {
-                        targetDate.setHours(parseInt(timeColonMatch[1], 10), parseInt(timeColonMatch[2], 10), 0, 0);
-                        hourFound = true;
-                    } else {
-                        const numbers = userText.match(/\d+/g);
-                        if (numbers && numbers.length > 0) {
-                            for (let numStr of numbers) {
-                                let num = parseInt(numStr, 10);
-                                if (num >= 0 && num <= 23 && !lowerText.includes(num + " minuten") && !lowerText.includes(num + "te")) {
-                                    targetDate.setHours(num, 0, 0, 0);
-                                    hourFound = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    if (!hourFound) {
-                        targetDate.setHours(targetDate.getHours() + 1, 0, 0, 0);
-                    }
+                    let targetDate = parseTargetDateTime(userText);
 
                     let startISO = targetDate.toISOString().split('.')[0] + "+02:00";
                     let endDate = new Date(targetDate.getTime() + 60 * 60 * 1000);
                     let endISO = endDate.toISOString().split('.')[0] + "+02:00";
 
-                    let reminderMinutes = 240; 
-                    let diffMs = targetDate.getTime() - new Date().getTime();
-                    let diffMins = Math.floor(diffMs / (1000 * 60));
-                    if (diffMins < reminderMinutes) {
-                        reminderMinutes = diffMins > 15 ? 15 : Math.max(0, diffMins);
-                    }
-
+                    // 15 Minuten vorher warnen, wie von dir gewünscht
                     const eventObj = {
                         summary: eventSummary,
                         start: { dateTime: startISO },
@@ -738,84 +744,41 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                         reminders: {
                             useDefault: false,
                             overrides: [
-                                { method: 'popup', minutes: reminderMinutes }
+                                { method: 'popup', minutes: 15 }
                             ]
                         }
                     };
 
-                    try {
-                        const calRes = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
-                            method: "POST",
-                            headers: {
-                                "Authorization": `Bearer ${accessToken}`,
-                                "Content-Type": "application/json"
-                            },
-                            body: JSON.stringify(eventObj)
-                        });
+                    const calRes = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
+                        method: "POST",
+                        headers: {
+                            "Authorization": `Bearer ${accessToken}`,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(eventObj)
+                    });
 
-                        const calData = await calRes.json();
-                        if (calRes.ok && calData.id) {
-                            const reply = `Ich habe den Termin "${eventSummary}" eingetragen, ${currentUserName}!`;
-                            appendChatBubble(reply, 'assistant');
-                            document.getElementById('status').innerText = 'Bereit.';
-                            speakTextOut(reply);
-                            fetchUpcomingEvents();
-                        } else {
-                            throw new Error("Kalender-Fehler");
-                        }
-                    } catch (err) {
-                        const errReply = `Entschuldigung ${currentUserName}, ich konnte den Termin wegen eines Fehlers nicht im Kalender speichern.`;
-                        appendChatBubble(errReply, 'assistant');
-                        speakTextOut(errReply);
+                    if (calRes.ok) {
+                        const reply = `Ich habe den Termin "${eventSummary}" eingetragen und dich auf 15 Minuten vorher eingestellt, ${currentUserName}!`;
+                        appendChatBubble(reply, 'assistant');
+                        document.getElementById('status').innerText = 'Bereit.';
+                        speakTextOut(reply);
+                        fetchUpcomingEvents();
                     }
                 }
                 else if (parsed.action === "reminder_todo") {
                     const taskText = parsed.todo_text || parsed.summary || userText;
-                    
                     let calendarEventId = null;
+
                     if (accessToken) {
                         try {
-                            let targetDate = new Date();
-                            const lowerText = userText.toLowerCase();
-
-                            if (lowerText.includes("morgen")) {
-                                targetDate.setDate(targetDate.getDate() + 1);
-                            }
-
-                            let hourFound = false;
-                            const timeColonMatch = userText.match(/(\d{1,2}):(\d{2})/);
-                            if (timeColonMatch) {
-                                targetDate.setHours(parseInt(timeColonMatch[1], 10), parseInt(timeColonMatch[2], 10), 0, 0);
-                                hourFound = true;
-                            } else {
-                                const numbers = userText.match(/\d+/g);
-                                if (numbers && numbers.length > 0) {
-                                    for (let numStr of numbers) {
-                                        let num = parseInt(numStr, 10);
-                                        if (num >= 0 && num <= 23 && !lowerText.includes(num + " minuten")) {
-                                            targetDate.setHours(num, 0, 0, 0);
-                                            hourFound = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-
-                            if (!hourFound) {
-                                targetDate.setHours(targetDate.getHours() + 1, 0, 0, 0);
-                            }
+                            let targetDate = parseTargetDateTime(userText);
 
                             let startISO = targetDate.toISOString().split('.')[0] + "+02:00";
                             let endDate = new Date(targetDate.getTime() + 15 * 60 * 1000);
                             let endISO = endDate.toISOString().split('.')[0] + "+02:00";
 
-                            let reminderMinutes = 120;
-                            let diffMs = targetDate.getTime() - new Date().getTime();
-                            let diffMins = Math.floor(diffMs / (1000 * 60));
-                            if (diffMins < reminderMinutes) {
-                                reminderMinutes = diffMins > 15 ? 15 : Math.max(0, diffMins);
-                            }
-
+                            // Exakter Kalendereintrag zur angegebenen Zeit mit 15 Minuten Vorwarnung
                             const hiddenEventObj = {
                                 summary: `[REMINDER] ${taskText}`,
                                 start: { dateTime: startISO },
@@ -823,7 +786,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                                 reminders: {
                                     useDefault: false,
                                     overrides: [
-                                        { method: 'popup', minutes: reminderMinutes }
+                                        { method: 'popup', minutes: 15 }
                                     ]
                                 }
                             };
@@ -847,7 +810,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     todos.push({ text: `🔔 ${taskText}`, calendarId: calendarEventId, completed: false });
                     saveTodos();
 
-                    const reply = `Ich habe "${taskText}" auf deine To-Do-Liste gesetzt, ${currentUserName}!`;
+                    const reply = `Ich habe "${taskText}" für dich eingetragen und erinnere dich 15 Minuten vorher, ${currentUserName}!`;
                     appendChatBubble(reply, 'assistant');
                     document.getElementById('status').innerText = 'Bereit.';
                     speakTextOut(reply);
@@ -860,13 +823,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 }
                 else if (parsed.action === "get_todos") {
                     const activeTodos = todos.filter(t => !t.completed);
-                    let reply = "";
-                    if (activeTodos.length === 0) {
-                        reply = `${currentUserName}, deine To-Do-Liste ist aktuell komplett leer.`;
-                    } else {
-                        const todoTexts = activeTodos.map(t => t.text).join(", ");
-                        reply = `${currentUserName}, offene Aufgaben: ${todoTexts}.`;
-                    }
+                    let reply = activeTodos.length === 0 ? `${currentUserName}, deine To-Do-Liste ist leer.` : `${currentUserName}, offene Aufgaben: ` + activeTodos.map(t => t.text).join(", ");
                     appendChatBubble(reply, 'assistant');
                     document.getElementById('status').innerText = 'Bereit.';
                     speakTextOut(reply);
@@ -885,7 +842,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     localStorage.setItem('omas_memories', JSON.stringify(userMemories));
                     const reply = parsed.reply || `Vermerkt!`;
                     appendChatBubble(reply, 'assistant');
-                    document.getElementById('status').innerText = 'Bereit.';
+                    document.getElementById('status'].innerText = 'Bereit.';
                     speakTextOut(reply);
                 } 
                 else {
@@ -972,18 +929,11 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 
                 const filteredItems = data.items.filter(item => {
                     const summary = (item.summary || "").toLowerCase();
-                    if (summary.startsWith("[reminder]")) return false;
                     if (summary.includes("geburtstag") || summary.includes("birthday")) return false;
                     if (summary.includes("feiertag") || summary.includes("holiday")) return false;
                     if (summary.includes("jahrestag")) return false;
                     return true;
                 });
-
-                if (filteredItems.length === 0) {
-                    container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine wichtigen Termine.</div>';
-                    latestEventsSpeechText = `${currentUserName}, es sind keine wichtigen Termine anstehend.`;
-                    return;
-                }
 
                 let speechParts = [];
                 const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
@@ -993,7 +943,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     let timeStr = "";
                     if (item.start && item.start.dateTime) {
                         d = new Date(item.start.dateTime);
-                        timeStr = ` um ${d.getHours()} Uhr`;
+                        timeStr = ` um ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')} Uhr`;
                         speechParts.push(`${item.summary}, am ${d.getDate()}. ${monthNames[d.getMonth()]}${timeStr}`);
                     } else if (item.start && item.start.date) {
                         d = new Date(item.start.date);
@@ -1014,10 +964,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 });
                 
                 latestEventsSpeechText = `${currentUserName}, deine nächsten Termine sind: ` + speechParts.join(". ");
-            }).catch(err => {
-                const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
-                latestEventsSpeechText = `${currentUserName}, ich konnte die Termine gerade nicht abrufen.`;
-            });
+            }).catch(err => {});
         }
 
         function deleteCalendarEvent(id) {
@@ -1055,10 +1002,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     deleteTodoItem(i); 
                 };
 
-                div.onclick = () => { 
-                    deleteTodoItem(i); 
-                };
-
+                div.onclick = () => { deleteTodoItem(i); };
                 div.appendChild(span);
                 div.appendChild(del);
                 container.appendChild(div);
