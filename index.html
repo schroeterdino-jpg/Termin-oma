@@ -34,6 +34,7 @@
         }
         .app-header {
             display: flex;
+            justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
         }
@@ -57,6 +58,16 @@
             font-size: 20px;
             margin: 0;
             color: #111;
+        }
+        .close-app-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            font-size: 14px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
         }
         .login-btn {
             background-color: #fbbc05;
@@ -200,7 +211,6 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            cursor: pointer;
         }
         .event-delete-btn {
             background: #dc3545;
@@ -285,33 +295,34 @@
         <div class="app-header">
             <div class="header-title-area">
                 <div class="app-logo">🤖</div>
-                <h1>Oma Assistent</h1>
+                <h1>Omas Assistent</h1>
             </div>
+            <button id="closeAppBtn" class="close-app-btn">❌ Beenden</button>
         </div>
         
         <button id="loginBtn" class="login-btn">🔐 Bei Google anmelden</button>
 
         <div class="tab-bar">
-            <button id="tabSpeakBtn" class="tab-btn active" onclick="switchTab('speak')">💬 Chat</button>
-            <button id="tabCalendarBtn" class="tab-btn" onclick="switchTab('calendar')">📅 Termine</button>
-            <button id="tabContactsBtn" class="tab-btn" onclick="switchTab('contacts')">📞 Anrufen</button>
-            <button id="tabSettingsBtn" class="tab-btn" onclick="switchTab('settings')">⚙️ Key</button>
+            <button id="tabSpeakBtn" class="tab-btn active">💬 Chat</button>
+            <button id="tabCalendarBtn" class="tab-btn">📅 Termine</button>
+            <button id="tabContactsBtn" class="tab-btn">📞 Anrufen</button>
+            <button id="tabSettingsBtn" class="tab-btn">⚙️ Key</button>
         </div>
 
         <!-- REITER 1: UNIVERSAL CHAT -->
         <div id="tab-speak" class="tab-content active">
             <div id="chatHistory" class="chat-history">
-                <div class="chat-bubble assistant">Hallo Dino! Ich bin bereit.</div>
+                <div class="chat-bubble assistant">Hallo! Ich bin bereit. Sag mir einfach, wie du genannt werden möchtest (z.B. "Nenn mich Dino").</div>
             </div>
 
-            <button id="masterMicBtn" class="big-btn" onclick="startMasterSpeechRecognition()">
+            <button id="masterMicBtn" class="big-btn">
                 🎤 Sprechen...
             </button>
             
             <div id="status">Bereit zum Sprechen...</div>
 
             <div class="hint-box">
-                💡 <i>"Termin: Zahnarzt morgen um 15 Uhr"</i> (Erinnerung 4 Std. vorher) • <i>"Isabelle um 22 Uhr abholen"</i> (Erinnerung 2 Std. vorher)
+                💡 <i>"Nenn mich Heinz Hermann"</i> • <i>"Ich muss..."</i> (To-Do) • <i>"Termin um..."</i> (Kalender)
             </div>
         </div>
 
@@ -320,16 +331,16 @@
             <div class="section-title">Anstehende Termine</div>
             
             <div class="action-row">
-                <button id="speakSummaryBtn" class="action-sub-btn" onclick="speakSummary()" style="background: #cfe2ff; color: #084298;">🔊 Vorlesen</button>
-                <button id="refreshEventsBtn" class="action-sub-btn" onclick="fetchUpcomingEvents()">🔄 Neu laden</button>
+                <button id="speakSummaryBtn" class="action-sub-btn" style="background: #cfe2ff; color: #084298;">🔊 Vorlesen</button>
+                <button id="refreshEventsBtn" class="action-sub-btn">🔄 Neu laden</button>
             </div>
 
             <div id="eventsContainer" style="margin-top: 10px;">Lade Termine...</div>
 
             <div style="margin-top: 20px;">
                 <div class="section-title">
-                    <span>Merkliste / To-Dos & Erinnerungen</span>
-                    <span style="font-size: 12px; font-weight: normal; color: #666;">(Klick = Abhaken / 🗑️ = Löschen)</span>
+                    <span>Merkliste / To-Dos</span>
+                    <span style="font-size: 12px; font-weight: normal; color: #666;">(Klick = Abhaken)</span>
                 </div>
                 <div id="todosContainer">Noch keine Notizen.</div>
             </div>
@@ -347,19 +358,19 @@
                 <label>Kontakt 1</label>
                 <input type="text" id="c1Name" class="contact-input" placeholder="Name">
                 <input type="tel" id="c1Phone" class="contact-input" placeholder="Telefonnummer">
-                <button id="saveC1Btn" class="save-contact-btn" onclick="saveContact(1)">Speichern</button>
+                <button onclick="saveContact(1)" class="save-contact-btn">Speichern</button>
             </div>
             <div class="contact-card">
                 <label>Kontakt 2</label>
                 <input type="text" id="c2Name" class="contact-input" placeholder="Name">
                 <input type="tel" id="c2Phone" class="contact-input" placeholder="Telefonnummer">
-                <button id="saveC2Btn" class="save-contact-btn" onclick="saveContact(2)">Speichern</button>
+                <button onclick="saveContact(2)" class="save-contact-btn">Speichern</button>
             </div>
             <div class="contact-card">
                 <label>Kontakt 3</label>
                 <input type="text" id="c3Name" class="contact-input" placeholder="Name">
                 <input type="tel" id="c3Phone" class="contact-input" placeholder="Telefonnummer">
-                <button id="saveC3Btn" class="save-contact-btn" onclick="saveContact(3)">Speichern</button>
+                <button onclick="saveContact(3)" class="save-contact-btn">Speichern</button>
             </div>
         </div>
 
@@ -369,7 +380,7 @@
             <div class="settings-card">
                 <label>API-Key</label>
                 <input type="password" id="groqApiKeyInput" class="settings-input" placeholder="gsk_...">
-                <button id="saveGroqKeyBtn" class="save-settings-btn" onclick="saveGroqApiKey()">Schlüssel speichern</button>
+                <button id="saveGroqKeyBtn" class="save-settings-btn">Schlüssel speichern</button>
             </div>
         </div>
     </div>
@@ -377,7 +388,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v6.16-reminder-timer";
+        const APP_VERSION = "v5.2-2026-09-14-direct-retrieval";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -400,16 +411,32 @@
             { name: "Kontakt 3", phone: "" }
         ]));
 
-        initApp();
+        document.addEventListener('DOMContentLoaded', () => {
+            initApp();
+            attachEventListeners();
+        });
+
+        function attachEventListeners() {
+            document.getElementById('closeAppBtn').addEventListener('click', exitApp);
+            document.getElementById('loginBtn').addEventListener('click', triggerLogin);
+
+            document.getElementById('tabSpeakBtn').addEventListener('click', (e) => switchTab('speak', e));
+            document.getElementById('tabCalendarBtn').addEventListener('click', (e) => switchTab('calendar', e));
+            document.getElementById('tabContactsBtn').addEventListener('click', (e) => switchTab('contacts', e));
+            document.getElementById('tabSettingsBtn').addEventListener('click', (e) => switchTab('settings', e));
+
+            document.getElementById('masterMicBtn').addEventListener('click', startMasterSpeechRecognition);
+
+            document.getElementById('speakSummaryBtn').addEventListener('click', speakSummary);
+            document.getElementById('refreshEventsBtn').addEventListener('click', fetchUpcomingEvents);
+
+            document.getElementById('saveGroqKeyBtn').addEventListener('click', saveGroqApiKey);
+        }
 
         function initApp() {
             renderTodos();
             loadContactsUI();
-            
-            setTimeout(() => {
-                const keyInput = document.getElementById('groqApiKeyInput');
-                if (keyInput) keyInput.value = localStorage.getItem('omas_groq_key') || '';
-            }, 100);
+            document.getElementById('groqApiKeyInput').value = localStorage.getItem('omas_groq_key') || '';
 
             let checkInterval = setInterval(() => {
                 if (typeof google !== 'undefined' && google.accounts) {
@@ -417,16 +444,12 @@
                     setupGoogleClient();
                 }
             }, 300);
-
-            const loginBtn = document.getElementById('loginBtn');
-            if (loginBtn) loginBtn.onclick = triggerLogin;
         }
 
         function saveGroqApiKey() {
-            const keyVal = document.getElementById('groqApiKeyInput').value.trim();
-            localStorage.setItem('omas_groq_key', keyVal);
+            localStorage.setItem('omas_groq_key', document.getElementById('groqApiKeyInput').value.trim());
             alert("API-Key gespeichert!");
-            switchTab('speak');
+            switchTab('speak', { currentTarget: document.getElementById('tabSpeakBtn') });
         }
 
         function setupGoogleClient() {
@@ -436,49 +459,41 @@
                     scope: SCOPES,
                     callback: (response) => {
                         if (response.error !== undefined) {
-                            const lBtn = document.getElementById('loginBtn');
-                            if (lBtn) lBtn.style.display = 'block';
+                            document.getElementById('loginBtn').style.display = 'block';
                             return;
                         }
                         accessToken = response.access_token;
-                        const lBtn = document.getElementById('loginBtn');
-                        if (lBtn) lBtn.style.display = 'none';
+                        document.getElementById('loginBtn').style.display = 'none';
                         fetchUpcomingEvents();
                     },
                 });
                 tokenClient.requestAccessToken({ prompt: '' });
             } catch (e) {
-                const lBtn = document.getElementById('loginBtn');
-                if (lBtn) lBtn.style.display = 'block';
+                document.getElementById('loginBtn').style.display = 'block';
             }
         }
 
-        function switchTab(tabName) {
+        function switchTab(tabName, event) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
 
-            if (tabName === 'speak') {
-                document.getElementById('tab-speak').classList.add('active');
-                const btn = document.getElementById('tabSpeakBtn');
-                if(btn) btn.classList.add('active');
-            }
+            if (tabName === 'speak') document.getElementById('tab-speak').classList.add('active');
             else if (tabName === 'calendar') {
                 document.getElementById('tab-calendar').classList.add('active');
-                const btn = document.getElementById('tabCalendarBtn');
-                if(btn) btn.classList.add('active');
                 if (accessToken) fetchUpcomingEvents();
             }
             else if (tabName === 'contacts') {
                 document.getElementById('tab-contacts').classList.add('active');
-                const btn = document.getElementById('tabContactsBtn');
-                if(btn) btn.classList.add('active');
                 loadContactsUI();
             }
-            else if (tabName === 'settings') {
-                document.getElementById('tab-settings').classList.add('active');
-                const btn = document.getElementById('tabSettingsBtn');
-                if(btn) btn.classList.add('active');
-            }
+            else if (tabName === 'settings') document.getElementById('tab-settings').classList.add('active');
+
+            if (event && event.currentTarget) event.currentTarget.classList.add('active');
+        }
+
+        function exitApp() {
+            window.close();
+            setTimeout(() => { window.location.href = "about:blank"; }, 100);
         }
 
         function triggerLogin() {
@@ -494,7 +509,6 @@
                 if(phoneEl) phoneEl.value = contacts[i].phone || '';
             }
             const container = document.getElementById('quickCallContainer');
-            if(!container) return;
             container.innerHTML = '';
             contacts.forEach((c) => {
                 const a = document.createElement('a');
@@ -549,7 +563,7 @@
         function speakSummary() {
             let speechText = latestEventsSpeechText;
             const activeTodos = todos.filter(t => !t.completed);
-            const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
+            const currentUserName = userMemories["mein name"] || userMemories["name"] || "du";
             if (activeTodos.length > 0) {
                 speechText += ` ${currentUserName}, du hast noch offene Aufgaben: `;
                 activeTodos.forEach(t => { speechText += t.text + ". "; });
@@ -569,25 +583,20 @@
 
             recognition.onstart = function() {
                 playBeep();
-                if(btn) {
-                    btn.classList.add('recording');
-                    btn.innerHTML = '🔴 Höre zu...';
-                }
-                const statusEl = document.getElementById('status');
-                if(statusEl) statusEl.innerText = '🎙️ Sprich jetzt...';
+                btn.classList.add('recording');
+                btn.innerHTML = '🔴 Höre zu...';
+                document.getElementById('status').innerText = '🎙️ Sprich jetzt...';
             };
 
             recognition.onresult = function(event) {
                 const text = event.results[0][0].transcript;
                 appendChatBubble(text, 'user');
-                const statusEl = document.getElementById('status');
-                if(statusEl) statusEl.innerText = 'Verarbeite...';
+                document.getElementById('status').innerText = 'Verarbeite...';
                 handleSmartCommand(text);
             };
 
             recognition.onerror = function(event) {
-                const statusEl = document.getElementById('status');
-                if(statusEl) statusEl.innerText = 'Fehler: ' + event.error;
+                document.getElementById('status').innerText = 'Fehler: ' + event.error;
                 resetMasterButton();
             };
 
@@ -600,19 +609,40 @@
 
         function resetMasterButton() {
             const btn = document.getElementById('masterMicBtn');
-            if(btn) {
-                btn.classList.remove('recording');
-                btn.innerHTML = '🎤 Sprechen...';
-            }
+            btn.classList.remove('recording');
+            btn.innerHTML = '🎤 Sprechen...';
         }
 
         async function handleSmartCommand(userText) {
             const apiKey = localStorage.getItem('omas_groq_key');
             if (!apiKey) {
                 alert("Bitte zuerst im Reiter '⚙️ Key' deinen Groq API-Schlüssel eintragen!");
-                const statusEl = document.getElementById('status');
-                if(statusEl) statusEl.innerText = 'Kein API-Key hinterlegt.';
+                document.getElementById('status').innerText = 'Kein API-Key hinterlegt.';
                 return;
+            }
+
+            // DIREKTE LOKALE SUCHE NACH ABLAGEORTEN (Umgehen von LLM-Suchfehlern)
+            const lowerText = userText.toLowerCase();
+            if (lowerText.startsWith("wo ist") || lowerText.includes("wo habe ich") || lowerText.includes("wo liegt")) {
+                let queryItem = lowerText.replace("wo ist", "").replace("wo habe ich", "").replace("wo liegt", "").replace("mein", "").replace("meine", "").replace("dein", "").replace("deine", "").trim();
+                
+                let foundLocation = null;
+                for (const [key, value] of Object.entries(userMemories)) {
+                    if (queryItem.includes(key) || key.includes(queryItem)) {
+                        foundLocation = value;
+                        break;
+                    }
+                }
+
+                if (foundLocation) {
+                    const currentUserName = userMemories["mein name"] || userMemories["name"] || "";
+                    const namePrefix = currentUserName ? `${currentUserName}, ` : "";
+                    const reply = `${namePrefix}dein ${queryItem} ist ${foundLocation}.`;
+                    appendChatBubble(reply, 'assistant');
+                    document.getElementById('status').innerText = 'Bereit.';
+                    speakTextOut(reply);
+                    return;
+                }
             }
 
             try {
@@ -621,25 +651,20 @@
                 const currentDateStr = now.toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
                 const memoriesStr = JSON.stringify(userMemories);
-                const routerPrompt = `Du bist das Gehirn eines intelligenten Sprach-Assistenten für Dino. 
+                const routerPrompt = `Du bist das Gehirn eines intelligenten Sprach-Assistenten. 
 Echte aktuelle Zeit des Geräts: ${currentTimeStr}, Datum: ${currentDateStr}.
-Gespeichertes Gedächtnis des Nutzers: ${memoriesStr}
+Vorhandenes Gedächtnis (inklusive des Namens des Nutzers unter "mein name" oder "name"): ${memoriesStr}
 
 Analysiere die Eingabe des Nutzers: "${userText}"
-
-ENTSCHEIDUNGS-LOGIK (STRENG TRENNEN!):
-1. **ECHTER TERMIN ("calendar")**: Wähle das AUSSCHLIESSLICH bei echten festen Terminen, Verabredungen oder ortsgebundenen Events, wo man irgendwo hingeht, Besuch bekommt oder ein Ereignis stattfindet (z.B. "Termin: Zahnarzt heute um 15 Uhr", "Morgen Friseur um 14 Uhr", "Arzttermin am Freitag").
-2. **ERINNERUNG / AUFGABE MIT UHRZEIT ("reminder_todo")**: Wähle das, wenn der Nutzer eine Handlungsanweisung, eine Abholung oder eine Erledigung mit Uhrzeit nennt (z.B. "Erinnere mich, Isabelle um 18 Uhr vom Kindergarten abzuholen", "Ich muss um 14 Uhr anrufen", "Ich muss heute noch Isabella um 22 Uhr abholen"). Das wandert als To-Do auf die Liste und legt im Kalender einen Wecker an.
-3. **REINE TO-DO ("todo")**: Normale Aufgaben oder Einkäufe OHNE Uhrzeit (z.B. "Schreib Milch auf die Liste").
-4. **NAMEN / GEDÄCHTNIS ("store_memory")**: Details speichern.
-5. **ABFRAGEN / CHAT ("get_calendar", "get_todos", "chat")**: Fragen oder allgemeines.
+WICHTIG ZUM NAMEN: Wenn der Nutzer sagt "Nenn mich [Name]" oder "Ich heiße [Name]" oder ähnlich, speichere das direkt als memory_key: "mein name" und memory_value: "[Name]" mit der action "store_memory".
 
 Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
-- "action": Entweder "calendar", "reminder_todo", "todo", "get_calendar", "get_todos", "store_memory", oder "chat".
-- "summary": (Für "calendar") Titel des Termins.
-- "start_time": (Für "calendar") ISO-8601 Format YYYY-MM-DDTHH:MM:SS.
-- "todo_text": (Für "todo" oder "reminder_todo") Der genaue Text für die To-Do-Liste.
-- "memory_key", "memory_value", "reply": Entsprechende Werte.`;
+- "action": Entweder "calendar" (Termin eintragen), "get_calendar" (Termine vorlesen), "get_todos" (To-Dos vorlesen), "todo" (Neues To-Do hinzufügen), "store_memory" (Gedächtnis oder Name speichern), oder "chat" (normale Fragen).
+- "calendar_text": (Nur bei "calendar") Der Satz zur Termin-Extraktion.
+- "todo_text": (Nur bei "todo") Der To-Do-Inhalt.
+- "memory_key": (Nur bei "store_memory") Das Merkmal (z.B. "mein name" oder ein Gegenstand wie "kuscheltier").
+- "memory_value": (Nur bei "store_memory") Der Wert oder Ablageort (z.B. "unterm Kopfkissen" oder ein Ort).
+- "reply": (Für "chat", "get_calendar", "get_todos" oder Bestätigung) Eine natürliche Antwort an den Nutzer. Nutze dabei immer den im Gedächtnis gespeicherten Namen des Nutzers, falls vorhanden!`;
 
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
@@ -663,176 +688,18 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 }
 
                 const parsed = JSON.parse(content);
-                const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
+                const currentUserName = userMemories["mein name"] || userMemories["name"] || "";
 
                 if (parsed.action === "calendar") {
                     if (!accessToken) {
-                        alert("Bitte zuerst bei Google anmelden (Reiter Termine / Login-Button)!");
+                        const reply = currentUserName ? `${currentUserName}, bitte melde dich zuerst über den Google-Button an, damit ich Termine in deinen Kalender eintragen kann.` : `Bitte melde dich zuerst über den Google-Button an.`;
+                        appendChatBubble(reply, 'assistant');
+                        speakTextOut(reply);
+                        triggerLogin();
                         return;
                     }
-                    
-                    let eventSummary = parsed.summary || userText;
-                    let targetDate = new Date();
-                    const lowerText = userText.toLowerCase();
-
-                    if (lowerText.includes("morgen")) {
-                        targetDate.setDate(targetDate.getDate() + 1);
-                    }
-
-                    let hourFound = false;
-                    const timeColonMatch = userText.match(/(\d{1,2}):(\d{2})/);
-                    if (timeColonMatch) {
-                        targetDate.setHours(parseInt(timeColonMatch[1], 10), parseInt(timeColonMatch[2], 10), 0, 0);
-                        hourFound = true;
-                    } else {
-                        const numbers = userText.match(/\d+/g);
-                        if (numbers && numbers.length > 0) {
-                            for (let numStr of numbers) {
-                                let num = parseInt(numStr, 10);
-                                if (num >= 0 && num <= 23 && !lowerText.includes(num + " minuten") && !lowerText.includes(num + "te")) {
-                                    targetDate.setHours(num, 0, 0, 0);
-                                    hourFound = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    if (!hourFound) {
-                        targetDate.setHours(targetDate.getHours() + 1, 0, 0, 0);
-                    }
-
-                    let startISO = targetDate.toISOString().split('.')[0] + "+02:00";
-                    let endDate = new Date(targetDate.getTime() + 60 * 60 * 1000);
-                    let endISO = endDate.toISOString().split('.')[0] + "+02:00";
-
-                    if (parsed.start_time && parsed.start_time.includes("T")) {
-                        try {
-                            let customDate = new Date(parsed.start_time);
-                            if (!isNaN(customDate.getTime())) {
-                                startISO = customDate.toISOString().split('.')[0] + "+02:00";
-                                endDate = new Date(customDate.getTime() + 60 * 60 * 1000);
-                                endISO = endDate.toISOString().split('.')[0] + "+02:00";
-                            }
-                        } catch(e) {}
-                    }
-
-                    // Echter Termin: Automatische Erinnerung 4 Stunden (240 Minuten) vorher
-                    const eventObj = {
-                        summary: eventSummary,
-                        start: { dateTime: startISO },
-                        end: { dateTime: endISO },
-                        reminders: {
-                            useDefault: false,
-                            overrides: [
-                                { method: 'popup', minutes: 240 }
-                            ]
-                        }
-                    };
-
-                    try {
-                        const calRes = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
-                            method: "POST",
-                            headers: {
-                                "Authorization": `Bearer ${accessToken}`,
-                                "Content-Type": "application/json"
-                            },
-                            body: JSON.stringify(eventObj)
-                        });
-
-                        const calData = await calRes.json();
-                        if (calRes.ok && calData.id) {
-                            const reply = `Ich habe den Termin "${eventSummary}" eingetragen und dich für 4 Stunden vorher im Kalender eingestellt, ${currentUserName}!`;
-                            appendChatBubble(reply, 'assistant');
-                            document.getElementById('status').innerText = 'Bereit.';
-                            speakTextOut(reply);
-                            fetchUpcomingEvents();
-                        } else {
-                            throw new Error("Kalender-Fehler");
-                        }
-                    } catch (err) {
-                        const errReply = `Entschuldigung ${currentUserName}, ich konnte den Termin wegen eines Fehlers nicht im Kalender speichern.`;
-                        appendChatBubble(errReply, 'assistant');
-                        speakTextOut(errReply);
-                    }
-                }
-                else if (parsed.action === "reminder_todo") {
-                    const taskText = parsed.todo_text || parsed.summary || userText;
-                    
-                    let calendarEventId = null;
-                    if (accessToken) {
-                        try {
-                            let targetDate = new Date();
-                            const lowerText = userText.toLowerCase();
-
-                            if (lowerText.includes("morgen")) {
-                                targetDate.setDate(targetDate.getDate() + 1);
-                            }
-
-                            let hourFound = false;
-                            const timeColonMatch = userText.match(/(\d{1,2}):(\d{2})/);
-                            if (timeColonMatch) {
-                                targetDate.setHours(parseInt(timeColonMatch[1], 10), parseInt(timeColonMatch[2], 10), 0, 0);
-                                hourFound = true;
-                            } else {
-                                const numbers = userText.match(/\d+/g);
-                                if (numbers && numbers.length > 0) {
-                                    for (let numStr of numbers) {
-                                        let num = parseInt(numStr, 10);
-                                        if (num >= 0 && num <= 23 && !lowerText.includes(num + " minuten")) {
-                                            targetDate.setHours(num, 0, 0, 0);
-                                            hourFound = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-
-                            if (!hourFound) {
-                                targetDate.setHours(targetDate.getHours() + 1, 0, 0, 0);
-                            }
-
-                            let startISO = targetDate.toISOString().split('.')[0] + "+02:00";
-                            let endDate = new Date(targetDate.getTime() + 15 * 60 * 1000);
-                            let endISO = endDate.toISOString().split('.')[0] + "+02:00";
-
-                            // To-Do mit Uhrzeit: Automatische Erinnerung 2 Stunden (120 Minuten) vorher
-                            const hiddenEventObj = {
-                                summary: `[REMINDER] ${taskText}`,
-                                start: { dateTime: startISO },
-                                end: { dateTime: endISO },
-                                reminders: {
-                                    useDefault: false,
-                                    overrides: [
-                                        { method: 'popup', minutes: 120 }
-                                    ]
-                                }
-                            };
-
-                            const calRes = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
-                                method: "POST",
-                                headers: {
-                                    "Authorization": `Bearer ${accessToken}`,
-                                    "Content-Type": "application/json"
-                                },
-                                body: JSON.stringify(hiddenEventObj)
-                            });
-                            
-                            const calData = await calRes.json();
-                            if (calRes.ok && calData.id) {
-                                calendarEventId = calData.id;
-                            }
-                        } catch (e) {}
-                    }
-
-                    todos.push({ text: `🔔 ${taskText}`, calendarId: calendarEventId, completed: false });
-                    saveTodos();
-
-                    const reply = `Ich habe "${taskText}" auf deine To-Do-Liste gesetzt und dich 2 Stunden vorher im Kalender erinnert, ${currentUserName}!`;
-                    appendChatBubble(reply, 'assistant');
-                    document.getElementById('status').innerText = 'Bereit.';
-                    speakTextOut(reply);
-                }
+                    parseAndCreateEvent(userText);
+                } 
                 else if (parsed.action === "get_calendar") {
                     const reply = latestEventsSpeechText;
                     appendChatBubble(reply, 'assistant');
@@ -842,11 +709,12 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 else if (parsed.action === "get_todos") {
                     const activeTodos = todos.filter(t => !t.completed);
                     let reply = "";
+                    const namePrefix = currentUserName ? `${currentUserName}, ` : "";
                     if (activeTodos.length === 0) {
-                        reply = `${currentUserName}, deine To-Do-Liste ist aktuell komplett leer.`;
+                        reply = `${namePrefix}deine To-Do-Liste ist aktuell komplett leer. Super gemacht!`;
                     } else {
                         const todoTexts = activeTodos.map(t => t.text).join(", ");
-                        reply = `${currentUserName}, offene Aufgaben: ${todoTexts}.`;
+                        reply = `${namePrefix}auf deiner To-Do-Liste stehen folgende offene Aufgaben: ${todoTexts}.`;
                     }
                     appendChatBubble(reply, 'assistant');
                     document.getElementById('status').innerText = 'Bereit.';
@@ -854,9 +722,10 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 }
                 else if (parsed.action === "todo") {
                     const todoText = parsed.todo_text || userText;
-                    todos.push({ text: todoText, calendarId: null, completed: false });
+                    todos.push({ text: todoText, completed: false });
                     saveTodos();
-                    const reply = `Ich habe "${todoText}" auf deine To-Do-Liste geschrieben, ${currentUserName}!`;
+                    const namePrefix = currentUserName ? `, ${currentUserName}` : "";
+                    const reply = `Ich habe "${todoText}" auf deine To-Do-Liste geschrieben${namePrefix}!`;
                     appendChatBubble(reply, 'assistant');
                     document.getElementById('status').innerText = 'Bereit.';
                     speakTextOut(reply);
@@ -864,7 +733,15 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 else if (parsed.action === "store_memory") {
                     userMemories[parsed.memory_key.toLowerCase()] = parsed.memory_value;
                     localStorage.setItem('omas_memories', JSON.stringify(userMemories));
-                    const reply = parsed.reply || `Vermerkt!`;
+                    
+                    let reply = parsed.reply;
+                    if (!reply) {
+                        if (parsed.memory_key.toLowerCase().includes("name")) {
+                            reply = `Alles klar, ich nenne dich ab jetzt ${parsed.memory_value}!`;
+                        } else {
+                            reply = `Ich habe mir gemerkt: Dein ${parsed.memory_key} ist ${parsed.memory_value}.`;
+                        }
+                    }
                     appendChatBubble(reply, 'assistant');
                     document.getElementById('status').innerText = 'Bereit.';
                     speakTextOut(reply);
@@ -885,7 +762,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 const now = new Date();
                 const currentTimeStr = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
                 const memoriesStr = JSON.stringify(userMemories);
-                const prompt = `Du bist ein treuer Sprach-Assistent für Dino. Nutze das Gedächtnis: ${memoriesStr}. Echte aktuelle Uhrzeit: ${currentTimeStr}. Beantworte die Frage liebevoll auf Deutsch: "${userText}"`;
+                const prompt = `Du bist ein treuer Sprach-Assistent. Nutze das Gedächtnis (falls ein Name wie "mein name" hinterlegt ist, sprich den Nutzer immer mit diesem Namen an): ${memoriesStr}. Echte aktuelle Uhrzeit: ${currentTimeStr}. Beantworte die Frage liebevoll auf Deutsch: "${userText}"`;
                 
                 const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
@@ -911,9 +788,74 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
             }
         }
 
+        async function parseAndCreateEvent(text) {
+            document.getElementById('status').innerText = 'Erstelle Termin...';
+            const apiKey = localStorage.getItem('omas_groq_key');
+            
+            try {
+                const prompt = `Extrahiere aus folgendem Satz einen Kalender-Termin als JSON mit den Feldern "summary" (Titel) und "startDateTime" (im ISO-Format YYYY-MM-DDTHH:mm:ss, aktuelles Jahr is 2026). Satz: "${text}"`;
+                
+                const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${apiKey.trim()}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        model: "openai/gpt-oss-120b",
+                        messages: [{ role: "user", content: prompt }],
+                        temperature: 0.1
+                    })
+                });
+
+                const data = await res.json();
+                let content = data.choices[0].message.content;
+                if (content.includes("```json")) {
+                    content = content.split("```json")[1].split("```")[0].trim();
+                } else if (content.includes("```")) {
+                    content = content.split("```")[1].split("```")[0].trim();
+                }
+
+                const parsed = JSON.parse(content);
+                const startDate = new Date(parsed.startDateTime);
+                const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+
+                const eventResource = {
+                    summary: parsed.summary,
+                    start: { dateTime: startDate.toISOString() },
+                    end: { dateTime: endDate.toISOString() }
+                };
+
+                const calRes = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + accessToken,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(eventResource)
+                });
+
+                const currentUserName = userMemories["mein name"] || userMemories["name"] || "";
+                const nameSuffix = currentUserName ? `, ${currentUserName}` : "";
+
+                if (calRes.ok) {
+                    const reply = `Termin "${parsed.summary}" wurde erfolgreich in deinen Kalender eingetragen${nameSuffix}!`;
+                    appendChatBubble(reply, 'assistant');
+                    speakTextOut(reply);
+                    fetchUpcomingEvents();
+                } else {
+                    throw new Error("Fehler beim Speichern im Kalender");
+                }
+            } catch (e) {
+                const reply = "Entschuldigung, ich konnte den Termin für den Kalender nicht automatisch verstehen.";
+                appendChatBubble(reply, 'assistant');
+                speakTextOut(reply);
+            }
+            document.getElementById('status').innerText = 'Bereit.';
+        }
+
         function appendChatBubble(text, sender) {
             const history = document.getElementById('chatHistory');
-            if(!history) return;
             const bubble = document.createElement('div');
             bubble.className = `chat-bubble ${sender}`;
             bubble.innerText = text;
@@ -923,8 +865,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 
         function fetchUpcomingEvents() {
             if (!accessToken) {
-                const evCont = document.getElementById('eventsContainer');
-                if(evCont) evCont.innerHTML = 'Nicht angemeldet.';
+                document.getElementById('eventsContainer').innerHTML = 'Nicht angemeldet.';
                 document.getElementById('loginBtn').style.display = 'block';
                 return;
             }
@@ -933,16 +874,15 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
             today.setHours(0, 0, 0, 0);
             const now = today.toISOString();
 
-            fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now}&maxResults=40&singleEvents=true&orderBy=startTime`, {
+            fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now}&maxResults=30&singleEvents=true&orderBy=startTime`, {
                 headers: { 'Authorization': 'Bearer ' + accessToken }
             })
             .then(res => res.json())
             .then(data => {
                 const container = document.getElementById('eventsContainer');
-                if(!container) return;
                 container.innerHTML = '';
                 
-                const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
+                const currentUserName = userMemories["mein name"] || userMemories["name"] || "der Nutzer";
 
                 if (!data.items || data.items.length === 0) {
                     container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine anstehenden Termine.</div>';
@@ -952,7 +892,6 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 
                 const filteredItems = data.items.filter(item => {
                     const summary = (item.summary || "").toLowerCase();
-                    if (summary.startsWith("[reminder]")) return false;
                     if (summary.includes("geburtstag") || summary.includes("birthday")) return false;
                     if (summary.includes("feiertag") || summary.includes("holiday")) return false;
                     if (summary.includes("jahrestag")) return false;
@@ -995,13 +934,14 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 
                 latestEventsSpeechText = `${currentUserName}, deine nächsten Termine sind: ` + speechParts.join(". ");
             }).catch(err => {
-                const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
-                latestEventsSpeechText = `${currentUserName}, ich konnte die Termine gerade nicht abrufen.`;
+                const currentUserName = userMemories["mein name"] || userMemories["name"] || "";
+                const namePrefix = currentUserName ? `${currentUserName}, ` : "";
+                latestEventsSpeechText = `${namePrefix}ich konnte die Termine gerade nicht abrufen.`;
             });
         }
 
         function deleteCalendarEvent(id) {
-            if (!confirm("Eintrag wirklich löschen?")) return;
+            if (!confirm("Termin wirklich löschen?")) return;
             fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': 'Bearer ' + accessToken }
@@ -1010,51 +950,26 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 
         function renderTodos() {
             const container = document.getElementById('todosContainer');
-            if(!container) return;
             container.innerHTML = '';
             if (todos.length === 0) {
-                container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Noch keine Notizen.</div>';
+                container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine Notizen.</div>';
                 return;
             }
             todos.forEach((t, i) => {
                 const div = document.createElement('div');
-                div.className = 'event-item';
+                div.className = 'event-item' + (t.completed ? ' completed' : '');
                 div.style.background = t.completed ? '#f8f9fa' : '#f1f8f5';
                 div.style.borderLeftColor = t.completed ? '#ccc' : '#198754';
-                
-                const span = document.createElement('span');
-                span.style.cssText = t.completed ? 'text-decoration: line-through; color: #888;' : '';
-                span.innerText = t.text;
-                
+                div.innerHTML = `<span style="${t.completed ? 'text-decoration: line-through; color: #888;' : ''}">${t.text}</span>`;
                 const del = document.createElement('button');
                 del.className = 'event-delete-btn';
                 del.style.background = '#dc3545';
                 del.innerHTML = '🗑️';
-                del.onclick = (e) => { 
-                    e.stopPropagation(); 
-                    deleteTodoItem(i); 
-                };
-
-                div.onclick = () => { 
-                    deleteTodoItem(i); 
-                };
-
-                div.appendChild(span);
+                del.onclick = (e) => { e.stopPropagation(); todos.splice(i, 1); saveTodos(); };
                 div.appendChild(del);
+                div.onclick = () => { todos[i].completed = !todos[i].completed; saveTodos(); };
                 container.appendChild(div);
             });
-        }
-
-        function deleteTodoItem(index) {
-            const item = todos[index];
-            if (item && item.calendarId && accessToken) {
-                fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${item.calendarId}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + accessToken }
-                }).catch(() => {});
-            }
-            todos.splice(index, 1);
-            saveTodos();
         }
 
         function saveTodos() {
