@@ -658,16 +658,24 @@
                     }
                 }
 
-                if (foundLocation) {
+                                if (foundLocation) {
                     const currentUserName = userMemories["mein name"] || userMemories["name"] || "";
                     const namePrefix = currentUserName ? `${currentUserName}, ` : "";
-                    const reply = `${namePrefix}dein ${queryItem} ist ${foundLocation}.`;
+                    
+                    // Korrigiert "mein Kissen" automatisch zu "deinem Kissen"
+                    let cleanLocation = foundLocation.replace(/^mein\s+/i, "deinem ").replace(/^meine\s+/i, "deiner ");
+                    if (!cleanLocation.startsWith("unter") && !cleanLocation.startsWith("in") && !cleanLocation.startsWith("auf")) {
+                        cleanLocation = "unter " + cleanLocation;
+                    }
+
+                    const reply = `${namePrefix}dein ${queryItem} ist ${cleanLocation}.`;
                     appendChatBubble(reply, 'assistant');
                     const statusEl = document.getElementById('status');
                     if(statusEl) statusEl.innerText = 'Bereit.';
                     speakTextOut(reply);
                     return;
                 }
+
             }
 
             try {
