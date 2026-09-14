@@ -331,8 +331,8 @@
             <div class="hint-box">
                 💡 <b>Mit GPT-OSS & KI Power:</b><br>
                 • Erkennt sofort, ob du etwas weglegst oder suchst!<br>
-                • <i>"Ich lege meine Tasche auf den Arbeitstisch"</i><br>
-                • <i>"Wo ist meine Tasche?"</i>
+                • <i>"Ich lege mein Portemonnaie auf den Küchentisch"</i><br>
+                • <i>"Wo ist mein Portemonnaie?"</i>
             </div>
         </div>
 
@@ -412,7 +412,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v3.13-2026-09-14-gpt";
+        const APP_VERSION = "v3.13-2026-09-14-gpt-fix";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -721,14 +721,13 @@
 
             try {
                 const systemPrompt = `Du bist ein extrem präziser deutscher Sprachassistent. Deine Aufgabe ist es, den deutschen Sprachbefehl zu analysieren und AUSSCHLIESSLICH als kompaktes JSON im exakten Format unten zu antworten.
-Ermittle exakt den konkreten Gegenstand (item) und den genauen Ablageort (location) aus dem Text. Schreibe niemals das Wort "Objekt" als Platzhalter, sondern immer den tatsächlichen Begriff (z.B. "Tasche", "Schlüssel", "Portemonnaie").
-Achte penibel auf deutsche Grammatik: Nutze IMMER den korrekten grammatikalischen Artikel im Nominativ für das Item (z.B. "die Tasche", "der Schlüssel", "das Portemonnaie", "die Jacke").
+Achte penibel auf deutsche Grammatik: Nutze IMMER den korrekten grammatikalischen Artikel im Nominativ für das Item (z.B. "die Brieftasche", "der Schlüssel", "das Portemonnaie", "die Jacke"). Verwende NIEMALS falsche Artikel.
 
 JSON-Struktur:
 {
   "intent": "save_memory" | "query_memory" | "calendar" | "todo",
-  "item": "Konkreter Name des Gegenstands im Nominativ mit korrektem Artikel (z.B. die Tasche, der Schlüssel)",
-  "location": "Genauer Ablageort im Nominativ (z.B. Arbeitstisch, Küchentisch, Flur)"
+  "item": "Name des Gegenstands im Nominativ mit absolut korrektem deutschen Artikel (z.B. die Brieftasche, der Schlüssel)",
+  "location": "Genauer Ablageort im Nominativ (z.B. Küchentisch, Küchenschrank)"
 }`;
 
                 const response = await fetch(apiUrl, {
@@ -773,23 +772,28 @@ JSON-Struktur:
         }
 
         function handleAIResult(res, originalText) {
-            if (res.intent === "save_memory" && res.item && res.location) {
-                let item = res.item.toLowerCase();
-                let loc = res.location;
-                memory[item] = loc;
+            // FIX: Prüfen, ob item und location Strings sind, um [object Object] zu verhindern
+            let itemStr = (typeof res.item === 'string') ? res.item : (res.item ? JSON.stringify(res.item) : '');
+            let locStr = (typeof res.location === 'string') ? res.location : (res.location ? JSON.stringify(res.location) : '');
+
+            if (res.intent === "save_memory" && itemStr && locStr) {
+                let cleanItem = itemStr.toLowerCase().trim();
+                let cleanLoc = locStr.trim();
+                
+                memory[cleanItem] = cleanLoc;
                 localStorage.setItem('omas_memory', JSON.stringify(memory));
                 
-                const msg = `Du hast ${item} auf ${loc} gelegt.`;
+                const msg = `Du hast ${cleanItem} in den ${cleanLoc} gelegt.`;
                 document.getElementById('status').innerText = `🧠 ${msg}`;
                 speakTextOut(msg);
 
-            } else if (res.intent === "query_memory" && res.item) {
-                let item = res.item.toLowerCase();
-                let foundKey = Object.keys(memory).find(k => k.includes(item) || item.includes(k));
+            } else if (res.intent === "query_memory" && itemStr) {
+                let cleanQuery = itemStr.toLowerCase().trim();
+                let foundKey = Object.keys(memory).find(k => k.includes(cleanQuery) || cleanQuery.includes(k));
                 
                 if (foundKey && memory[foundKey]) {
                     let loc = memory[foundKey];
-                    let msg = `Du hast ${foundKey} auf ${loc} gelegt.`;
+                    let msg = `Du hast ${foundKey} in den ${loc} gelegt.`;
                     document.getElementById('status').innerText = `💡 ${msg}`;
                     speakTextOut(msg);
                 } else {
@@ -940,7 +944,7 @@ JSON-Struktur:
                 headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 'summary': eventTitle, 'start': { 'dateTime': toLocalISOString(eventDate) }, 'end': { 'dateTime': toLocalISOString(endDate) } })
             }).then(res => {
-                : res.ok) {
+                if (res.ok) {
                     const msg = `Termin ${eventTitle} eingetragen.`;
                     document.getElementById('status').innerText = `✅ Termin "${eventTitle}" eingetragen!`;
                     speakTextOut(msg);
