@@ -775,31 +775,33 @@ Antworte AUSSCHLIESSLICH als kompaktes JSON im exakten Format:
             let itemStr = (typeof res.item === 'string') ? res.item : (res.item ? JSON.stringify(res.item) : '');
             let locStr = (typeof res.location === 'string') ? res.location : (res.location ? JSON.stringify(res.location) : '');
 
-            // Schutz vor fehlerhaften KI-Ausgaben (wie "Objekt" oder Platzhaltern)
+            // Schutz vor fehlerhaften KI-Ausgaben
             if (locStr.toLowerCase().includes('objekt') || !locStr.trim()) {
-                locStr = "auf den Tisch"; // Fallback, falls die KI patzt
+                locStr = "auf den Tisch";
             }
 
             if (res.intent === "save_memory" && itemStr) {
                 let cleanItem = itemStr.toLowerCase().replace(/^(der|die|das|den|dem|ein|eine|einen)\s+/i, '').trim();
                 let cleanLoc = locStr.trim();
                 
+                // Hier wird der alte Eintrag für diesen Gegenstand direkt überschrieben
                 memory[cleanItem] = cleanLoc;
                 localStorage.setItem('omas_memory', JSON.stringify(memory));
                 
-                // Wir bauen den Satz für die Ausgabe direkt aus den erkannten Begriffen
                 const msg = `Du hast ${itemStr} ${cleanLoc} gelegt.`;
                 document.getElementById('status').innerText = `🧠 ${msg}`;
                 speakTextOut(msg);
 
             } else if (res.intent === "query_memory" && itemStr) {
                 let cleanQuery = itemStr.toLowerCase().replace(/^(der|die|das|den|dem|ein|eine|einen)\s+/i, '').trim();
-                let foundKey = Object.keys(memory).find(k => k === cleanQuery || k.includes(cleanQuery) || cleanQuery.includes(k));
+                
+                // Wir suchen nach dem genauen Gegenstand im Speicher
+                let foundKey = Object.keys(memory).find(k => k === cleanQuery || cleanQuery.includes(k) || k.includes(cleanQuery));
                 
                 if (foundKey && memory[foundKey]) {
                     let loc = memory[foundKey];
                     let articleItem = "die " + foundKey;
-                    if (foundKey.match(/(schlüssel|geldbeutel|schirme?|tisch)/i)) articleItem = "den " + foundKey;
+                    if (foundKey.match(/(schlüssel|geldbeutel|schirme?|tisch|schrank)/i)) articleItem = "den " + foundKey;
                     
                     let msg = `Du hast ${articleItem} ${loc} gelegt.`;
                     document.getElementById('status').innerText = `💡 ${msg}`;
@@ -825,6 +827,7 @@ Antworte AUSSCHLIESSLICH als kompaktes JSON im exakten Format:
                 speakTextOut(msg);
             }
         }
+
 
         function fetchUpcomingEvents() {
             if (!accessToken) {
