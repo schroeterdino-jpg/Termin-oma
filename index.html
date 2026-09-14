@@ -226,26 +226,6 @@
             justify-content: center;
             flex: none;
         }
-        .todo-item {
-            background: #f1f8f5;
-            padding: 12px 14px;
-            border-radius: 12px;
-            margin-bottom: 10px;
-            font-size: 15px;
-            border-left: 6px solid #198754;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            cursor: pointer;
-        }
-        .todo-item.completed span {
-            text-decoration: line-through;
-            color: #888;
-        }
-        .todo-item.completed {
-            background: #f8f9fa;
-            border-left-color: #ccc;
-        }
         .call-btn {
             width: 100%;
             background-color: #198754;
@@ -408,7 +388,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v4.7-2026-09-14-fullfix";
+        const APP_VERSION = "v4.8-2026-09-14-fullfix";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -652,12 +632,12 @@ Vorhandenes Gedächtnis (gespeicherte Ablageorte/Fakten): ${memoriesStr}
 
 Analysiere die Eingabe des Nutzers: "${userText}"
 Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
-- "action": Entweder "calendar" (Termin eintragen), "todo" (To-Do-Liste), "store_memory" (Ablageort merken, z.B. Portemonnaie), oder "chat" (für normale Fragen, Uhrzeit-Fragen, Wetter etc.).
+- "action": Entweder "calendar" (Termin eintragen), "get_calendar" (wenn Silvia wissen will, welche Termine anstehen), "todo" (To-Do-Liste), "store_memory" (Ablageort merken), oder "chat" (normale Fragen).
 - "calendar_text": (Nur bei "calendar") Der Satz zur Termin-Extraktion.
 - "todo_text": (Nur bei "todo") Der To-Do-Inhalt.
-- "memory_key": (Nur bei "store_memory") Das Objekt (z.B. "portemonnaie").
-- "memory_value": (Nur bei "store_memory") Der Ort (z.B. "im küchenschrank").
-- "reply": (Für "chat" oder Bestätigung) Eine natürliche, liebevolle Antwort an Silvia (sprich sie immer mit Silvia an). Wenn sie nach der Uhrzeit fragt, nenne ihr exakt die oben genannte echte Uhrzeit (${currentTimeStr}). Wenn sie fragt, wo etwas liegt, schaue in das Gedächtnis und antworte ihr!`;
+- "memory_key": (Nur bei "store_memory") Das Objekt.
+- "memory_value": (Nur bei "store_memory") Der Ort.
+- "reply": (Für "chat", "get_calendar" oder Bestätigung) Eine natürliche, liebevolle Antwort an Silvia.`;
 
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
@@ -692,6 +672,12 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     }
                     parseAndCreateEvent(userText);
                 } 
+                else if (parsed.action === "get_calendar") {
+                    const reply = latestEventsSpeechText;
+                    appendChatBubble(reply, 'assistant');
+                    document.getElementById('status').innerText = 'Bereit.';
+                    speakTextOut(reply);
+                }
                 else if (parsed.action === "todo") {
                     const todoText = parsed.todo_text || userText;
                     todos.push({ text: todoText, completed: false });
@@ -704,7 +690,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 else if (parsed.action === "store_memory") {
                     userMemories[parsed.memory_key.toLowerCase()] = parsed.memory_value;
                     localStorage.setItem('omas_memories', JSON.stringify(userMemories));
-                    const reply = `I have remembered, Silvia: ${parsed.memory_key} is located ${parsed.memory_value}.`;
+                    const reply = `Ich habe mir gemerkt, Silvia: ${parsed.memory_key} ist ${parsed.memory_value}.`;
                     appendChatBubble(reply, 'assistant');
                     document.getElementById('status').innerText = 'Bereit.';
                     speakTextOut(reply);
@@ -830,7 +816,6 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 return;
             }
             
-            // Start ab heute 00:00 Uhr, damit heutige Termine nicht fehlen
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const now = today.toISOString();
@@ -849,7 +834,6 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     return;
                 }
 
-                // Filter für Geburtstage und Feiertage
                 const filteredItems = data.items.filter(item => {
                     const summary = (item.summary || "").toLowerCase();
                     if (summary.includes("geburtstag") || summary.includes("birthday")) return false;
