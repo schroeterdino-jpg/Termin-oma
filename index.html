@@ -346,7 +346,7 @@
             </div>
         </div>
 
-        <!-- REITER 3: KONTAKTE (3 Stk.) -->
+        <!-- REITER 3: KONTAKTE -->
         <div id="tab-contacts" class="tab-content">
             <div class="section-title">Schnellwahl</div>
             <div id="quickCallContainer"></div>
@@ -388,7 +388,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v5.6-2026-09-14-fixed";
+        const APP_VERSION = "v5.7-2026-09-14-fixed";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -417,26 +417,42 @@
         });
 
         function attachEventListeners() {
-            document.getElementById('closeAppBtn').addEventListener('click', exitApp);
-            document.getElementById('loginBtn').addEventListener('click', triggerLogin);
+            const closeBtn = document.getElementById('closeAppBtn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', exitApp);
+            }
 
-            document.getElementById('tabSpeakBtn').addEventListener('click', (e) => switchTab('speak', e));
-            document.getElementById('tabCalendarBtn').addEventListener('click', (e) => switchTab('calendar', e));
-            document.getElementById('tabContactsBtn').addEventListener('click', (e) => switchTab('contacts', e));
-            document.getElementById('tabSettingsBtn').addEventListener('click', (e) => switchTab('settings', e));
+            const loginBtn = document.getElementById('loginBtn');
+            if (loginBtn) loginBtn.addEventListener('click', triggerLogin);
 
-            document.getElementById('masterMicBtn').addEventListener('click', startMasterSpeechRecognition);
+            const tabSpeak = document.getElementById('tabSpeakBtn');
+            const tabCal = document.getElementById('tabCalendarBtn');
+            const tabCont = document.getElementById('tabContactsBtn');
+            const tabSet = document.getElementById('tabSettingsBtn');
 
-            document.getElementById('speakSummaryBtn').addEventListener('click', speakSummary);
-            document.getElementById('refreshEventsBtn').addEventListener('click', fetchUpcomingEvents);
+            if (tabSpeak) tabSpeak.addEventListener('click', (e) => switchTab('speak', e));
+            if (tabCal) tabCal.addEventListener('click', (e) => switchTab('calendar', e));
+            if (tabCont) tabCont.addEventListener('click', (e) => switchTab('contacts', e));
+            if (tabSet) tabSet.addEventListener('click', (e) => switchTab('settings', e));
 
-            document.getElementById('saveGroqKeyBtn').addEventListener('click', saveGroqApiKey);
+            const micBtn = document.getElementById('masterMicBtn');
+            if (micBtn) micBtn.addEventListener('click', startMasterSpeechRecognition);
+
+            const speakSumBtn = document.getElementById('speakSummaryBtn');
+            if (speakSumBtn) speakSumBtn.addEventListener('click', speakSummary);
+
+            const refEvBtn = document.getElementById('refreshEventsBtn');
+            if (refEvBtn) refEvBtn.addEventListener('click', fetchUpcomingEvents);
+
+            const saveKeyBtn = document.getElementById('saveGroqKeyBtn');
+            if (saveKeyBtn) saveKeyBtn.addEventListener('click', saveGroqApiKey);
         }
 
         function initApp() {
             renderTodos();
             loadContactsUI();
-            document.getElementById('groqApiKeyInput').value = localStorage.getItem('omas_groq_key') || '';
+            const keyInput = document.getElementById('groqApiKeyInput');
+            if (keyInput) keyInput.value = localStorage.getItem('omas_groq_key') || '';
 
             let checkInterval = setInterval(() => {
                 if (typeof google !== 'undefined' && google.accounts) {
@@ -447,9 +463,12 @@
         }
 
         function saveGroqApiKey() {
-            localStorage.setItem('omas_groq_key', document.getElementById('groqApiKeyInput').value.trim());
-            alert("API-Key gespeichert!");
-            switchTab('speak', { currentTarget: document.getElementById('tabSpeakBtn') });
+            const keyInput = document.getElementById('groqApiKeyInput');
+            if (keyInput) {
+                localStorage.setItem('omas_groq_key', keyInput.value.trim());
+                alert("API-Key gespeichert!");
+                switchTab('speak', { currentTarget: document.getElementById('tabSpeakBtn') });
+            }
         }
 
         function setupGoogleClient() {
@@ -459,17 +478,20 @@
                     scope: SCOPES,
                     callback: (response) => {
                         if (response.error !== undefined) {
-                            document.getElementById('loginBtn').style.display = 'block';
+                            const loginBtn = document.getElementById('loginBtn');
+                            if (loginBtn) loginBtn.style.display = 'block';
                             return;
                         }
                         accessToken = response.access_token;
-                        document.getElementById('loginBtn').style.display = 'none';
+                        const loginBtn = document.getElementById('loginBtn');
+                        if (loginBtn) loginBtn.style.display = 'none';
                         fetchUpcomingEvents();
                     },
                 });
                 tokenClient.requestAccessToken({ prompt: '' });
             } catch (e) {
-                document.getElementById('loginBtn').style.display = 'block';
+                const loginBtn = document.getElementById('loginBtn');
+                if (loginBtn) loginBtn.style.display = 'block';
             }
         }
 
@@ -477,23 +499,32 @@
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
 
-            if (tabName === 'speak') document.getElementById('tab-speak').classList.add('active');
-            else if (tabName === 'calendar') {
-                document.getElementById('tab-calendar').classList.add('active');
+            if (tabName === 'speak') {
+                const tab = document.getElementById('tab-speak');
+                if (tab) tab.classList.add('active');
+            } else if (tabName === 'calendar') {
+                const tab = document.getElementById('tab-calendar');
+                if (tab) tab.classList.add('active');
                 if (accessToken) fetchUpcomingEvents();
-            }
-            else if (tabName === 'contacts') {
-                document.getElementById('tab-contacts').classList.add('active');
+            } else if (tabName === 'contacts') {
+                const tab = document.getElementById('tab-contacts');
+                if (tab) tab.classList.add('active');
                 loadContactsUI();
+            } else if (tabName === 'settings') {
+                const tab = document.getElementById('tab-settings');
+                if (tab) tab.classList.add('active');
             }
-            else if (tabName === 'settings') document.getElementById('tab-settings').classList.add('active');
 
-            if (event && event.currentTarget) event.currentTarget.classList.add('active');
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            }
         }
 
         function exitApp() {
-            window.close();
-            setTimeout(() => { window.location.href = "about:blank"; }, 100);
+            try {
+                window.close();
+            } catch (e) {}
+            window.location.href = "about:blank";
         }
 
         function triggerLogin() {
@@ -509,6 +540,7 @@
                 if(phoneEl) phoneEl.value = contacts[i].phone || '';
             }
             const container = document.getElementById('quickCallContainer');
+            if (!container) return;
             container.innerHTML = '';
             contacts.forEach((c) => {
                 const a = document.createElement('a');
@@ -528,8 +560,10 @@
         }
 
         function saveContact(num) {
-            const name = document.getElementById(`c${num}Name`).value.trim();
-            const phone = document.getElementById(`c${num}Phone`).value.trim();
+            const nameEl = document.getElementById(`c${num}Name`);
+            const phoneEl = document.getElementById(`c${num}Phone`);
+            const name = nameEl ? nameEl.value.trim() : '';
+            const phone = phoneEl ? phoneEl.value.trim() : '';
             contacts[num-1] = { name: name || `Kontakt ${num}`, phone: phone };
             localStorage.setItem('omas_contacts', JSON.stringify(contacts));
             loadContactsUI();
@@ -583,20 +617,25 @@
 
             recognition.onstart = function() {
                 playBeep();
-                btn.classList.add('recording');
-                btn.innerHTML = '🔴 Höre zu...';
-                document.getElementById('status').innerText = '🎙️ Sprich jetzt...';
+                if (btn) {
+                    btn.classList.add('recording');
+                    btn.innerHTML = '🔴 Höre zu...';
+                }
+                const statusEl = document.getElementById('status');
+                if (statusEl) statusEl.innerText = '🎙️ Sprich jetzt...';
             };
 
             recognition.onresult = function(event) {
                 const text = event.results[0][0].transcript;
                 appendChatBubble(text, 'user');
-                document.getElementById('status').innerText = 'Verarbeite...';
+                const statusEl = document.getElementById('status');
+                if (statusEl) statusEl.innerText = 'Verarbeite...';
                 handleSmartCommand(text);
             };
 
             recognition.onerror = function(event) {
-                document.getElementById('status').innerText = 'Fehler: ' + event.error;
+                const statusEl = document.getElementById('status');
+                if (statusEl) statusEl.innerText = 'Fehler: ' + event.error;
                 resetMasterButton();
             };
 
@@ -609,15 +648,18 @@
 
         function resetMasterButton() {
             const btn = document.getElementById('masterMicBtn');
-            btn.classList.remove('recording');
-            btn.innerHTML = '🎤 Sprechen...';
+            if (btn) {
+                btn.classList.remove('recording');
+                btn.innerHTML = '🎤 Sprechen...';
+            }
         }
 
         async function handleSmartCommand(userText) {
             const apiKey = localStorage.getItem('omas_groq_key');
             if (!apiKey) {
                 alert("Bitte zuerst im Reiter '⚙️ Key' deinen Groq API-Schlüssel eintragen!");
-                document.getElementById('status').innerText = 'Kein API-Key hinterlegt.';
+                const statusEl = document.getElementById('status');
+                if (statusEl) statusEl.innerText = 'Kein API-Key hinterlegt.';
                 return;
             }
 
@@ -637,7 +679,8 @@
                     const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
                     const reply = `${currentUserName}, dein ${queryItem} ist ${foundLocation}.`;
                     appendChatBubble(reply, 'assistant');
-                    document.getElementById('status').innerText = 'Bereit.';
+                    const statusEl = document.getElementById('status');
+                    if (statusEl) statusEl.innerText = 'Bereit.';
                     speakTextOut(reply);
                     return;
                 }
@@ -710,7 +753,8 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 else if (parsed.action === "get_calendar") {
                     const reply = latestEventsSpeechText;
                     appendChatBubble(reply, 'assistant');
-                    document.getElementById('status').innerText = 'Bereit.';
+                    const statusEl = document.getElementById('status');
+                    if (statusEl) statusEl.innerText = 'Bereit.';
                     speakTextOut(reply);
                 }
                 else if (parsed.action === "get_todos") {
@@ -723,7 +767,8 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                         reply = `${currentUserName}, auf deiner To-Do-Liste stehen folgende offene Aufgaben: ${todoTexts}.`;
                     }
                     appendChatBubble(reply, 'assistant');
-                    document.getElementById('status').innerText = 'Bereit.';
+                    const statusEl = document.getElementById('status');
+                    if (statusEl) statusEl.innerText = 'Bereit.';
                     speakTextOut(reply);
                 }
                 else if (parsed.action === "todo") {
@@ -732,7 +777,8 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     saveTodos();
                     const reply = `Ich habe "${todoText}" auf deine To-Do-Liste geschrieben, ${currentUserName}!`;
                     appendChatBubble(reply, 'assistant');
-                    document.getElementById('status').innerText = 'Bereit.';
+                    const statusEl = document.getElementById('status');
+                    if (statusEl) statusEl.innerText = 'Bereit.';
                     speakTextOut(reply);
                 } 
                 else if (parsed.action === "store_memory") {
@@ -741,12 +787,14 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     
                     let reply = parsed.reply || `Alles klar, ich habe es mir gemerkt, ${currentUserName}!`;
                     appendChatBubble(reply, 'assistant');
-                    document.getElementById('status').innerText = 'Bereit.';
+                    const statusEl = document.getElementById('status');
+                    if (statusEl) statusEl.innerText = 'Bereit.';
                     speakTextOut(reply);
                 } 
                 else {
                     appendChatBubble(parsed.reply, 'assistant');
-                    document.getElementById('status').innerText = 'Bereit.';
+                    const statusEl = document.getElementById('status');
+                    if (statusEl) statusEl.innerText = 'Bereit.';
                     speakTextOut(parsed.reply);
                 }
 
@@ -779,16 +827,19 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 const data = await response.json();
                 const aiReply = data.choices[0].message.content;
                 appendChatBubble(aiReply, 'assistant');
-                document.getElementById('status').innerText = 'Bereit.';
+                const statusEl = document.getElementById('status');
+                if (statusEl) statusEl.innerText = 'Bereit.';
                 speakTextOut(aiReply);
             } catch (e) {
-                document.getElementById('status').innerText = '⚠️ Fehler.';
+                const statusEl = document.getElementById('status');
+                if (statusEl) statusEl.innerText = '⚠️ Fehler.';
                 speakTextOut("Entschuldigung, das habe ich nicht ganz verstanden.");
             }
         }
 
         async function parseAndCreateEvent(text) {
-            document.getElementById('status').innerText = 'Erstelle Termin...';
+            const statusEl = document.getElementById('status');
+            if (statusEl) statusEl.innerText = 'Erstelle Termin...';
             const apiKey = localStorage.getItem('omas_groq_key');
             
             try {
@@ -812,4 +863,172 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 if (content.includes("```json")) {
                     content = content.split("```json")[1].split("```")[0].trim();
                 } else if (content.includes("```")) {
-                    content = content.split("
+                    content = content.split("```")[1].split("```")[0].trim();
+                }
+
+                const parsed = JSON.parse(content);
+                const startDate = new Date(parsed.startDateTime);
+                const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+
+                const eventResource = {
+                    summary: parsed.summary,
+                    start: { dateTime: startDate.toISOString() },
+                    end: { dateTime: endDate.toISOString() }
+                };
+
+                const calRes = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + accessToken,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(eventResource)
+                });
+
+                const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
+
+                if (calRes.ok) {
+                    const reply = `Termin "${parsed.summary}" wurde erfolgreich in deinen Kalender eingetragen, ${currentUserName}!`;
+                    appendChatBubble(reply, 'assistant');
+                    speakTextOut(reply);
+                    fetchUpcomingEvents();
+                } else {
+                    throw new Error("Fehler beim Speichern im Kalender");
+                }
+            } catch (e) {
+                const reply = "Entschuldigung, ich konnte den Termin für den Kalender nicht automatisch verstehen.";
+                appendChatBubble(reply, 'assistant');
+                speakTextOut(reply);
+            }
+            if (statusEl) statusEl.innerText = 'Bereit.';
+        }
+
+        function appendChatBubble(text, sender) {
+            const history = document.getElementById('chatHistory');
+            if (!history) return;
+            const bubble = document.createElement('div');
+            bubble.className = `chat-bubble ${sender}`;
+            bubble.innerText = text;
+            history.appendChild(bubble);
+            history.scrollTop = history.scrollHeight;
+        }
+
+        function fetchUpcomingEvents() {
+            if (!accessToken) {
+                const evCont = document.getElementById('eventsContainer');
+                if (evCont) evCont.innerHTML = 'Nicht angemeldet.';
+                const loginBtn = document.getElementById('loginBtn');
+                if (loginBtn) loginBtn.style.display = 'block';
+                return;
+            }
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const now = today.toISOString();
+
+            fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now}&maxResults=30&singleEvents=true&orderBy=startTime`, {
+                headers: { 'Authorization': 'Bearer ' + accessToken }
+            })
+            .then(res => res.json())
+            .then(data => {
+                const container = document.getElementById('eventsContainer');
+                if (!container) return;
+                container.innerHTML = '';
+                
+                const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
+
+                if (!data.items || data.items.length === 0) {
+                    container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine anstehenden Termine.</div>';
+                    latestEventsSpeechText = `${currentUserName}, es sind keine anstehenden Termine eingetragen.`;
+                    return;
+                }
+
+                const filteredItems = data.items.filter(item => {
+                    const summary = (item.summary || "").toLowerCase();
+                    if (summary.includes("geburtstag") || summary.includes("birthday")) return false;
+                    if (summary.includes("feiertag") || summary.includes("holiday")) return false;
+                    if (summary.includes("jahrestag")) return false;
+                    return true;
+                });
+
+                if (filteredItems.length === 0) {
+                    container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine wichtigen Termine.</div>';
+                    latestEventsSpeechText = `${currentUserName}, es sind keine wichtigen Termine anstehend.`;
+                    return;
+                }
+
+                let speechParts = [];
+                const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+
+                filteredItems.forEach((item) => {
+                    let d;
+                    let timeStr = "";
+                    if (item.start && item.start.dateTime) {
+                        d = new Date(item.start.dateTime);
+                        timeStr = ` um ${d.getHours()} Uhr`;
+                        speechParts.push(`${item.summary}, am ${d.getDate()}. ${monthNames[d.getMonth()]}${timeStr}`);
+                    } else if (item.start && item.start.date) {
+                        d = new Date(item.start.date);
+                        speechParts.push(`${item.summary}, am ${d.getDate()}. ${monthNames[d.getMonth()]}`);
+                    } else {
+                        return;
+                    }
+
+                    const div = document.createElement('div');
+                    div.className = 'event-item';
+                    div.innerHTML = `<span><strong>${item.summary}</strong><br><span style="color:#555; font-size:13px;">📅 ${d.toLocaleDateString('de-DE')}${timeStr}</span></span>`;
+                    const del = document.createElement('button');
+                    del.className = 'event-delete-btn';
+                    del.innerHTML = '🗑️';
+                    del.onclick = () => deleteCalendarEvent(item.id);
+                    div.appendChild(del);
+                    container.appendChild(div);
+                });
+                
+                latestEventsSpeechText = `${currentUserName}, deine nächsten Termine sind: ` + speechParts.join(". ");
+            }).catch(err => {
+                const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
+                latestEventsSpeechText = `${currentUserName}, ich konnte die Termine gerade nicht abrufen.`;
+            });
+        }
+
+        function deleteCalendarEvent(id) {
+            if (!confirm("Termin wirklich löschen?")) return;
+            fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + accessToken }
+            }).then(() => fetchUpcomingEvents());
+        }
+
+        function renderTodos() {
+            const container = document.getElementById('todosContainer');
+            if (!container) return;
+            container.innerHTML = '';
+            if (todos.length === 0) {
+                container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine Notizen.</div>';
+                return;
+            }
+            todos.forEach((t, i) => {
+                const div = document.createElement('div');
+                div.className = 'event-item' + (t.completed ? ' completed' : '');
+                div.style.background = t.completed ? '#f8f9fa' : '#f1f8f5';
+                div.style.borderLeftColor = t.completed ? '#ccc' : '#198754';
+                div.innerHTML = `<span style="${t.completed ? 'text-decoration: line-through; color: #888;' : ''}">${t.text}</span>`;
+                const del = document.createElement('button');
+                del.className = 'event-delete-btn';
+                del.style.background = '#dc3545';
+                del.innerHTML = '🗑️';
+                del.onclick = (e) => { e.stopPropagation(); todos.splice(i, 1); saveTodos(); };
+                div.appendChild(del);
+                div.onclick = () => { todos[i].completed = !todos[i].completed; saveTodos(); };
+                container.appendChild(div);
+            });
+        }
+
+        function saveTodos() {
+            localStorage.setItem('omas_todos', JSON.stringify(todos));
+            renderTodos();
+        }
+    </script>
+</body>
+</html>
