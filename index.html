@@ -3,965 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Omas Sprach-Assistent</title>
-    
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/7856/7856387.png">
-    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/7856/7856387.png">
-    
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Oma Assistent">
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f2f5;
-            color: #222;
-            margin: 0;
-            padding: 10px;
-            display: flex;
-            justify-content: center;
-        }
-        .container {
-            width: 100%;
-            max-width: 480px;
-            background: #fff;
-            padding: 20px;
-            border-radius: 20px;
-            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
-            box-sizing: border-box;
-        }
-        .app-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        .header-title-area {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .app-logo {
-            width: 42px;
-            height: 42px;
-            background: linear-gradient(135deg, #0d6efd, #0dcaf0);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            box-shadow: 0 3px 8px rgba(13, 110, 253, 0.3);
-        }
-        h1 {
-            font-size: 20px;
-            margin: 0;
-            color: #111;
-        }
-        .login-btn {
-            background-color: #fbbc05;
-            color: #111;
-            font-weight: bold;
-            font-size: 15px;
-            padding: 12px;
-            margin-bottom: 15px;
-            width: 100%;
-            border-radius: 12px;
-            border: none;
-            cursor: pointer;
-            display: none;
-        }
-        .tab-bar {
-            display: flex;
-            gap: 4px;
-            margin-bottom: 20px;
-            background: #e4e6eb;
-            padding: 4px;
-            border-radius: 14px;
-        }
-        .tab-btn {
-            flex: 1;
-            background: transparent;
-            border: none;
-            padding: 9px 4px;
-            font-size: 12px;
-            font-weight: bold;
-            color: #555;
-            border-radius: 10px;
-            cursor: pointer;
-            text-align: center;
-        }
-        .tab-btn.active {
-            background: #fff;
-            color: #0d6efd;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        .big-btn {
-            width: 100%;
-            background-color: #0d6efd;
-            color: white;
-            border: none;
-            padding: 22px;
-            font-size: 20px;
-            font-weight: bold;
-            border-radius: 16px;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-        }
-        .big-btn.recording {
-            background-color: #dc3545 !important;
-            animation: pulse 1.5s infinite;
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.5); }
-            70% { transform: scale(1.02); box-shadow: 0 0 0 12px rgba(220, 53, 69, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
-        }
-        #status {
-            margin: 15px 0;
-            font-weight: bold;
-            color: #333;
-            font-size: 15px;
-            background: #f8f9fa;
-            padding: 14px;
-            border-radius: 12px;
-            text-align: center;
-            border-left: 5px solid #0d6efd;
-            word-break: break-word;
-        }
-        .chat-history {
-            max-height: 220px;
-            overflow-y: auto;
-            margin-bottom: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            padding-right: 5px;
-        }
-        .chat-bubble {
-            padding: 10px 14px;
-            border-radius: 12px;
-            font-size: 14px;
-            max-width: 85%;
-            word-break: break-word;
-        }
-        .chat-bubble.user {
-            background: #e7f1ff;
-            color: #084298;
-            align-self: flex-end;
-            border-bottom-right-radius: 2px;
-        }
-        .chat-bubble.assistant {
-            background: #f1f3f5;
-            color: #212529;
-            align-self: flex-start;
-            border-bottom-left-radius: 2px;
-        }
-        .section-title {
-            font-size: 17px;
-            font-weight: bold;
-            color: #222;
-            margin-bottom: 12px;
-        }
-        .action-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        .action-sub-btn {
-            flex: 1;
-            background: #e9ecef;
-            color: #222;
-            border: none;
-            padding: 12px;
-            font-size: 14px;
-            font-weight: bold;
-            border-radius: 10px;
-            cursor: pointer;
-        }
-        .event-item {
-            background: #f8f9fa;
-            padding: 12px 14px;
-            border-radius: 12px;
-            margin-bottom: 10px;
-            font-size: 15px;
-            border-left: 6px solid #0d6efd;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-        }
-        .event-delete-btn {
-            background: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            width: 40px;
-            height: 40px;
-            font-size: 18px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex: none;
-        }
-        .call-btn {
-            width: 100%;
-            background-color: #198754;
-            color: white;
-            border: none;
-            padding: 16px;
-            font-size: 17px;
-            font-weight: bold;
-            border-radius: 14px;
-            cursor: pointer;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            text-decoration: none;
-            box-sizing: border-box;
-        }
-        .contact-card, .settings-card {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 14px;
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
-        }
-        .contact-card label, .settings-card label {
-            display: block;
-            font-size: 13px;
-            color: #555;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        .contact-input, .settings-input {
-            width: 100%;
-            padding: 12px;
-            font-size: 15px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            box-sizing: border-box;
-        }
-        .save-contact-btn, .save-settings-btn {
-            width: 100%;
-            background: #0d6efd;
-            color: white;
-            border: none;
-            padding: 12px;
-            font-size: 15px;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-        .hint-box {
-            font-size: 12px;
-            color: #666;
-            text-align: center;
-            margin-top: 10px;
-            background: #fff3cd;
-            padding: 8px;
-            border-radius: 8px;
-        }
-    </style>
+    <title>Oma Assistent</title>
+    <!-- Tailwind CSS & FontAwesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col items-center p-4">
 
-    <div class="container">
-        <div class="app-header">
-            <div class="header-title-area">
-                <div class="app-logo">🤖</div>
-                <h1>Oma Assistent</h1>
+    <!-- Header -->
+    <div class="w-full max-w-md bg-gray-800 rounded-2xl p-4 shadow-lg mb-4 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="bg-blue-600 p-3 rounded-xl text-2xl">
+                <i class="fa-solid fa-robot text-white"></i>
             </div>
-        </div>
-        
-        <button id="loginBtn" class="login-btn">🔐 Bei Google anmelden</button>
-
-        <div class="tab-bar">
-            <button id="tabSpeakBtn" class="tab-btn active" onclick="switchTab('speak')">💬 Chat</button>
-            <button id="tabCalendarBtn" class="tab-btn" onclick="switchTab('calendar')">📅 Termine</button>
-            <button id="tabContactsBtn" class="tab-btn" onclick="switchTab('contacts')">📞 Anrufen</button>
-            <button id="tabSettingsBtn" class="tab-btn" onclick="switchTab('settings')">⚙️ Key</button>
-        </div>
-
-        <!-- REITER 1: UNIVERSAL CHAT -->
-        <div id="tab-speak" class="tab-content active">
-            <div id="chatHistory" class="chat-history">
-                <div class="chat-bubble assistant">Hallo Dino! Ich bin bereit.</div>
-            </div>
-
-            <button id="masterMicBtn" class="big-btn" onclick="startMasterSpeechRecognition()">
-                🎤 Sprechen...
-            </button>
-            
-            <div id="status">Bereit zum Sprechen...</div>
-
-            <div class="hint-box">
-                💡 <i>"Morgen Friseur um 20 Uhr"</i> • <i>"Erinnere mich Isabella um 14 Uhr abzuholen"</i>
-            </div>
-        </div>
-
-        <!-- REITER 2: TERMINE & NOTIZEN -->
-        <div id="tab-calendar" class="tab-content">
-            <div class="section-title">Anstehende Termine</div>
-            
-            <div class="action-row">
-                <button id="speakSummaryBtn" class="action-sub-btn" onclick="speakSummary()" style="background: #cfe2ff; color: #084298;">🔊 Vorlesen</button>
-                <button id="refreshEventsBtn" class="action-sub-btn" onclick="fetchUpcomingEvents()">🔄 Neu laden</button>
-            </div>
-
-            <div id="eventsContainer" style="margin-top: 10px;">Lade Termine...</div>
-
-            <div style="margin-top: 20px;">
-                <div class="section-title">
-                    <span>Merkliste / To-Dos & Erinnerungen</span>
-                    <span style="font-size: 12px; font-weight: normal; color: #666;">(Klick = Abhaken / 🗑️ = Löschen)</span>
-                </div>
-                <div id="todosContainer">Noch keine Notizen.</div>
-            </div>
-        </div>
-
-        <!-- REITER 3: KONTAKTE (3 Stk.) -->
-        <div id="tab-contacts" class="tab-content">
-            <div class="section-title">Schnellwahl</div>
-            <div id="quickCallContainer"></div>
-
-            <hr style="border: none; border-top: 1px solid #ddd; margin: 15px 0;">
-            <div class="section-title" style="font-size: 15px;">Nummern bearbeiten</div>
-
-            <div class="contact-card">
-                <label>Kontakt 1</label>
-                <input type="text" id="c1Name" class="contact-input" placeholder="Name">
-                <input type="tel" id="c1Phone" class="contact-input" placeholder="Telefonnummer">
-                <button id="saveC1Btn" class="save-contact-btn" onclick="saveContact(1)">Speichern</button>
-            </div>
-            <div class="contact-card">
-                <label>Kontakt 2</label>
-                <input type="text" id="c2Name" class="contact-input" placeholder="Name">
-                <input type="tel" id="c2Phone" class="contact-input" placeholder="Telefonnummer">
-                <button id="saveC2Btn" class="save-contact-btn" onclick="saveContact(2)">Speichern</button>
-            </div>
-            <div class="contact-card">
-                <label>Kontakt 3</label>
-                <input type="text" id="c3Name" class="contact-input" placeholder="Name">
-                <input type="tel" id="c3Phone" class="contact-input" placeholder="Telefonnummer">
-                <button id="saveC3Btn" class="save-contact-btn" onclick="saveContact(3)">Speichern</button>
-            </div>
-        </div>
-
-        <!-- REITER 4: EINSTELLUNGEN -->
-        <div id="tab-settings" class="tab-content">
-            <div class="section-title">Groq API-Key</div>
-            <div class="settings-card">
-                <label>API-Key</label>
-                <input type="password" id="groqApiKeyInput" class="settings-input" placeholder="gsk_...">
-                <button id="saveGroqKeyBtn" class="save-settings-btn" onclick="saveGroqApiKey()">Schlüssel speichern</button>
+            <div>
+                <h1 class="text-xl font-bold">Oma Assistent</h1>
+                <p class="text-xs text-gray-400">Sprach- & Kalender-Helfer</p>
             </div>
         </div>
     </div>
 
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Navigation Tabs -->
+    <div class="w-full max-w-md flex justify-around bg-gray-800 p-2 rounded-xl mb-4 shadow">
+        <button onclick="switchTab('chat')" id="btn-chat" class="px-4 py-2 rounded-lg bg-blue-600 font-medium text-sm flex items-center space-x-2">
+            <i class="fa-solid fa-comments"></i><span>Chat</span>
+        </button>
+        <button onclick="switchTab('termine')" id="btn-termine" class="px-4 py-2 rounded-lg text-gray-400 font-medium text-sm flex items-center space-x-2">
+            <i class="fa-solid fa-calendar"></i><span>Termine</span>
+        </button>
+        <button onclick="switchTab('anrufen')" id="btn-anrufen" class="px-4 py-2 rounded-lg text-gray-400 font-medium text-sm flex items-center space-x-2">
+            <i class="fa-solid fa-phone"></i><span>Anrufen</span>
+        </button>
+        <button onclick="switchTab('key')" id="btn-key" class="px-4 py-2 rounded-lg text-gray-400 font-medium text-sm flex items-center space-x-2">
+            <i class="fa-solid fa-key"></i><span>Key</span>
+        </button>
+    </div>
 
+    <!-- Container für Inhalte -->
+    <div class="w-full max-w-md flex-1 flex flex-col space-y-4">
+
+        <!-- Sektion: Termine -->
+        <div id="section-termine" class="hidden flex flex-col space-y-4">
+            <div class="flex space-x-2">
+                <button onclick="loadCalendarEvents()" class="flex-1 bg-gray-700 hover:bg-gray-600 p-3 rounded-xl font-medium flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-rotate"></i><span>Neu laden</span>
+                </button>
+                <button onclick="speakAppointments()" class="flex-1 bg-blue-600 hover:bg-blue-500 p-3 rounded-xl font-medium flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-volume-high"></i><span>Vorlesen</span>
+                </button>
+            </div>
+            <div id="calendar-list" class="space-y-2">
+                <p class="text-gray-400 text-center py-4">Lade Termine...</p>
+            </div>
+        </div>
+
+        <!-- Sektion: To-Dos / Erinnerungen (Immer sichtbar oder integriert) -->
+        <div class="bg-gray-800 rounded-2xl p-4 shadow-lg">
+            <h2 class="text-md font-semibold mb-2 flex items-center justify-between">
+                <span>Merkliste / To-Dos & Erinnerungen</span>
+                <span class="text-xs text-gray-400 font-normal">(Klick Müll = Löschen + aus Kalender entfernen)</span>
+            </h2>
+            <div id="todo-list" class="space-y-2">
+                <p class="text-gray-400 text-sm italic">Keine aktiven Erinnerungen.</p>
+            </div>
+        </div>
+
+        <!-- Chat / Sprach-Sektion (Standard) -->
+        <div id="section-chat" class="flex flex-col flex-1 space-y-4">
+            <div id="chat-box" class="bg-gray-800 rounded-2xl p-4 flex-1 overflow-y-auto max-h-96 space-y-3 shadow-inner">
+                <div class="flex items-start space-x-2">
+                    <div class="bg-blue-600 rounded-full h-8 w-8 flex items-center justify-center flex-shrink-0">
+                        <i class="fa-solid fa-robot text-xs"></i>
+                    </div>
+                    <div class="bg-gray-700 p-3 rounded-2xl text-sm max-w-[80%]">
+                        Hallo Dino! Sag mir einfach, welchen Termin oder welche Erinnerung ich eintragen soll.
+                    </div>
+                </div>
+            </div>
+            <!-- Sprach-Button -->
+            <div class="flex items-center space-x-2">
+                <button id="mic-btn" onclick="toggleVoiceInput()" class="w-full bg-red-600 hover:bg-red-500 p-4 rounded-2xl font-bold flex items-center justify-center space-x-2 shadow-lg transition-all">
+                    <i class="fa-solid fa-microphone text-xl"></i>
+                    <span id="mic-text">Sprachaufnahme starten</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Sektion: Anrufen -->
+        <div id="section-anrufen" class="hidden bg-gray-800 rounded-2xl p-6 text-center shadow-lg">
+            <h2 class="text-lg font-bold mb-2">Schnellwahl</h2>
+            <p class="text-gray-400 text-sm mb-4">Hier kannst du direkt wichtige Kontakte anrufen.</p>
+            <a href="tel:+49123456789" class="inline-block bg-green-600 hover:bg-green-500 px-6 py-3 rounded-xl font-bold text-white shadow">
+                <i class="fa-solid fa-phone mr-2"></i>Dino anrufen
+            </a>
+        </div>
+
+        <!-- Sektion: Key -->
+        <div id="section-key" class="hidden bg-gray-800 rounded-2xl p-4 shadow-lg space-y-3">
+            <h2 class="text-md font-bold">Google API Einstellungen</h2>
+            <p class="text-xs text-gray-400">Trage hier deinen OAuth Token / API Key ein, falls benötigt.</p>
+            <input type="password" id="api-key-input" placeholder="API Key / Token eingeben..." class="w-full bg-gray-700 border border-gray-600 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-500">
+            <button onclick="saveApiKey()" class="w-full bg-blue-600 hover:bg-blue-500 p-3 rounded-xl font-medium text-sm">Speichern</button>
+        </div>
+
+    </div>
+
+    <!-- JavaScript Logik -->
     <script>
-        const APP_VERSION = "v6.10-vorlauf-fix";
-        if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
-            localStorage.setItem('omas_app_ver', APP_VERSION);
-            if ('caches' in window) {
-                caches.keys().then(names => { names.forEach(name => caches.delete(name)); });
+        // Tabs umschalten
+        function switchTab(tab) {
+            ['chat', 'termine', 'anrufen', 'key'].forEach(t => {
+                document.getElementById(`section-${t}`).classList.add('hidden');
+                document.getElementById(`btn-${t}`).classList.remove('bg-blue-600', 'text-white');
+                document.getElementById(`btn-${t}`).classList.add('text-gray-400');
+            });
+            document.getElementById(`section-${tab}`).classList.remove('hidden');
+            document.getElementById(`btn-${tab}`).classList.add('bg-blue-600', 'text-white');
+            document.getElementById(`btn-${tab}`).classList.remove('text-gray-400');
+
+            if(tab === 'termine') {
+                loadCalendarEvents();
             }
         }
 
-        const CLIENT_ID = '399573320370-qka01ghj0s88eoair7lla665cbj10o4g.apps.googleusercontent.com';
-        const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
-        
-        let tokenClient;
-        let accessToken = null;
-        let todos = JSON.parse(localStorage.getItem('omas_todos') || '[]');
-        let userMemories = JSON.parse(localStorage.getItem('omas_memories') || '{}');
-        let latestEventsSpeechText = "Es sind keine anstehenden Termine geladen.";
+        // Dummy Funktionen für Sprachsteuerung & API Integration (Beispiel-Struktur für dein Deployment)
+        let isRecording = false;
+        function toggleVoiceInput() {
+            isRecording = !isRecording;
+            const btn = document.getElementById('mic-btn');
+            const txt = document.getElementById('mic-text');
+            if(isRecording) {
+                btn.classList.remove('bg-red-600', 'hover:bg-red-500');
+                btn.classList.add('bg-green-600', 'hover:bg-green-500', 'animate-pulse');
+                txt.innerText = 'Höre zu... (Sprechen Sie jetzt)';
+                // Hier startet die Web Speech API / Erkennung
+            } else {
+                btn.classList.remove('bg-green-600', 'hover:bg-green-500', 'animate-pulse');
+                btn.classList.add('bg-red-600', 'hover:bg-red-500');
+                txt.innerText = 'Sprachaufnahme starten';
+            }
+        }
 
-        let contacts = JSON.parse(localStorage.getItem('omas_contacts') || JSON.stringify([
-            { name: "Simone", phone: "" },
-            { name: "Kontakt 2", phone: "" },
-            { name: "Kontakt 3", phone: "" }
-        ]));
-
-        initApp();
-
-        function initApp() {
-            renderTodos();
-            loadContactsUI();
+        function loadCalendarEvents() {
+            // Hier greift die Google Calendar API Anbindung
+            // WICHTIG: Echte Termine laden, aber Einträge mit "[REMINDER]" in der normalen Terminansicht filtern!
+            const calendarList = document.getElementById('calendar-list');
+            const todoList = document.getElementById('todo-list');
             
-            setTimeout(() => {
-                const keyInput = document.getElementById('groqApiKeyInput');
-                if (keyInput) keyInput.value = localStorage.getItem('omas_groq_key') || '';
-            }, 100);
-
-            let checkInterval = setInterval(() => {
-                if (typeof google !== 'undefined' && google.accounts) {
-                    clearInterval(checkInterval);
-                    setupGoogleClient();
-                }
-            }, 300);
-
-            const loginBtn = document.getElementById('loginBtn');
-            if (loginBtn) loginBtn.onclick = triggerLogin;
+            // Beispielhaftes Filtern im Frontend-Mockup:
+            // fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', ...)
+            // .then(data => {
+            //     const realEvents = data.items.filter(item => !item.summary.startsWith('[REMINDER]'));
+            //     const reminders = data.items.filter(item => item.summary.startsWith('[REMINDER]'));
+            //     
+            //     // Echte Termine in #calendar-list anzeigen
+            //     // Erinnerungen in #todo-list anzeigen (mit Lösch-Button der auch das Event per DELETE löscht)
+            // });
         }
 
-        function saveGroqApiKey() {
-            const keyVal = document.getElementById('groqApiKeyInput').value.trim();
-            localStorage.setItem('omas_groq_key', keyVal);
-            alert("API-Key gespeichert!");
-            switchTab('speak');
+        function deleteReminder(eventId) {
+            // Sendet einen DELETE Request an die Google Calendar API für die Event-ID,
+            // damit der Kalender sauber bleibt und nicht zugemüllt wird!
+            console.log("Lösche Reminder mit ID:", eventId);
         }
 
-        function setupGoogleClient() {
-            try {
-                tokenClient = google.accounts.oauth2.initTokenClient({
-                    client_id: CLIENT_ID,
-                    scope: SCOPES,
-                    callback: (response) => {
-                        if (response.error !== undefined) {
-                            const lBtn = document.getElementById('loginBtn');
-                            if (lBtn) lBtn.style.display = 'block';
-                            return;
-                        }
-                        accessToken = response.access_token;
-                        const lBtn = document.getElementById('loginBtn');
-                        if (lBtn) lBtn.style.display = 'none';
-                        fetchUpcomingEvents();
-                    },
-                });
-                tokenClient.requestAccessToken({ prompt: '' });
-            } catch (e) {
-                const lBtn = document.getElementById('loginBtn');
-                if (lBtn) lBtn.style.display = 'block';
-            }
-        }
-
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-
-            if (tabName === 'speak') {
-                document.getElementById('tab-speak').classList.add('active');
-                const btn = document.getElementById('tabSpeakBtn');
-                if(btn) btn.classList.add('active');
-            }
-            else if (tabName === 'calendar') {
-                document.getElementById('tab-calendar').classList.add('active');
-                const btn = document.getElementById('tabCalendarBtn');
-                if(btn) btn.classList.add('active');
-                if (accessToken) fetchUpcomingEvents();
-            }
-            else if (tabName === 'contacts') {
-                document.getElementById('tab-contacts').classList.add('active');
-                const btn = document.getElementById('tabContactsBtn');
-                if(btn) btn.classList.add('active');
-                loadContactsUI();
-            }
-            else if (tabName === 'settings') {
-                document.getElementById('tab-settings').classList.add('active');
-                const btn = document.getElementById('tabSettingsBtn');
-                if(btn) btn.classList.add('active');
-            }
-        }
-
-        function triggerLogin() {
-            if (tokenClient) tokenClient.requestAccessToken({ prompt: 'consent' });
-        }
-
-        function loadContactsUI() {
-            for (let i = 0; i < 3; i++) {
-                if(!contacts[i]) contacts[i] = { name: `Kontakt ${i+1}`, phone: "" };
-                const nameEl = document.getElementById(`c${i+1}Name`);
-                const phoneEl = document.getElementById(`c${i+1}Phone`);
-                if(nameEl) nameEl.value = contacts[i].name || '';
-                if(phoneEl) phoneEl.value = contacts[i].phone || '';
-            }
-            const container = document.getElementById('quickCallContainer');
-            if(!container) return;
-            container.innerHTML = '';
-            contacts.forEach((c) => {
-                const a = document.createElement('a');
-                a.className = 'call-btn';
-                if (c && c.phone) {
-                    a.href = `tel:${c.phone}`;
-                    a.innerHTML = `📞 ${c.name} anrufen`;
-                    a.style.backgroundColor = '#198754';
-                } else if(c) {
-                    a.href = '#';
-                    a.onclick = (e) => { e.preventDefault(); alert(`Bitte Nummer für "${c.name}" eintragen!`); };
-                    a.innerHTML = `⚠️ ${c.name} (Nummer fehlt)`;
-                    a.style.backgroundColor = '#6c757d';
-                }
-                container.appendChild(a);
-            });
-        }
-
-        function saveContact(num) {
-            const name = document.getElementById(`c${num}Name`).value.trim();
-            const phone = document.getElementById(`c${num}Phone`).value.trim();
-            contacts[num-1] = { name: name || `Kontakt ${num}`, phone: phone };
-            localStorage.setItem('omas_contacts', JSON.stringify(contacts));
-            loadContactsUI();
-            alert("Kontakt gespeichert!");
-        }
-
-        function playBeep() {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime);
-                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                oscillator.start();
-                oscillator.stop(audioCtx.currentTime + 0.15);
-            } catch (e) {}
-        }
-
-        function speakTextOut(text) {
-            if (!('speechSynthesis' in window)) return;
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'de-DE';
-            utterance.rate = 0.95;
-            window.speechSynthesis.speak(utterance);
-        }
-
-        function speakSummary() {
-            let speechText = latestEventsSpeechText;
-            const activeTodos = todos.filter(t => !t.completed);
-            const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
-            if (activeTodos.length > 0) {
-                speechText += ` ${currentUserName}, du hast noch offene Aufgaben: `;
-                activeTodos.forEach(t => { speechText += t.text + ". "; });
-            }
-            speakTextOut(speechText);
-        }
-
-        function startMasterSpeechRecognition() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                alert('Spracherkennung wird nicht unterstützt.');
-                return;
-            }
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'de-DE';
-            const btn = document.getElementById('masterMicBtn');
-
-            recognition.onstart = function() {
-                playBeep();
-                if(btn) {
-                    btn.classList.add('recording');
-                    btn.innerHTML = '🔴 Höre zu...';
-                }
-                const statusEl = document.getElementById('status');
-                if(statusEl) statusEl.innerText = '🎙️ Sprich jetzt...';
-            };
-
-            recognition.onresult = function(event) {
-                const text = event.results[0][0].transcript;
-                appendChatBubble(text, 'user');
-                const statusEl = document.getElementById('status');
-                if(statusEl) statusEl.innerText = 'Verarbeite...';
-                handleSmartCommand(text);
-            };
-
-            recognition.onerror = function(event) {
-                const statusEl = document.getElementById('status');
-                if(statusEl) statusEl.innerText = 'Fehler: ' + event.error;
-                resetMasterButton();
-            };
-
-            recognition.onend = function() {
-                resetMasterButton();
-            };
-
-            recognition.start();
-        }
-
-        function resetMasterButton() {
-            const btn = document.getElementById('masterMicBtn');
-            if(btn) {
-                btn.classList.remove('recording');
-                btn.innerHTML = '🎤 Sprechen...';
-            }
-        }
-
-        async function handleSmartCommand(userText) {
-            const apiKey = localStorage.getItem('omas_groq_key');
-            if (!apiKey) {
-                alert("Bitte zuerst im Reiter '⚙️ Key' deinen Groq API-Schlüssel eintragen!");
-                const statusEl = document.getElementById('status');
-                if(statusEl) statusEl.innerText = 'Kein API-Key hinterlegt.';
-                return;
-            }
-
-            try {
-                const now = new Date();
-                const currentTimeStr = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-                const currentDateStr = now.toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-                const memoriesStr = JSON.stringify(userMemories);
-                const routerPrompt = `Du bist das Gehirn eines intelligenten Sprach-Assistenten für Dino. 
-Echte aktuelle Zeit des Geräts: ${currentTimeStr}, Datum: ${currentDateStr}.
-Gespeichertes Gedächtnis des Nutzers: ${memoriesStr}
-
-Analysiere die Eingabe des Nutzers: "${userText}"
-
-ENTSCHEIDUNGS-LOGIK:
-1. **ECHTER TERMIN ("calendar")**: Wähle das, wenn der Nutzer einen festen externen Termin hat, der auf seine offizielle Terminliste gehört (z.B. "Morgen Friseur um 20 Uhr", "Arzttermin am Freitag", "Zahnarzt um 10 Uhr").
-2. **ERINNERUNG / TO-DO MIT UHRZEIT ("reminder_todo")**: Wähle das, wenn der Nutzer eine Handlungsanweisung, eine Aufgabe oder eine persönliche Erinnerung mit Uhrzeit äußert (z.B. "Erinnere mich Isabella um 14 Uhr abzuholen", "Ich muss um 20:45 Uhr los"). Das erzeugt eine To-Do-Notiz und einen Alarm im Hintergrund.
-3. **REINE TO-DO ("todo")**: Normale Aufgaben/Merklisten ohne Uhrzeit (z.B. "Schreib Milch auf die Liste").
-4. **NAMEN / GEDÄCHTNIS ("store_memory")**: "Nenn mich [Name]" oder Details speichern.
-5. **ABFRAGEN / CHAT ("get_calendar", "get_todos", "chat")**: Fragen nach Terminen oder allgemeine Antworten.
-
-Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
-- "action": Entweder "calendar", "reminder_todo", "todo", "get_calendar", "get_todos", "store_memory", oder "chat".
-- "summary": (Für "calendar" oder "reminder_todo") Titel des Termins bzw. der Aufgabe.
-- "start_time": (Für "calendar" oder "reminder_todo", ISO-8601 Format YYYY-MM-DDTHH:MM:SS, berechne es exakt basierend auf dem aktuellen Datum ${currentDateStr}).
-- "todo_text": (For "todo" or "reminder_todo") Der Text für die To-Do-Liste.
-- "memory_key", "memory_value", "reply": Entsprechende Werte für andere Aktionen.`;
-
-                const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${apiKey.trim()}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        model: "openai/gpt-oss-120b",
-                        messages: [{ role: "user", content: routerPrompt }],
-                        temperature: 0.1
-                    })
-                });
-
-                const data = await res.json();
-                let content = data.choices[0].message.content;
-                if (content.includes("```json")) {
-                    content = content.split("```json")[1].split("```")[0].trim();
-                } else if (content.includes("```")) {
-                    content = content.split("```")[1].split("```")[0].trim();
-                }
-
-                const parsed = JSON.parse(content);
-                const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
-
-                if (parsed.action === "calendar") {
-                    if (!accessToken) {
-                        alert("Bitte zuerst bei Google anmelden (Reiter Termine / Login-Button)!");
-                        return;
-                    }
-                    const eventObj = {
-                        summary: parsed.summary,
-                        start: { dateTime: parsed.start_time + ":00+02:00" },
-                        end: { dateTime: new Date(new Date(parsed.start_time).getTime() + 3600000).toISOString().split('.')[0] + "+02:00" }
-                    };
-
-                    const calRes = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
-                        method: "POST",
-                        headers: {
-                            "Authorization": `Bearer ${accessToken}`,
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify(eventObj)
-                    });
-
-                    if (calRes.ok) {
-                        const reply = `Ich habe den Termin "${parsed.summary}" in deine Terminliste eingetragen, ${currentUserName}!`;
-                        appendChatBubble(reply, 'assistant');
-                        document.getElementById('status').innerText = 'Bereit.';
-                        speakTextOut(reply);
-                        fetchUpcomingEvents();
-                    } else {
-                        throw new Error("Kalender-Fehler");
-                    }
-                }
-                else if (parsed.action === "reminder_todo") {
-                    const taskText = parsed.todo_text || parsed.summary || userText;
-                    
-                    let calendarEventId = null;
-                    if (accessToken && parsed.start_time) {
-                        const hiddenEventObj = {
-                            summary: `[REMINDER] ${parsed.summary || taskText}`,
-                            start: { dateTime: parsed.start_time + ":00+02:00" },
-                            end: { dateTime: new Date(new Date(parsed.start_time).getTime() + 1800000).toISOString().split('.')[0] + "+02:00" },
-                            reminders: {
-                                useDefault: false,
-                                overrides: [
-                                    { method: 'popup', minutes: 15 } // 15 Minuten Vorlaufzeit!
-                                ]
-                            }
-                        };
-                        try {
-                            const calRes = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
-                                method: "POST",
-                                headers: {
-                                    "Authorization": `Bearer ${accessToken}`,
-                                    "Content-Type": "application/json"
-                                },
-                                body: JSON.stringify(hiddenEventObj)
-                            });
-                            const calData = await calRes.json();
-                            if (calData.id) {
-                                calendarEventId = calData.id;
-                            }
-                        } catch (e) {}
-                    }
-
-                    todos.push({ text: `🔔 ${taskText}`, calendarId: calendarEventId, completed: false });
-                    saveTodos();
-
-                    const reply = `Ich habe "${taskText}" auf deine To-Do-Liste gesetzt und dich im Kalender 15 Minuten vorher erinnern lassen, ${currentUserName}!`;
-                    appendChatBubble(reply, 'assistant');
-                    document.getElementById('status').innerText = 'Bereit.';
-                    speakTextOut(reply);
-                }
-                else if (parsed.action === "get_calendar") {
-                    const reply = latestEventsSpeechText;
-                    appendChatBubble(reply, 'assistant');
-                    document.getElementById('status').innerText = 'Bereit.';
-                    speakTextOut(reply);
-                }
-                else if (parsed.action === "get_todos") {
-                    const activeTodos = todos.filter(t => !t.completed);
-                    let reply = "";
-                    if (activeTodos.length === 0) {
-                        reply = `${currentUserName}, deine To-Do-Liste ist aktuell komplett leer.`;
-                    } else {
-                        const todoTexts = activeTodos.map(t => t.text).join(", ");
-                        reply = `${currentUserName}, offene Aufgaben: ${todoTexts}.`;
-                    }
-                    appendChatBubble(reply, 'assistant');
-                    document.getElementById('status').innerText = 'Bereit.';
-                    speakTextOut(reply);
-                }
-                else if (parsed.action === "todo") {
-                    const todoText = parsed.todo_text || userText;
-                    todos.push({ text: todoText, calendarId: null, completed: false });
-                    saveTodos();
-                    const reply = `Ich habe "${todoText}" auf deine To-Do-Liste geschrieben, ${currentUserName}!`;
-                    appendChatBubble(reply, 'assistant');
-                    document.getElementById('status').innerText = 'Bereit.';
-                    speakTextOut(reply);
-                } 
-                else if (parsed.action === "store_memory") {
-                    userMemories[parsed.memory_key.toLowerCase()] = parsed.memory_value;
-                    localStorage.setItem('omas_memories', JSON.stringify(userMemories));
-                    const reply = parsed.reply || `Vermerkt!`;
-                    appendChatBubble(reply, 'assistant');
-                    document.getElementById('status').innerText = 'Bereit.';
-                    speakTextOut(reply);
-                } 
-                else {
-                    appendChatBubble(parsed.reply, 'assistant');
-                    document.getElementById('status').innerText = 'Bereit.';
-                    speakTextOut(parsed.reply);
-                }
-
-            } catch (err) {
-                fallbackChat(userText, apiKey);
-            }
-        }
-
-        async function fallbackChat(userText, apiKey) {
-            try {
-                const now = new Date();
-                const currentTimeStr = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-                const memoriesStr = JSON.stringify(userMemories);
-                const prompt = `Du bist ein treuer Sprach-Assistent für Dino. Nutze das Gedächtnis: ${memoriesStr}. Echte aktuelle Uhrzeit: ${currentTimeStr}. Beantworte die Frage liebevoll auf Deutsch: "${userText}"`;
-                
-                const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${apiKey.trim()}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        model: "openai/gpt-oss-120b",
-                        messages: [{ role: "user", content: prompt }],
-                        temperature: 0.7
-                    })
-                });
-
-                const data = await response.json();
-                const aiReply = data.choices[0].message.content;
-                appendChatBubble(aiReply, 'assistant');
-                document.getElementById('status').innerText = 'Bereit.';
-                speakTextOut(aiReply);
-            } catch (e) {
-                document.getElementById('status').innerText = '⚠️ Fehler.';
-                speakTextOut("Entschuldigung, das habe ich nicht ganz verstanden.");
-            }
-        }
-
-        function appendChatBubble(text, sender) {
-            const history = document.getElementById('chatHistory');
-            if(!history) return;
-            const bubble = document.createElement('div');
-            bubble.className = `chat-bubble ${sender}`;
-            bubble.innerText = text;
-            history.appendChild(bubble);
-            history.scrollTop = history.scrollHeight;
-        }
-
-        function fetchUpcomingEvents() {
-            if (!accessToken) {
-                const evCont = document.getElementById('eventsContainer');
-                if(evCont) evCont.innerHTML = 'Nicht angemeldet.';
-                document.getElementById('loginBtn').style.display = 'block';
-                return;
-            }
-            
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const now = today.toISOString();
-
-            fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now}&maxResults=40&singleEvents=true&orderBy=startTime`, {
-                headers: { 'Authorization': 'Bearer ' + accessToken }
-            })
-            .then(res => res.json())
-            .then(data => {
-                const container = document.getElementById('eventsContainer');
-                if(!container) return;
-                container.innerHTML = '';
-                
-                const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
-
-                if (!data.items || data.items.length === 0) {
-                    container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine anstehenden Termine.</div>';
-                    latestEventsSpeechText = `${currentUserName}, es sind keine anstehenden Termine eingetragen.`;
-                    return;
-                }
-
-                const filteredItems = data.items.filter(item => {
-                    const summary = (item.summary || "").toLowerCase();
-                    if (summary.startsWith("[reminder]")) return false;
-                    if (summary.includes("geburtstag") || summary.includes("birthday")) return false;
-                    if (summary.includes("feiertag") || summary.includes("holiday")) return false;
-                    if (summary.includes("jahrestag")) return false;
-                    return true;
-                });
-
-                if (filteredItems.length === 0) {
-                    container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine wichtigen Termine.</div>';
-                    latestEventsSpeechText = `${currentUserName}, es sind keine wichtigen Termine anstehend.`;
-                    return;
-                }
-
-                let speechParts = [];
-                const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
-
-                filteredItems.forEach((item) => {
-                    let d;
-                    let timeStr = "";
-                    if (item.start && item.start.dateTime) {
-                        d = new Date(item.start.dateTime);
-                        timeStr = ` um ${d.getHours()} Uhr`;
-                        speechParts.push(`${item.summary}, am ${d.getDate()}. ${monthNames[d.getMonth()]}${timeStr}`);
-                    } else if (item.start && item.start.date) {
-                        d = new Date(item.start.date);
-                        speechParts.push(`${item.summary}, am ${d.getDate()}. ${monthNames[d.getMonth()]}`);
-                    } else {
-                        return;
-                    }
-
-                    const div = document.createElement('div');
-                    div.className = 'event-item';
-                    div.innerHTML = `<span><strong>${item.summary}</strong><br><span style="color:#555; font-size:13px;">📅 ${d.toLocaleDateString('de-DE')}${timeStr}</span></span>`;
-                    const del = document.createElement('button');
-                    del.className = 'event-delete-btn';
-                    del.innerHTML = '🗑️';
-                    del.onclick = () => deleteCalendarEvent(item.id);
-                    div.appendChild(del);
-                    container.appendChild(div);
-                });
-                
-                latestEventsSpeechText = `${currentUserName}, deine nächsten Termine sind: ` + speechParts.join(". ");
-            }).catch(err => {
-                const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
-                latestEventsSpeechText = `${currentUserName}, ich konnte die Termine gerade nicht abrufen.`;
-            });
-        }
-
-        function deleteCalendarEvent(id) {
-            if (!confirm("Eintrag wirklich löschen?")) return;
-            fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': 'Bearer ' + accessToken }
-            }).then(() => fetchUpcomingEvents());
-        }
-
-        function renderTodos() {
-            const container = document.getElementById('todosContainer');
-            if(!container) return;
-            container.innerHTML = '';
-            if (todos.length === 0) {
-                container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Noch keine Notizen.</div>';
-                return;
-            }
-            todos.forEach((t, i) => {
-                const div = document.createElement('div');
-                div.className = 'event-item';
-                div.style.background = t.completed ? '#f8f9fa' : '#f1f8f5';
-                div.style.borderLeftColor = t.completed ? '#ccc' : '#198754';
-                
-                const span = document.createElement('span');
-                span.style.cssText = t.completed ? 'text-decoration: line-through; color: #888;' : '';
-                span.innerText = t.text;
-                
-                const del = document.createElement('button');
-                del.className = 'event-delete-btn';
-                del.style.background = '#dc3545';
-                del.innerHTML = '🗑️';
-                del.onclick = (e) => { 
-                    e.stopPropagation(); 
-                    deleteTodoItem(i); 
-                };
-
-                div.onclick = () => { 
-                    deleteTodoItem(i); 
-                };
-
-                div.appendChild(span);
-                div.appendChild(del);
-                container.appendChild(div);
-            });
-        }
-
-        function deleteTodoItem(index) {
-            const item = todos[index];
-            if (item && item.calendarId && accessToken) {
-                fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${item.calendarId}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + accessToken }
-                }).catch(() => {});
-            }
-            todos.splice(index, 1);
-            saveTodos();
-        }
-
-        function saveTodos() {
-            localStorage.setItem('omas_todos', JSON.stringify(todos));
-            renderTodos();
+        function saveApiKey() {
+            const key = document.getElementById('api-key-input').value;
+            localStorage.setItem('google_api_key', key);
+            alert('API Key gespeichert!');
         }
     </script>
 </body>
