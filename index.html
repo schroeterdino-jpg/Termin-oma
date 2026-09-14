@@ -80,7 +80,7 @@
 
     <div class="container">
         <h1>Termin per Spracheingabe</h1>
-        <p>Drücke den Knopf und sage z.B.:<br><em>"Arzttermin morgen um 10 Uhr"</em></p>
+        <p>Drücke den Knopf und sage z.B.:<br><em>"Zahnarzt heute um 16 Uhr"</em></p>
         
         <button id="micBtn" onclick="startSpeechRecognition()">🎤 Sprechen</button>
         
@@ -147,8 +147,8 @@
 
             recognition.onresult = function(event) {
                 const speechText = event.results[0][0].transcript;
-                document.getElementById('status').innerText = 'Erkannt: "' + speechText + '" - Erstelle Termin...';
-                createCalendarEvent(speechText);
+                document.getElementById('status').innerText = 'Erkannt: "' + speechText + '" - Analysiere Termin...';
+                parseAndCreateEvent(speechText);
             };
 
             recognition.onerror = function(event) {
@@ -169,15 +169,47 @@
             btn.innerText = '🎤 Sprechen';
         }
 
-        function createCalendarEvent(text) {
+        function parseAndCreateEvent(text) {
+            let eventDate = new Date(); // Standard: Heute
+            let hours = 10; // Standard-Uhrzeit falls keine genannt wird (10 Uhr)
+            let minutes = 0;
+
+            const lowerText = text.toLowerCase();
+
+            // Prüfen ob "morgen" gesagt wurde
+            if (lowerText.includes('morgen')) {
+                eventDate.setDate(eventDate.getDate() + 1);
+            }
+
+            // Uhrzeit aus dem Text fischen (sucht nach Mustern wie "um 16 Uhr", "16:00", "um 9 Uhr")
+            const timeMatch = text.match(/(?:um\s+)?(\d{1,2})(?::(\d{2}))?\s*uhr/i);
+            if (timeMatch) {
+                hours = parseInt(timeMatch[1], 10);
+                if (timeMatch[2]) {
+                    minutes = parseInt(timeMatch[2], 10);
+                }
+            } else {
+                // Alternative Suche nach reinen Zahlen mit Uhrzeit im Text
+                const altMatch = text.match(/(\d{1,2}):(\d{2})/);
+                if (altMatch) {
+                    hours = parseInt(altMatch[1], 10);
+                    minutes = parseInt(altMatch[2], 10);
+                }
+            }
+
+            eventDate.setHours(hours, minutes, 0, 0);
+
+            // Endzeit: Standardmäßig 1 Stunde nach Start
+            let endDate = new Date(eventDate.getTime() + 60 * 60 * 1000);
+
             const event = {
                 'summary': text,
                 'description': 'Erstellt über Sprach-App',
                 'start': {
-                    'dateTime': new Date(Date.now() + 86400000).toISOString()
+                    'dateTime': eventDate.toISOString()
                 },
                 'end': {
-                    'dateTime': new Date(Date.now() + 90000000).toISOString()
+                    'dateTime': endDate.toISOString()
                 }
             };
 
@@ -192,9 +224,12 @@
             .then(response => {
                 if (response.ok) {
                     document.getElementById('status').innerText = '✅ Termin erfolgreich eingetragen!';
-                    addEventToList(text);
+                    addEventToList(text + ' (' + eventDate.toLocaleDateString('de-DE', {weekday: 'short', day: '2-digit', month: '2-digit'}) + ', ' + hours + ':00 Uhr)');
                 } else {
-                    document.getElementById('status').innerText = '❌ Fehler beim Speichern im Kalender.';
+                    response.json().then(err => {
+                        console.error(err);
+                        document.getElementById('status').innerText = '❌ Fehler beim Speichern im Kalender.';
+                    });
                 }
             })
             .catch(error => {
