@@ -329,7 +329,7 @@
             <div id="status">Bereit zum Sprechen...</div>
 
             <div class="hint-box">
-                💡 <b>Mit Groq & Llama Power:</b><br>
+                💡 <b>Mit GPT-OSS & KI Power:</b><br>
                 • Erkennt sofort, ob du etwas weglegst oder suchst!<br>
                 • <i>"Ich lege mein Portemonnaie auf den Küchentisch"</i><br>
                 • <i>"Wo ist mein Portemonnaie?"</i>
@@ -412,7 +412,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v3.11-2026-09-14";
+        const APP_VERSION = "v3.12-2026-09-14-gpt";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -497,7 +497,7 @@
 
             resultBox.style.background = '#cff4fc';
             resultBox.style.color = '#055160';
-            resultBox.innerText = '⏳ Teste Verbindung zu Groq & Llama...';
+            resultBox.innerText = '⏳ Teste Verbindung mit model: openai/gpt-oss-120b...';
 
             try {
                 const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -507,7 +507,7 @@
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
-                        model: "llama3-8b-8192",
+                        model: "openai/gpt-oss-120b",
                         messages: [
                             { role: "system", content: "Antworte exakt als JSON: {\"status\": \"ok\"}" },
                             { role: "user", content: "Test" }
@@ -525,7 +525,7 @@
                 const data = await response.json();
                 resultBox.style.background = '#d1e7dd';
                 resultBox.style.color = '#0f5132';
-                resultBox.innerHTML = `✅ <b>Verbindung erfolgreich!</b><br>Antwort von Llama: <code>${escapeHtml(data.choices[0].message.content)}</code>`;
+                resultBox.innerHTML = `✅ <b>Verbindung erfolgreich!</b><br>Antwort: <code>${escapeHtml(data.choices[0].message.content)}</code>`;
 
             } catch (err) {
                 resultBox.style.background = '#f8d7da';
@@ -686,7 +686,7 @@
 
             recognition.onresult = function(event) {
                 const text = event.results[0][0].transcript;
-                document.getElementById('status').innerText = 'Analysiere mit Groq: "' + text + '"';
+                document.getElementById('status').innerText = 'Analysiere mit GPT-OSS: "' + text + '"';
                 processWithAI(text);
             };
 
@@ -717,7 +717,7 @@
             }
 
             const apiUrl = "https://api.groq.com/openai/v1/chat/completions";
-            const modelName = "llama3-8b-8192";
+            const modelName = "openai/gpt-oss-120b";
 
             try {
                 const systemPrompt = `Du bist ein extrem präziser deutscher Sprachassistent. Deine Aufgabe ist es, den deutschen Sprachbefehl zu analysieren und AUSSCHLIESSLICH als kompaktes JSON im exakten Format unten zu antworten.
