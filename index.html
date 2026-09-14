@@ -323,7 +323,7 @@
             <div class="hint-box">
                 💡 <b>Beispiele:</b><br>
                 • <i>"Arzttermin morgen um 14 Uhr"</i> (Kalender)<br>
-                • <i>"Schlüssel in den Schrank gelegt"</i> (Merken)<br>
+                • <i>"Ich lege meinen Schlüssel in den Schlafzimmerschrank"</i> (Merken)<br>
                 • <i>"Wo ist mein Schlüssel?"</i> (Suchen)<br>
                 • <i>"Milch kaufen"</i> (Notiz)
             </div>
@@ -394,7 +394,7 @@
         let tokenClient;
         let accessToken = null;
         let todos = JSON.parse(localStorage.getItem('omas_todos') || '[]');
-        let memory = JSON.parse(localStorage.getItem('omas_memory') || '{}'); // Speicher für "Wo ist was?"
+        let memory = JSON.parse(localStorage.getItem('omas_memory') || '{}'); // Speicher für versteckte Ablageorte
         let latestEventsSpeechText = "Es sind keine anstehenden Termine geladen.";
         let rawEventsList = [];
 
@@ -417,7 +417,6 @@
             document.getElementById('tabCalendarBtn').addEventListener('click', (e) => switchTab('calendar', e));
             document.getElementById('tabContactsBtn').addEventListener('click', (e) => switchTab('contacts', e));
 
-            // Der einzige universelle Sprech-Button
             document.getElementById('masterMicBtn').addEventListener('click', startMasterSpeechRecognition);
 
             document.getElementById('speakSummaryBtn').addEventListener('click', speakSummary);
@@ -582,7 +581,6 @@
             speakTextOut(speechText);
         }
 
-        // INTELLIGENTE SPRACH-ERKENNUNG (ZENTRAL)
         function startMasterSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
@@ -626,23 +624,23 @@
             btn.innerHTML = '🎤 Sprechen...';
         }
 
-        // Hier entscheidet die App, was der Benutzer wollte
+        // INTELLIGENTE ROUTING-FUNKTION
         function routeSpeechInput(text) {
             const lower = text.toLowerCase();
 
-            // 1. Fall: Fragt der Benutzer nach einem Ort ("Wo ist...", "Wo habe ich...")?
+            // 1. Suchen: "Wo ist..." / "Wo habe ich..."
             if (lower.startsWith('wo ist') || lower.includes('wo habe ich') || lower.includes('wo liegt')) {
                 searchMemory(text);
                 return;
             }
 
-            // 2. Fall: Speichert der Benutzer einen Ort ("...in den Schrank gelegt", "...hingepackt", etc.)?
-            if (lower.includes('hingelegt') || lower.includes('gepackt') || lower.includes('versteckt') || lower.includes('liegt in') || lower.includes('habe ich in')) {
-                saveMemory(text);
+            // 2. Im Hintergrund Speichern: "...in... gelegt / gepackt / getan"
+            if (lower.includes('lege') || lower.includes('gelegt') || lower.includes('gepackt') || lower.includes('versteckt') || lower.includes('getan') || lower.includes('habe ich in')) {
+                saveMemorySilently(text);
                 return;
             }
 
-            // 3. Fall: Ist es ein Kalender-Eintrag ("Termin", "morgen", "Uhr")?
+            // 3. Kalender-Eintrag
             if (lower.includes('uhr') || lower.includes('morgen') || lower.includes('termin') || lower.includes('heute um')) {
                 if (!accessToken) {
                     alert('Bitte erst bei Google anmelden für Termine!');
@@ -653,69 +651,87 @@
                 return;
             }
 
-            // 4. Fall: Standardmäßig als Notiz/To-Do speichern
+            // 4. Standard: Normales To-Do / Notiz speichern
             addTodo(text);
             document.getElementById('status').innerText = `✅ Notiz gespeichert: "${text}"`;
         }
 
-        // --- GEDÄCHTNIS-FUNKTIONEN (WO IST WAS) ---
-        function saveMemory(text) {
-            // Einfache Extraktion: Wir suchen nach Schlüsselwörtern
-            // Beispiel: "Ich habe meinen Schlüssel in den Wohnzimmerschrank gepackt"
-            let cleaned = text.replace(/ich habe (meinen|meine|ein|eine)?/i, '').trim();
-            
-            // Wir trennen nach Wörtern wie "in", "auf", "unter", "gepackt", "hingelegt"
-            let parts = cleaned.split(/(?:\s+in\s+|\s+auf\s+|\s+unter\s+|\s+gepackt\s+|\s+hingelegt\s+)/i);
-            
-            if (parts.length >= 2) {
-                let item = parts[0].replace(/(gesucht|schlüssel|brille|geldbeutel)/gi, m => m).trim();
-                // Wir speichern das ganze Ende als Ort
-                let location = text; // Sichern zur Sicherheit den ganzen Satz oder Kontext
-                
-                memory[item.toLowerCase()] = text;
-                localStorage.setItem('omas_memory', JSON.stringify(memory));
-                
-                document.getElementById('status').innerText = `🧠 Gemerkt!`;
-                speakTextOut(`Alles klar, ich habe mir gemerkt: ${text}`);
-            } else {
-                // Fallback: Speichere den gesamten Satz direkt unter dem ersten Substantiv oder komplett
-                memory[text.toLowerCase()] = text;
-                localStorage.setItem('omas_memory', JSON.stringify(memory));
-                document.getElementById('status').innerText = `🧠 Gemerkt!`;
-                speakTextOut(`Ich habe es mir aufgeschrieben.`);
-            }
-        }
+        // --- INTELLIGENTE GEDÄCHTNIS-LOGIK (IM HINTERGRUND) ---
+        function saveMemorySilently(text) {
+            let lower = text.toLowerCase();
+            let itemName = "Gegenstand";
+            let locationName = "verstecktem Ort";
 
-        function searchMemory(text) {
-            let foundAnswer = "";
-            let searchQuery = text.toLowerCase().replace(/wo ist|wo habe ich|wo liegt|mein|meine|\?/gi, '').trim();
-
-            // Wir durchsuchen unser Gedächtnis nach übereinstimmenden Wörtern
-            for (let key in memory) {
-                if (searchQuery.split(' ').some(word => word.length > 2 && key.includes(word))) {
-                    foundAnswer = memory[key];
+            // Bekannte Gegenstände erkennen
+            const commonItems = ['schlüssel', 'brille', 'geldbeutel', 'portemonnaie', 'handy', 'ausweis', 'tasche', 'schmuck', 'uhr', 'stift'];
+            for (let item of commonItems) {
+                if (lower.includes(item)) {
+                    itemName = item;
+                    // Großschreiben fürs Aussehen
+                    itemName = itemName.charAt(0).toUpperCase() + itemName.slice(1);
                     break;
                 }
             }
 
-            if (foundAnswer) {
-                document.getElementById('status').innerText = `💡 ${foundAnswer}`;
-                speakTextOut(foundAnswer);
+            // Wenn kein Standardgegenstand dabei ist, versuchen wir das Wort nach "meinen" / "meine" zu nehmen
+            if (itemName === "Gegenstand") {
+                let match = lower.match(/(?:meinen|meine|ein|eine)\s+([a-zäöü]+)/i);
+                if (match && match[1] && !['in', 'auf', 'unter'].includes(match[1])) {
+                    itemName = match[1].charAt(0).toUpperCase() + match[1].slice(1);
+                }
+            }
+
+            // Ort extrahieren (alles nach in/auf/unter)
+            let locMatch = text.match(/(?:in\s+den|in\s+die|in\s+dem|auf\s+dem|auf\s+der|unter\s+dem|unter\s+der|in|auf|unter)\s+(.*)/i);
+            if (locMatch && locMatch[1]) {
+                locationName = locMatch[1].trim();
+            }
+
+            // Im Hintergrund speichern (unsichtbar für die To-Do-Liste)
+            memory[itemName.toLowerCase()] = {
+                item: itemName,
+                location: locationName
+            };
+            localStorage.setItem('omas_memory', JSON.stringify(memory));
+
+            // Dezenter Status-Hinweis (ohne den Text plump nachzuplappern)
+            document.getElementById('status').innerText = `🧠 Im Gedächtnis abgespeichert.`;
+            speakTextOut(`Habe ich mir im Hintergrund gemerkt.`);
+        }
+
+        function searchMemory(text) {
+            let lower = text.toLowerCase();
+            let foundKey = null;
+
+            // Suche nach dem passenden Gegenstand im Gedächtnis
+            for (let key in memory) {
+                if (lower.includes(key)) {
+                    foundKey = key;
+                    break;
+                }
+            }
+
+            if (foundKey) {
+                let entry = memory[foundKey];
+                // Natürliche Antwort formulieren: "Silvia, dein [Gegenstand] ist [Ort], da hattest du ihn hingelegt."
+                let answerText = `Silvia, dein ${entry.item.toLowerCase()} ist ${entry.location}, da hattest du ihn hingelegt.`;
+                document.getElementById('status').innerText = `💡 ${answerText}`;
+                speakTextOut(answerText);
             } else {
-                // Wenn nichts exaktes gefunden wurde, durchsuchen wir auch die normalen To-Dos / Notizen danach!
-                let matchingTodo = todos.find(t => searchQuery.split(' ').some(word => word.length > 2 && t.text.toLowerCase().includes(word)));
+                // Fallback: In normalen To-Dos suchen
+                let matchingTodo = todos.find(t => lower.split(' ').some(word => word.length > 2 && t.text.toLowerCase().includes(word)));
                 if (matchingTodo) {
                     let ans = `Dazu habe ich diesen Eintrag gefunden: ${matchingTodo.text}`;
                     document.getElementById('status').innerText = `💡 ${ans}`;
                     speakTextOut(ans);
                 } else {
-                    let notFound = `Dazu habe ich mir leider nichts aufgeschrieben.`;
+                    let notFound = `Silvia, dazu habe ich mir nichts im Gedächtnis aufgeschrieben.`;
                     document.getElementById('status').innerText = notFound;
                     speakTextOut(notFound);
                 }
             }
         }
-        // ------------------------------------------
+        // ----------------------------------------------------
 
         function fetchUpcomingEvents() {
             if (!accessToken) {
