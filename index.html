@@ -326,8 +326,8 @@
                 💡 <b>Beispiele:</b><br>
                 • <i>"Schlüssel in Kühlschrank legen"</i> (Gedächtnis)<br>
                 • <i>"Wo ist mein Schlüssel?"</i> (Fragen)<br>
-                • <i>"Arzttermin morgen um 14 Uhr"</i> (Kalender)<br>
-                • <i>"Milch kaufen"</i> (Notiz)
+                • <i>"Arzttermin morgen um 14 Uhr"</i> (Kalender - Uhrzeit Pflicht!)<br>
+                • <i>"Mit Isabel Schuhe einkaufen"</i> (Notiz)
             </div>
         </div>
 
@@ -390,6 +390,15 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
+        // AUTO-CACHE-BREAKER (Verhindert das lästige manuelle Leeren des Caches!)
+        const APP_VERSION = "v2.2-2026-09-14";
+        if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
+            localStorage.setItem('omas_app_ver', APP_VERSION);
+            if ('caches' in window) {
+                caches.keys().then(names => { names.forEach(name => caches.delete(name)); });
+            }
+        }
+
         const CLIENT_ID = '399573320370-qka01ghj0s88eoair7lla665cbj10o4g.apps.googleusercontent.com';
         const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
         
@@ -458,7 +467,6 @@
                         fetchUpcomingEvents();
                     },
                 });
-                // Direkt leise Token holen, wenn schon mal verbunden
                 tokenClient.requestAccessToken({ prompt: '' });
             } catch (e) {
                 document.getElementById('loginBtn').style.display = 'block';
@@ -629,7 +637,7 @@
             btn.innerHTML = '🎤 Sprechen...';
         }
 
-        // --- SICHERE SPRACH-STEUERUNG OHNE OBJEKT-FEHLER ---
+        // --- INTELLIGENTE ROUTING-LOGIK ---
         function routeSpeechInput(text) {
             const lower = text.toLowerCase();
 
@@ -639,14 +647,15 @@
                 return;
             }
 
-            // 2. SPEICHERN VON GEGENSTÄNDEN
+            // 2. SPEICHERN VON GEGENSTÄNDEN (Gedächtnis)
             if (lower.includes(' in ') || lower.includes(' auf ') || lower.includes(' unter ') || lower.includes(' neben ') || lower.includes(' an ') || lower.includes('gelegt') || lower.includes('gepackt') || lower.includes('getan') || lower.includes('packe') || lower.includes('lege') || lower.includes('tue')) {
                 parseAndSaveMemory(text);
                 return;
             }
 
-            // 3. TERMINE
-            if (lower.includes('uhr') || lower.includes('morgen') || lower.includes('termin') || lower.includes('heute')) {
+            // 3. TERMINE (Zwingend mit Uhrzeit, sonst To-Do!)
+            const hasTime = /(?:um\s+)?\d{1,2}(?::\d{2})?\s*uhr/i.test(text) || /\d{1,2}:\d{2}/.test(text);
+            if (hasTime && (lower.includes('uhr') || lower.includes('morgen') || lower.includes('termin') || lower.includes('heute'))) {
                 if (!accessToken) {
                     alert('Bitte erst bei Google anmelden für Termine!');
                     triggerLogin();
@@ -656,21 +665,17 @@
                 return;
             }
 
-            // 4. NOTIZ
+            // 4. ALLES ANDERE (z.B. "Mit Isabel Schuhe einkaufen") landet sauber auf der To-Do-Liste!
             addTodo(text);
             document.getElementById('status').innerText = `✅ Notiz gespeichert: "${text}"`;
+            speakTextOut("Notiz gespeichert.");
         }
 
         function parseAndSaveMemory(text) {
             const lower = text.toLowerCase();
-            
-            const commonItems = [
-                'schlüssel', 'brille', 'geldbeutel', 'portemonnaie', 'handy', 'fernbedienung', 
-                'tasche', 'schere', 'karte', 'ausweis', 'brillenetui', 'geldbörse', 'stift', 'zettel'
-            ];
+            const commonItems = ['schlüssel', 'brille', 'geldbeutel', 'portemonnaie', 'handy', 'fernbedienung', 'tasche', 'schere', 'karte', 'ausweis', 'brillenetui', 'geldbörse', 'stift', 'zettel'];
             
             let foundItem = commonItems.find(item => lower.includes(item));
-
             if (!foundItem) {
                 const matchItem = lower.match(/(?:meinen|meine|mein|den|die|das)\s+([a-zäöüß]+)/i);
                 foundItem = matchItem ? matchItem[1] : '';
@@ -682,7 +687,6 @@
                 return;
             }
 
-            // Absolut sichere Extraktion des Ortes als reiner Textstring
             let foundLocation = "";
             const prepMatch = lower.match(/(?:in\s+den|in\s+die|in\s+dem|in\s+einen|in\s+eine|in|auf\s+den|auf\s+die|auf\s+dem|auf|unter|neben|an)\s+(?:den|die|das|dem)?\s*([a-zäöüß\s]+)/i);
             
@@ -711,14 +715,9 @@
 
         function searchMemory(text) {
             const lower = text.toLowerCase();
-            
-            const commonItems = [
-                'schlüssel', 'brille', 'geldbeutel', 'portemonnaie', 'handy', 'fernbedienung', 
-                'tasche', 'schere', 'karte', 'ausweis', 'brillenetui', 'geldbörse', 'stift', 'zettel'
-            ];
+            const commonItems = ['schlüssel', 'brille', 'geldbeutel', 'portemonnaie', 'handy', 'fernbedienung', 'tasche', 'schere', 'karte', 'ausweis', 'brillenetui', 'geldbörse', 'stift', 'zettel'];
             
             let searchedItem = commonItems.find(item => lower.includes(item));
-
             if (!searchedItem) {
                 const matchItem = lower.match(/(?:mein|meine|meinen|den|die|das)\s+([a-zäöüß]+)/i);
                 searchedItem = matchItem ? matchItem[1] : '';
@@ -727,12 +726,10 @@
             if (searchedItem && memory[searchedItem]) {
                 let location = memory[searchedItem];
                 let answer = `Du hast deinen ${searchedItem} in den ${location} gepackt.`;
-                
                 document.getElementById('status').innerText = `💡 ${answer}`;
                 speakTextOut(answer);
             } else {
                 let foundKey = Object.keys(memory).find(key => searchedItem && key.includes(searchedItem));
-                
                 if (foundKey) {
                     let location = memory[foundKey];
                     let answer = `Du hast deinen ${foundKey} in den ${location} gepackt.`;
@@ -755,9 +752,7 @@
 
             const now = new Date().toISOString();
             fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now}&maxResults=30&singleEvents=true&orderBy=startTime`, {
-                headers: {
-                    'Authorization': 'Bearer ' + accessToken
-                }
+                headers: { 'Authorization': 'Bearer ' + accessToken }
             })
             .then(res => {
                 if (res.status === 401) {
@@ -821,23 +816,17 @@
 
                 latestEventsSpeechText = "Deine nächsten Termine sind: " + speechParts.join(". ");
             })
-            .catch(err => {
-                console.error(err);
-            });
+            .catch(err => { console.error(err); });
         }
 
         function deleteCalendarEvent(eventId, eventTitle) {
-            if (!confirm(`Möchtest du den Termin "${eventTitle}" wirklich löschen?`)) {
-                return;
-            }
+            if (!confirm(`Möchtest du den Termin "${eventTitle}" wirklich löschen?`)) return;
 
             document.getElementById('status').innerText = `Lösche "${eventTitle}"...`;
 
             fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, {
                 method: 'DELETE',
-                headers: {
-                    'Authorization': 'Bearer ' + accessToken
-                }
+                headers: { 'Authorization': 'Bearer ' + accessToken }
             })
             .then(response => {
                 if (response.ok || response.status === 204) {
@@ -909,7 +898,6 @@
             let minutes = 0;
 
             const lowerText = text.toLowerCase();
-
             if (lowerText.includes('morgen')) {
                 eventDate.setDate(eventDate.getDate() + 1);
             }
@@ -917,9 +905,7 @@
             const timeMatch = text.match(/(?:um\s+)?(\d{1,2})(?::(\d{2}))?\s*uhr/i);
             if (timeMatch) {
                 hours = parseInt(timeMatch[1], 10);
-                if (timeMatch[2]) {
-                    minutes = parseInt(timeMatch[2], 10);
-                }
+                if (timeMatch[2]) minutes = parseInt(timeMatch[2], 10);
             } else {
                 const altMatch = text.match(/(\d{1,2}):(\d{2})/);
                 if (altMatch) {
@@ -936,9 +922,7 @@
                 .replace(/\d+\s*(?:stunden?|minuten?).*$/i, '')
                 .trim();
 
-            if (!eventTitle) {
-                eventTitle = "Termin";
-            }
+            if (!eventTitle) eventTitle = "Termin";
 
             eventDate.setHours(hours, minutes, 0, 0);
             let endDate = new Date(eventDate.getTime() + 60 * 60 * 1000);
@@ -963,12 +947,8 @@
             const calendarEvent = {
                 'summary': eventTitle,
                 'description': 'Erstellt über Omas Sprach-Assistent',
-                'start': {
-                    'dateTime': toLocalISOString(eventDate)
-                },
-                'end': {
-                    'dateTime': toLocalISOString(endDate)
-                }
+                'start': { 'dateTime': toLocalISOString(eventDate) },
+                'end': { 'dateTime': toLocalISOString(endDate) }
             };
 
             fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
@@ -985,7 +965,7 @@
                     speakTextOut(`Termin ${eventTitle} wurde eingetragen.`);
                     fetchUpcomingEvents();
                 } else {
-                    const errData = await response.json();
+                    const errData =awatt response.json();
                     console.error(errData);
                     document.getElementById('status').innerText = '❌ Fehler beim Eintragen.';
                 }
