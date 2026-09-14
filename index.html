@@ -388,7 +388,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v5.2-2026-09-14-direct-retrieval";
+        const APP_VERSION = "v5.3-2026-09-14-flexible-search";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -621,14 +621,22 @@
                 return;
             }
 
-            // DIREKTE LOKALE SUCHE NACH ABLAGEORTEN (Umgehen von LLM-Suchfehlern)
+            // VERBESSERTE LOKALE SUCHE NACH ABLAGEORTEN (FLEXIBEL)
             const lowerText = userText.toLowerCase();
             if (lowerText.startsWith("wo ist") || lowerText.includes("wo habe ich") || lowerText.includes("wo liegt")) {
-                let queryItem = lowerText.replace("wo ist", "").replace("wo habe ich", "").replace("wo liegt", "").replace("mein", "").replace("meine", "").replace("dein", "").replace("deine", "").trim();
+                let queryItem = lowerText
+                    .replace("wo ist", "")
+                    .replace("wo habe ich", "")
+                    .replace("wo liegt", "")
+                    .replace("mein", "")
+                    .replace("meine", "")
+                    .replace("dein", "")
+                    .replace("deine", "")
+                    .trim();
                 
                 let foundLocation = null;
                 for (const [key, value] of Object.entries(userMemories)) {
-                    if (queryItem.includes(key) || key.includes(queryItem)) {
+                    if (key.includes(queryItem) || queryItem.includes(key)) {
                         foundLocation = value;
                         break;
                     }
@@ -662,8 +670,8 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 - "action": Entweder "calendar" (Termin eintragen), "get_calendar" (Termine vorlesen), "get_todos" (To-Dos vorlesen), "todo" (Neues To-Do hinzufügen), "store_memory" (Gedächtnis oder Name speichern), oder "chat" (normale Fragen).
 - "calendar_text": (Nur bei "calendar") Der Satz zur Termin-Extraktion.
 - "todo_text": (Nur bei "todo") Der To-Do-Inhalt.
-- "memory_key": (Nur bei "store_memory") Das Merkmal (z.B. "mein name" oder ein Gegenstand wie "kuscheltier").
-- "memory_value": (Nur bei "store_memory") Der Wert oder Ablageort (z.B. "unterm Kopfkissen" oder ein Ort).
+- "memory_key": (Nur bei "store_memory") Das genaue Hauptobjekt, das gesucht wird (z. B. "kuscheltier" oder "schlüssel").
+- "memory_value": (Nur bei "store_memory") Der genaue Ablageort (z. B. "unterm Kopfkissen").
 - "reply": (Für "chat", "get_calendar", "get_todos" oder Bestätigung) Eine natürliche Antwort an den Nutzer. Nutze dabei immer den im Gedächtnis gespeicherten Namen des Nutzers, falls vorhanden!`;
 
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
