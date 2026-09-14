@@ -407,7 +407,6 @@
             { name: "Kontakt 3", phone: "" }
         ]));
 
-        // Alles zentral per Event-Listener anbinden, sobald das Dokument bereit ist
         document.addEventListener('DOMContentLoaded', () => {
             initApp();
             attachEventListeners();
@@ -417,18 +416,15 @@
             document.getElementById('closeAppBtn').addEventListener('click', exitApp);
             document.getElementById('loginBtn').addEventListener('click', triggerLogin);
 
-            // Tabs
             document.getElementById('tabSpeakBtn').addEventListener('click', (e) => switchTab('speak', e));
             document.getElementById('tabCalendarBtn').addEventListener('click', (e) => switchTab('calendar', e));
             document.getElementById('tabContactsBtn').addEventListener('click', (e) => switchTab('contacts', e));
 
-            // Aktionen
             document.getElementById('micEventBtn').addEventListener('click', () => startSpeechRecognition('event'));
             document.getElementById('micTodoBtn').addEventListener('click', () => startSpeechRecognition('todo'));
             document.getElementById('speakSummaryBtn').addEventListener('click', speakSummary);
             document.getElementById('refreshEventsBtn').addEventListener('click', fetchUpcomingEvents);
 
-            // Kontakte speichern
             document.getElementById('saveC1Btn').addEventListener('click', () => saveContact(1));
             document.getElementById('saveC2Btn').addEventListener('click', () => saveContact(2));
             document.getElementById('saveC3Btn').addEventListener('click', () => saveContact(3));
@@ -438,7 +434,6 @@
             if (typeof google !== 'undefined' && google.accounts) {
                 setupGoogleClient();
             } else {
-                // Falls das Google-Skript etwas länger lädt
                 setTimeout(setupGoogleClient, 1000);
             }
             renderTodos();
@@ -572,8 +567,9 @@
             const activeTodos = todos.filter(t => !t.completed);
             if (activeTodos.length > 0) {
                 speechText += " Ausserdem hast du noch folgende Notizen: ";
-                activeTodos.forEach((t, i) => {
-                    speechText += (i + 1) + ". " + t.text + ". ";
+                // Hier wurde die Nummerierung (i + 1) entfernt, damit kein "erste" vorgelesen wird:
+                activeTodos.forEach((t) => {
+                    speechText += t.text + ". ";
                 });
             }
 
