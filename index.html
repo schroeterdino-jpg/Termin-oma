@@ -377,7 +377,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v6.8-auto-clean-reminder";
+        const APP_VERSION = "v6.10-vorlauf-fix";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -703,7 +703,13 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                         const hiddenEventObj = {
                             summary: `[REMINDER] ${parsed.summary || taskText}`,
                             start: { dateTime: parsed.start_time + ":00+02:00" },
-                            end: { dateTime: new Date(new Date(parsed.start_time).getTime() + 1800000).toISOString().split('.')[0] + "+02:00" }
+                            end: { dateTime: new Date(new Date(parsed.start_time).getTime() + 1800000).toISOString().split('.')[0] + "+02:00" },
+                            reminders: {
+                                useDefault: false,
+                                overrides: [
+                                    { method: 'popup', minutes: 15 } // 15 Minuten Vorlaufzeit!
+                                ]
+                            }
                         };
                         try {
                             const calRes = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
@@ -724,7 +730,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     todos.push({ text: `🔔 ${taskText}`, calendarId: calendarEventId, completed: false });
                     saveTodos();
 
-                    const reply = `Ich habe "${taskText}" auf deine To-Do-Liste gesetzt und dich im Hintergrund dafür eingeplant, ${currentUserName}!`;
+                    const reply = `Ich habe "${taskText}" auf deine To-Do-Liste gesetzt und dich im Kalender 15 Minuten vorher erinnern lassen, ${currentUserName}!`;
                     appendChatBubble(reply, 'assistant');
                     document.getElementById('status').innerText = 'Bereit.';
                     speakTextOut(reply);
