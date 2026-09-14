@@ -644,11 +644,9 @@
                     const hours = startDate.getHours();
                     const minutes = startDate.getMinutes();
 
-                    // Visuelle Formatierung für die Ansicht
                     const formattedDate = startDate.toLocaleDateString('de-DE', {weekday: 'short', day: '2-digit', month: '2-digit'});
                     const formattedTime = startDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'}) + ' Uhr';
                     
-                    // Sprech-Text sauber in geschriebenen Worten aufbauen (verhindert, dass der Vorleser "15.09." stur vorliest)
                     let timeString = minutes === 0 ? `${hours} Uhr` : `${hours} Uhr ${minutes}`;
                     speechParts.push(`${item.summary}, am ${dayNum}. ${monthName} um ${timeString}`);
 
@@ -889,7 +887,7 @@
                 } else {
                     const errData = await response.json();
                     console.error(errData);
-                    document.getElementById('status': '❌ Fehler beim Eintragen.');
+                    document.getElementById('status').innerText = '❌ Fehler beim Eintragen.';
                 }
             })
             .catch(error => {
