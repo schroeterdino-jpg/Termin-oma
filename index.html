@@ -389,7 +389,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v5.7-2026-09-14-perfect-location";
+        const APP_VERSION = "v5.8-2026-09-14-fixed-preposition";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -412,20 +412,17 @@
             { name: "Kontakt 3", phone: "" }
         ]));
 
-        // Direktes Starten ohne DOMContentLoaded-Blockaden
         initApp();
 
         function initApp() {
             renderTodos();
             loadContactsUI();
             
-            // Verzögert das Input-Füllen für den Fall, dass das DOM noch rendert
             setTimeout(() => {
                 const keyInput = document.getElementById('groqApiKeyInput');
                 if (keyInput) keyInput.value = localStorage.getItem('omas_groq_key') || '';
             }, 100);
 
-            // Google Client laden
             let checkInterval = setInterval(() => {
                 if (typeof google !== 'undefined' && google.accounts) {
                     clearInterval(checkInterval);
@@ -433,7 +430,6 @@
                 }
             }, 300);
 
-            // Fallback für den Beenden-Button (falls er per addEventListener verknüpft werden muss)
             const closeBtn = document.getElementById('closeAppBtn');
             if (closeBtn) closeBtn.onclick = exitApp;
             const loginBtn = document.getElementById('loginBtn');
@@ -662,22 +658,16 @@
                     const currentUserName = userMemories["mein name"] || userMemories["name"] || "";
                     const namePrefix = currentUserName ? `${currentUserName}, ` : "";
                     
-                    // Bereinigung von Besitzanzeigenden Fürwörtern und Präpositionen
-                    let cleanLocation = foundLocation
-                        .replace(/^(unter|in|auf|an)\s+meinem\s+/i, "$1 ")
-                        .replace(/^(unter|in|auf|an)\s+meiner\s+/i, "$1 ")
-                        .replace(/^(unter|in|auf|an)\s+mein\s+/i, "$1 ")
-                        .replace(/^meinem\s+/i, "")
-                        .replace(/^meiner\s+/i, "")
-                        .replace(/^mein\s+/i, "")
-                        .trim();
+                    let cleanLocation = foundLocation.trim();
 
-                    // Wenn bereits eine Präposition enthalten ist, wandeln wir "meinem" in "deinem" um
-                    if (/^(in|auf|an|unter)\s+/i.test(cleanLocation)) {
+                    // Wenn der gespeicherte Ort schon mit einer Präposition beginnt (in, auf, an, unter, im, am etc.)
+                    if (/^(in|auf|an|unter|im|am)\s+/i.test(cleanLocation)) {
                         cleanLocation = cleanLocation
                             .replace(/meinem\s+/i, "deinem ")
                             .replace(/meiner\s+/i, "deiner ")
-                            .replace(/mein\s+/i, "dein ");
+                            .replace(/mein\s+/i, "dein ")
+                            .replace(/^im\s+/i, "im ")
+                            .replace(/^am\s+/i, "am ");
                         
                         const reply = `${namePrefix}dein ${queryItem} ist ${cleanLocation}.`;
                         appendChatBubble(reply, 'assistant');
@@ -687,7 +677,7 @@
                         return;
                     }
 
-                    // Andernfalls setzen wir sauber "unter deinem" davor
+                    // Andernfalls (wenn nur ein reiner Ort wie "Kopfkissen" gespeichert ist) nutzen wir standardmäßig "unter deinem"
                     const reply = `${namePrefix}dein ${queryItem} ist unter deinem ${cleanLocation}.`;
                     appendChatBubble(reply, 'assistant');
                     const statusEl = document.getElementById('status');
@@ -714,8 +704,8 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 - "action": Entweder "calendar" (Termin eintragen), "get_calendar" (Termine vorlesen), "get_todos" (To-Dos vorlesen), "todo" (Neues To-Do hinzufügen), "store_memory" (Gedächtnis oder Name speichern), oder "chat" (normale Fragen).
 - "calendar_text": (Nur bei "calendar") Der Satz zur Termin-Extraktion.
 - "todo_text": (Nur bei "todo") Der To-Do-Inhalt.
-- "memory_key": (Nur bei "store_memory") Das genaue Hauptobjekt, das gesucht wird (z. B. "kuscheltier" oder "schlüssel").
-- "memory_value": (Nur bei "store_memory") Der genaue Ablageort (z. B. "unterm Kopfkissen").
+- "memory_key": (Nur bei "store_memory") Das genaue Hauptobjekt, das gesucht wird (z. B. "schlüssel").
+- "memory_value": (Nur bei "store_memory") Der genaue Ablageort exakt so wie angegeben (z. B. "im Küchenschrank" oder "unter dem Tisch").
 - "reply": (Für "chat", "get_calendar", "get_todos" oder Bestätigung) Eine natürliche Antwort an den Nutzer. Nutze dabei immer den im Gedächtnis gespeicherten Namen des Nutzers, falls vorhanden!`;
 
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -794,7 +784,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                         if (parsed.memory_key.toLowerCase().includes("name")) {
                             reply = `Alles klar, ich nenne dich ab jetzt ${parsed.memory_value}!`;
                         } else {
-                            reply = `Ich habe mir gemerkt: Dein ${parsed.memory_key} ist ${parsed.memory_value}.`;
+                            reply = `Ich habe vermerkt, dass dein ${parsed.memory_key} jetzt ${parsed.memory_value} ist.`;
                         }
                     }
                     appendChatBubble(reply, 'assistant');
