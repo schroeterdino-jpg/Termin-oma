@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Omas Sprach-Assistent</title>
+    <!-- Web App Manifest Meta-Tags für den Homescreen-Modus -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -29,8 +33,25 @@
             align-items: center;
             margin-bottom: 15px;
         }
-        h1 {
+        .header-title-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        /* Schönes integriertes App-Logo */
+        .app-logo {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, #0d6efd, #0dcaf0);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 22px;
+            box-shadow: 0 3px 8px rgba(13, 110, 253, 0.3);
+        }
+        h1 {
+            font-size: 20px;
             margin: 0;
             color: #111;
         }
@@ -62,7 +83,7 @@
         /* Reiter-Navigation (Tabs) */
         .tab-bar {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             margin-bottom: 20px;
             background: #e4e6eb;
             padding: 5px;
@@ -72,12 +93,13 @@
             flex: 1;
             background: transparent;
             border: none;
-            padding: 12px;
-            font-size: 15px;
+            padding: 10px 6px;
+            font-size: 13px;
             font-weight: bold;
             color: #555;
             border-radius: 10px;
             cursor: pointer;
+            text-align: center;
         }
         .tab-btn.active {
             background: #fff;
@@ -221,6 +243,63 @@
             padding: 0 5px;
             flex: none;
         }
+        /* Kontakt-Schnellwahl Styling */
+        .call-btn {
+            width: 100%;
+            background-color: #198754;
+            color: white;
+            border: none;
+            padding: 18px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 14px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(25, 135, 84, 0.3);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+        .call-btn:active {
+            transform: scale(0.98);
+        }
+        .contact-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 14px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+        }
+        .contact-card label {
+            display: block;
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .contact-input-row {
+            display: flex;
+            gap: 8px;
+        }
+        .contact-input {
+            flex: 1;
+            padding: 10px;
+            font-size: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        .save-contact-btn {
+            background: #0d6efd;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+        }
         .hint-box {
             font-size: 13px;
             color: #666;
@@ -235,9 +314,12 @@
 <body>
 
     <div class="container">
-        <!-- Header -->
+        <!-- Header mit schickem Logo -->
         <div class="app-header">
-            <h1>Omas Sprach-Assistent</h1>
+            <div class="header-title-area">
+                <div class="app-logo">🎙️</div>
+                <h1>Omas Sprach-Assistent</h1>
+            </div>
             <button class="close-app-btn" onclick="exitApp()">❌ Beenden</button>
         </div>
         
@@ -247,7 +329,8 @@
         <!-- Reiter (Tabs) -->
         <div class="tab-bar">
             <button class="tab-btn active" onclick="switchTab('speak', event)">🎤 Sprechen</button>
-            <button class="tab-btn" onclick="switchTab('calendar', event)">📅 Termine & Notizen</button>
+            <button class="tab-btn" onclick="switchTab('calendar', event)">📅 Termine</button>
+            <button class="tab-btn" onclick="switchTab('contacts', event)">📞 Anrufen</button>
         </div>
 
         <!-- REITER 1: SPRECHEN & EINTRAGEN -->
@@ -292,6 +375,63 @@
                 <div id="todosContainer">Noch keine Notizen.</div>
             </div>
         </div>
+
+        <!-- REITER 3: SCHNELLWAHL KONTAKTE -->
+        <div id="tab-contacts" class="tab-content">
+            <div class="section-title">
+                <span>Wichtige Kontakte</span>
+            </div>
+            <div style="font-size: 14px; color: #555; margin-bottom: 15px;">
+                Ein Klick auf den grünen Button startet sofort den Anruf. Unten kannst du die Namen und Nummern ändern.
+            </div>
+
+            <!-- Schnellwahl-Buttons -->
+            <div id="quickCallContainer">
+                <!-- Wird dynamisch geladen -->
+            </div>
+
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+
+            <div class="section-title" style="font-size: 16px;">
+                <span>Nummern bearbeiten</span>
+            </div>
+
+            <!-- Kontakt 1 -->
+            <div class="contact-card">
+                <label>Kontakt 1 (z.B. Simone)</label>
+                <div class="contact-input-row" style="margin-bottom: 8px;">
+                    <input type="text" id="c1Name" class="contact-input" placeholder="Name">
+                </div>
+                <div class="contact-input-row">
+                    <input type="tel" id="c1Phone" class="contact-input" placeholder="Telefonnummer">
+                    <button class="save-contact-btn" onclick="saveContact(1)">Speichern</button>
+                </div>
+            </div>
+
+            <!-- Kontakt 2 -->
+            <div class="contact-card">
+                <label>Kontakt 2</label>
+                <div class="contact-input-row" style="margin-bottom: 8px;">
+                    <input type="text" id="c2Name" class="contact-input" placeholder="Name">
+                </div>
+                <div class="contact-input-row">
+                    <input type="tel" id="c2Phone" class="contact-input" placeholder="Telefonnummer">
+                    <button class="save-contact-btn" onclick="saveContact(2)">Speichern</button>
+                </div>
+            </div>
+
+            <!-- Kontakt 3 -->
+            <div class="contact-card">
+                <label>Kontakt 3</label>
+                <div class="contact-input-row" style="margin-bottom: 8px;">
+                    <input type="text" id="c3Name" class="contact-input" placeholder="Name">
+                </div>
+                <div class="contact-input-row">
+                    <input type="tel" id="c3Phone" class="contact-input" placeholder="Telefonnummer">
+                    <button class="save-contact-btn" onclick="saveContact(3)">Speichern</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Google GIS -->
@@ -307,13 +447,19 @@
         let latestEventsText = "Es sind keine anstehenden Termine geladen.";
         let rawEventsList = [];
 
+        // Kontakte laden oder Standardwerte setzen (Simone als erster Kontakt)
+        let contacts = JSON.parse(localStorage.getItem('omas_contacts') || JSON.stringify([
+            { name: "Simone", phone: "" },
+            { name: "Kontakt 2", phone: "" },
+            { name: "Kontakt 3", phone: "" }
+        ]));
+
         window.onload = function () {
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: CLIENT_ID,
                 scope: SCOPES,
                 callback: (response) => {
                     if (response.error !== undefined) {
-                        // Wenn der stille Hintergrund-Login fehlschlägt, zeigen wir den Button
                         document.getElementById('status').innerText = 'Bitte einmal bei Google anmelden.';
                         document.getElementById('loginBtn').style.display = 'block';
                         return;
@@ -325,7 +471,6 @@
                 },
             });
 
-            // Automatischer Silent-Login im Hintergrund beim App-Start
             try {
                 tokenClient.requestAccessToken({ prompt: '' });
             } catch (e) {
@@ -334,6 +479,7 @@
             }
 
             renderTodos();
+            loadContactsUI();
         };
 
         function switchTab(tabName, event) {
@@ -342,9 +488,12 @@
 
             if (tabName === 'speak') {
                 document.getElementById('tab-speak').classList.add('active');
-            } else {
+            } else if (tabName === 'calendar') {
                 document.getElementById('tab-calendar').classList.add('active');
                 fetchUpcomingEvents();
+            } else if (tabName === 'contacts') {
+                document.getElementById('tab-contacts').classList.add('active');
+                loadContactsUI();
             }
             event.currentTarget.classList.add('active');
         }
@@ -352,7 +501,7 @@
         function exitApp() {
             window.close();
             setTimeout(() => {
-                window.location.href = 'https://www.google.de';
+                window.location.href = "about:blank";
             }, 100);
         }
 
@@ -360,6 +509,51 @@
             if (tokenClient) {
                 tokenClient.requestAccessToken({ prompt: 'consent' });
             }
+        }
+
+        // Kontakt-Funktionen
+        function loadContactsUI() {
+            // Eingabefelder füllen
+            for (let i = 0; i < 3; i++) {
+                document.getElementById(`c${i+1}Name`).value = contacts[i].name || '';
+                document.getElementById(`c${i+1}Phone`).value = contacts[i].phone || '';
+            }
+
+            // Schnellwahl-Buttons oben generieren
+            const container = document.getElementById('quickCallContainer');
+            container.innerHTML = '';
+
+            contacts.forEach((c, index) => {
+                const a = document.createElement('a');
+                a.className = 'call-btn';
+                
+                if (c.phone) {
+                    a.href = `tel:${c.phone}`;
+                    a.innerHTML = `📞 ${c.name} anrufen`;
+                    a.style.backgroundColor = '#198754';
+                } else {
+                    a.href = '#';
+                    a.onclick = (e) => {
+                        e.preventDefault();
+                        alert(`Bitte erst unten die Nummer für "${c.name}" speichern!`);
+                        switchTab('contacts', { currentTarget: document.querySelectorAll('.tab-btn')[2] });
+                    };
+                    a.innerHTML = `⚠️ ${c.name} (Nummer fehlt)`;
+                    a.style.backgroundColor = '#6c757d';
+                }
+                container.appendChild(a);
+            });
+        }
+
+        function saveContact(num) {
+            const name = document.getElementById(`c${num}Name`).value.trim();
+            const phone = document.getElementById(`c${num}Phone`).value.trim();
+
+            contacts[num-1] = { name: name || `Kontakt ${num}`, phone: phone };
+            localStorage.setItem('omas_contacts', JSON.stringify(contacts));
+            
+            loadContactsUI();
+            alert(`Kontakt "${contacts[num-1].name}" gespeichert!`);
         }
 
         function playBeep() {
