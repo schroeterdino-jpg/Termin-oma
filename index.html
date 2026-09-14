@@ -81,7 +81,7 @@
 
     <div class="container">
         <h1>Termin per Spracheingabe</h1>
-        <p>Drücke den Knopf und sage z.B.:<br><em>"Zahnarzt heute um 16 Uhr erinnere mich zwei Stunden vorher"</em></p>
+        <p>Drücke den Knopf und sage z.B.:<br><em>"Zahnarzt heute um 16 Uhr"</em></p>
         
         <button id="micBtn" onclick="startSpeechRecognition()">🎤 Sprechen</button>
         
@@ -117,7 +117,6 @@
                     fetchUpcomingEvents();
                 },
             });
-            // Automatischer Login-Anstoss beim Start
             tokenClient.requestAccessToken({ prompt: '' });
         };
 
@@ -129,12 +128,11 @@
             }
         }
 
-        // Lädt bestehende Termine beim Start aus dem Google Kalender
         function fetchUpcomingEvents() {
             if (!accessToken) return;
 
             const now = new Date().toISOString();
-            fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now}&maxResults=10&singleEvents=true&orderBy=startTime`, {
+            fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now}&maxResults=30&singleEvents=true&orderBy=startTime`, {
                 headers: {
                     'Authorization': 'Bearer ' + accessToken
                 }
@@ -150,10 +148,19 @@
                     return;
                 }
 
-                data.items.forEach((item, index) => {
-                    const startDate = new Date(item.start.dateTime || item.start.date);
+                // Nur Termine mit echter Uhrzeit anzeigen (ganztägige Geburtstage etc. ausblenden)
+                const timedEvents = data.items.filter(item => item.start.dateTime);
+
+                if (timedEvents.length === 0) {
+                    container.innerHTML = 'Keine anstehenden Uhrzeit-Termine gefunden.';
+                    document.getElementById('status').innerText = 'Bereit...';
+                    return;
+                }
+
+                timedEvents.slice(0, 5).forEach((item, index) => {
+                    const startDate = new Date(item.start.dateTime);
                     const formattedDate = startDate.toLocaleDateString('de-DE', {weekday: 'short', day: '2-digit', month: '2-digit'});
-                    const formattedTime = item.start.dateTime ? startDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'}) + ' Uhr' : 'Ganztägig';
+                    const formattedTime = startDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'}) + ' Uhr';
                     
                     const div = document.createElement('div');
                     div.className = 'event-item';
@@ -215,7 +222,6 @@
             let eventDate = new Date();
             let hours = 10; 
             let minutes = 0;
-            let reminderMinutes = 60; // Standard: 1 Stunde
 
             const lowerText = text.toLowerCase();
 
@@ -223,7 +229,6 @@
                 eventDate.setDate(eventDate.getDate() + 1);
             }
 
-            // Uhrzeit erkennen (z.B. "16 Uhr", "16:30 Uhr", "um 16 Uhr")
             const timeMatch = text.match(/(?:um\s+)?(\d{1,2})(?::(\d{2}))?\s*uhr/i);
             if (timeMatch) {
                 hours = parseInt(timeMatch[1], 10);
@@ -238,36 +243,12 @@
                 }
             }
 
-            // Flexibles Erkennen von Erinnerungen (z.B. "erinnere mich zwei stunden vorher", "30 minuten vorher")
-            const reminderMatch = text.lowerText ? text.toLowerCase() : lowerText;
-            if (reminderMatch.includes('stunde')) {
-                const numMatch = reminderMatch.match(/(\d+|eine|zwei|drei|vier)\s*stunde/);
-                if (numMatch) {
-                    let val = numMatch[1];
-                    let hrs = 1;
-                    if (val === 'zwei') hrs = 2;
-                    else if (val === 'drei') hrs = 3;
-                    else if (val === 'vier') hrs = 4;
-                    else if (!isNaN(val)) hrs = parseInt(val, 10);
-                    reminderMinutes = hrs * 60;
-                } else if (reminderMatch.includes('halbe stunde')) {
-                    reminderMinutes = 30;
-                } else {
-                    reminderMinutes = 120; // Standard bei "zwei stunden"
-                }
-            } else if (reminderMatch.includes('minute')) {
-                const minMatch = reminderMatch.match(/(\d+)\s*minute/);
-                if (minMatch) {
-                    reminderMinutes = parseInt(minMatch[1], 10);
-                }
-            }
-
-            // Textbereinigung für den Titel (Filtert Füllwörter und Befehle heraus)
             let eventTitle = text
                 .replace(/heute|morgen/gi, '')
                 .replace(/(?:um\s+)?\d{1,2}(?::\d{2})?\s*uhr/gi, '')
                 .replace(/erinnere mich.*$/i, '')
                 .replace(/sag mir.*$/i, '')
+                .replace(/\d+\s*(?:stunden?|minuten?).*$/i, '')
                 .trim();
 
             if (!eventTitle) {
@@ -302,13 +283,6 @@
                 },
                 'end': {
                     'dateTime': toLocalISOString(endDate)
-                },
-                'reminders': {
-                    'useDefault': false,
-                    'overrides': [
-                        {'method': 'popup', 'minutes': reminderMinutes},
-                        {'method': 'email', 'minutes': reminderMinutes}
-                    ]
                 }
             };
 
@@ -323,7 +297,6 @@
             .then(async response => {
                 if (response.ok) {
                     document.getElementById('status').innerText = '✅ Termin erfolgreich eingetragen!';
-                    // Liste nach erfolgreichem Eintrag direkt neu vom Kalender laden
                     fetchUpcomingEvents();
                 } else {
                     const errData = await response.json();
