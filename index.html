@@ -55,17 +55,20 @@
         button.todo-btn:active {
             background-color: #2b8c44;
         }
+        .login-btn {
+            background-color: #fbbc05;
+            color: #333;
+            font-weight: bold;
+            margin-bottom: 15px;
+            width: 100%;
+        }
         .refresh-btn {
             background-color: #6c757d;
             font-size: 14px;
             padding: 8px 15px;
             border-radius: 20px;
-            margin-top: 10px;
             flex: none;
             width: auto;
-        }
-        .refresh-btn:active {
-            background-color: #5a6268;
         }
         @keyframes pulse {
             0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234, 67, 53, 0.4); }
@@ -146,6 +149,10 @@
 
     <div class="container">
         <h1>Omas Sprach-Assistent</h1>
+        
+        <!-- Manueller Login-Button falls es klemmt -->
+        <button id="loginBtn" class="login-btn" onclick="triggerLogin()" style="display:none;">🔐 Bei Google anmelden</button>
+
         <p>Wähle aus, was du eintragen möchtest:</p>
         
         <div class="btn-group">
@@ -153,14 +160,14 @@
             <button id="micTodoBtn" class="todo-btn" onclick="startSpeechRecognition('todo')">🗣️ Notiz / To-Do</button>
         </div>
         
-        <div id="status">Bereit...</div>
+        <div id="status">Warte auf Anmeldung...</div>
 
         <div class="section-box">
             <div class="section-header">
                 <h3>Nächste Termine:</h3>
-                <button class="refresh-btn" onclick="fetchUpcomingEvents()">🔄 Aktualisieren</button>
+                <button class="refresh-btn" onclick="fetchUpcomingEvents()">🔄 Laden</button>
             </div>
-            <div id="eventsContainer">Lade Termine aus dem Kalender...</div>
+            <div id="eventsContainer">Noch nicht geladen.</div>
             <div style="font-size: 11px; color: #777; margin-top: 5px; text-align: center;">💡 Klick auf Termin öffnet den Google Kalender</div>
         </div>
 
@@ -187,26 +194,34 @@
                 scope: SCOPES,
                 callback: (response) => {
                     if (response.error !== undefined) {
-                        document.getElementById('status').innerText = 'Fehler bei der Anmeldung: ' + response.error;
+                        document.getElementById('status').innerText = 'Fehler bei Anmeldung: ' + response.error;
+                        document.getElementById('loginBtn').style.display = 'block';
                         return;
                     }
                     accessToken = response.access_token;
+                    document.getElementById('loginBtn').style.display = 'none';
                     document.getElementById('status').innerText = 'Angemeldet! Lade Termine...';
                     fetchUpcomingEvents();
-
-                    // Automatisches Aktualisieren der Termine alle 30 Sekunden im Hintergrund
-                    setInterval(() => {
-                        if (accessToken) {
-                            fetchUpcomingEvents(true); // true = leise im Hintergrund laden ohne Statusmeldung
-                        }
-                    }, 30000);
                 },
             });
-            tokenClient.requestAccessToken({ prompt: '' });
+
+            // Automatischer Login-Versuch beim Start
+            try {
+                tokenClient.requestAccessToken({ prompt: '' });
+            } catch (e) {
+                document.getElementById('loginBtn').style.display = 'block';
+                document.getElementById('status').innerText = 'Bitte bei Google anmelden.';
+            }
+
             renderTodos();
         };
 
-        // Akustisches Startsignal (Beep)
+        function triggerLogin() {
+            if (tokenClient) {
+                tokenClient.requestAccessToken({ prompt: 'consent' });
+            }
+        }
+
         function playBeep() {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -229,18 +244,21 @@
 
         function startSpeechRecognition(mode) {
             if (mode === 'event' && !accessToken) {
-                tokenClient.requestAccessToken({ prompt: '' });
+                alert('Bitte zuerst bei Google anmelden!');
+                triggerLogin();
                 return;
             }
             listenAndProcess(mode);
         }
 
-        function fetchUpcomingEvents(isBackground = false) {
-            if (!accessToken) return;
-
-            if (!isBackground) {
-                document.getElementById('status').innerText = 'Lade Termine neu...';
+        function fetchUpcomingEvents() {
+            if (!accessToken) {
+                document.getElementById('eventsContainer').innerHTML = 'Nicht angemeldet.';
+                document.getElementById('loginBtn').style.display = 'block';
+                return;
             }
+
+            document.getElementById('status').innerText = 'Lade Termine...';
 
             const now = new Date().toISOString();
             fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now}&maxResults=30&singleEvents=true&orderBy=startTime`, {
@@ -255,15 +273,15 @@
 
                 if (!data.items || data.items.length === 0) {
                     container.innerHTML = 'Keine anstehenden Termine gefunden.';
-                    if (!isBackground) document.getElementById('status').innerText = 'Bereit...';
+                    document.getElementById('status').innerText = 'Bereit...';
                     return;
                 }
 
-                const timedEvents = data.items.filter(item => item.start.dateTime);
+                const timedEvents = data.items.filter(item => item.start && item.start.dateTime);
 
                 if (timedEvents.length === 0) {
                     container.innerHTML = 'Keine anstehenden Uhrzeit-Termine gefunden.';
-                    if (!isBackground) document.getElementById('status').innerText = 'Bereit...';
+                    document.getElementById('status').innerText = 'Bereit...';
                     return;
                 }
 
@@ -283,14 +301,12 @@
 
                     container.appendChild(div);
                 });
-                if (!isBackground) document.getElementById('status').innerText = 'Bereit...';
+                document.getElementById('status').innerText = 'Bereit...';
             })
             .catch(err => {
                 console.error(err);
-                if (!isBackground) {
-                    document.getElementById('eventsContainer').innerHTML = 'Fehler beim Laden der Termine.';
-                    document.getElementById('status').innerText = 'Bereit...';
-                }
+                document.getElementById('eventsContainer').innerHTML = 'Fehler beim Laden.';
+                document.getElementById('status').innerText = 'Fehler beim Abrufen.';
             });
         }
 
@@ -346,7 +362,6 @@
             btnTodo.innerText = '🗣️ Notiz / To-Do';
         }
 
-        // To-Do Funktionen
         function addTodo(text) {
             todos.unshift({ text: text, completed: false });
             saveAndRenderTodos();
@@ -397,7 +412,6 @@
             });
         }
 
-        // Termin-Parser Funktion
         function parseAndCreateEvent(text) {
             let eventDate = new Date();
             let hours = 10; 
@@ -457,7 +471,7 @@
 
             const calendarEvent = {
                 'summary': eventTitle,
-                'description': 'Erstellt über Omas Sprach-App',
+                'description': 'Erstellt über Omas Sprach-Assistent',
                 'start': {
                     'dateTime': toLocalISOString(eventDate)
                 },
@@ -485,7 +499,7 @@
                 }
             })
             .catch(error => {
-                document.getElementById('status'].innerText = '❌ Netzwerkfehler: ' + error.message;
+                document.getElementById('status').innerText = '❌ Netzwerkfehler: ' + error.message;
             });
         }
     </script>
