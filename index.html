@@ -35,6 +35,7 @@
         .app-header {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             margin-bottom: 15px;
         }
         .header-title-area {
@@ -57,6 +58,20 @@
             font-size: 20px;
             margin: 0;
             color: #111;
+        }
+        .notif-badge-btn {
+            background: #e9ecef;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #495057;
+        }
+        .notif-badge-btn.active {
+            background: #d1e7dd;
+            color: #0f5132;
         }
         .login-btn {
             background-color: #fbbc05;
@@ -287,6 +302,7 @@
                 <div class="app-logo">🤖</div>
                 <h1>Omas Assistent</h1>
             </div>
+            <button id="notifBtn" class="notif-badge-btn" onclick="requestNotificationPermission()">🔔 Alarm aus</button>
         </div>
         
         <button id="loginBtn" class="login-btn">🔐 Bei Google anmelden</button>
@@ -301,7 +317,7 @@
         <!-- REITER 1: UNIVERSAL CHAT -->
         <div id="tab-speak" class="tab-content active">
             <div id="chatHistory" class="chat-history">
-                <div class="chat-bubble assistant">Hallo! Ich bin bereit. Sag mir einfach, wie du genannt werden möchtest (z.B. "Nenn mich Dino").</div>
+                <div class="chat-bubble assistant">Hallo! Ich bin bereit. Sag mir z.B. "Erinnere mich um 14 Uhr an Isabelle".</div>
             </div>
 
             <button id="masterMicBtn" class="big-btn" onclick="startMasterSpeechRecognition()">
@@ -311,7 +327,7 @@
             <div id="status">Bereit zum Sprechen...</div>
 
             <div class="hint-box">
-                💡 <i>"Nenn mich Dino"</i> • <i>"Ich muss..."</i> / <i>"Vergiss nicht..."</i> (To-Do) • <i>"Termin um..."</i> (Kalender)
+                💡 <i>"Erinnere mich um..."</i> • <i>"Vergiss nicht..."</i> (To-Do) • <i>"Termin um..."</i> (Kalender)
             </div>
         </div>
 
@@ -328,14 +344,14 @@
 
             <div style="margin-top: 20px;">
                 <div class="section-title">
-                    <span>Merkliste / To-Dos</span>
+                    <span>Merkliste / To-Dos & Erinnerungen</span>
                     <span style="font-size: 12px; font-weight: normal; color: #666;">(Klick = Abhaken)</span>
                 </div>
                 <div id="todosContainer">Noch keine Notizen.</div>
             </div>
         </div>
 
-        <!-- REITER 3: KONTAKTE (3 Stk.) -->
+        <!-- REITER 3: KONTAKTE -->
         <div id="tab-contacts" class="tab-content">
             <div class="section-title">Schnellwahl</div>
             <div id="quickCallContainer"></div>
@@ -377,7 +393,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v6.2-todo-fix";
+        const APP_VERSION = "v6.3-push-reminders";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -405,6 +421,8 @@
         function initApp() {
             renderTodos();
             loadContactsUI();
+            checkNotificationUI();
+            setupReminderChecker();
             
             setTimeout(() => {
                 const keyInput = document.getElementById('groqApiKeyInput');
@@ -420,6 +438,54 @@
 
             const loginBtn = document.getElementById('loginBtn');
             if (loginBtn) loginBtn.onclick = triggerLogin;
+        }
+
+        function checkNotificationUI() {
+            const btn = document.getElementById('notifBtn');
+            if (!btn) return;
+            if (("Notification" in window) && Notification.permission === "granted") {
+                btn.className = "notif-badge-btn active";
+                btn.innerText = "🔔 Alarm an";
+            } else {
+                btn.className = "notif-badge-btn";
+                btn.innerText = "🔔 Alarm aus";
+            }
+        }
+
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) {
+                alert("Dein Browser unterstützt keine Benachrichtigungen.");
+                return;
+            }
+            Notification.requestPermission().then(permission => {
+                checkNotificationUI();
+                if (permission === "granted") {
+                    new Notification("Oma Assistent", { body: "Benachrichtigungen erfolgreich aktiviert!" });
+                }
+            });
+        }
+
+        function setupReminderChecker() {
+            setInterval(() => {
+                if (!("Notification" in window) || Notification.permission !== "granted") return;
+                const now = new Date().getTime();
+                let updated = false;
+
+                todos.forEach(t => {
+                    if (t.reminderTime && !t.notified && !t.completed) {
+                        if (now >= t.reminderTime) {
+                            t.notified = true;
+                            updated = true;
+                            new Notification("⏰ Erinnerung", {
+                                body: t.text,
+                                icon: "https://cdn-icons-png.flaticon.com/512/7856/7856387.png"
+                            });
+                            speakTextOut("Erinnerung: " + t.text);
+                        }
+                    }
+                });
+                if (updated) saveTodos();
+            }, 10000); // Prüft alle 10 Sekunden
         }
 
         function saveGroqApiKey() {
@@ -622,28 +688,29 @@
 
                 const memoriesStr = JSON.stringify(userMemories);
                 const routerPrompt = `Du bist das Gehirn eines intelligenten Sprach-Assistenten. 
-Echte aktuelle Zeit des Geräts: ${currentTimeStr}, Datum: ${currentDateStr}.
-Gespeichertes Gedächtnis des Nutzers (Objekte und deren Ablageorte, sowie der Nutzername unter "mein name"): ${memoriesStr}
+Echte aktuelle Zeit des Geräts: ${currentTimeStr}, Datum: ${currentDateStr} (Jahr 2026).
+Gespeichertes Gedächtnis des Nutzers: ${memoriesStr}
 
 Analysiere die Eingabe des Nutzers: "${userText}"
 
-ENTSCHEIDUNGS-LOGIK (WICHTIG - UNTERSCHEIDE TERMIN VS. TO-DO):
-1. **TO-DO / MERKLISTE ("todo")**: 
-   - Wähle IMMER "todo", wenn Formulierungen wie **"vergiss nicht"**, **"merk dir"**, **"schreib auf"**, **"ich muss noch"** oder **"auf die To-Do-Liste"** verwendet werden.
-   - **WICHTIG:** Auch wenn in einer solchen Notiz eine Uhrzeit oder ein Datum vorkommt (z.B. *"Vergiss nicht, dass ich Isabelle morgen um 14 Uhr abhole"*), ist das **KEIN** Kalendertermin, sondern ein **TO-DO**! Trage es in dem Fall **niemals** in den Kalender ein, sondern packe es komplett als Text auf die To-Do-Liste.
+ENTSCHEIDUNGS-LOGIK:
+1. **TO-DO / ERINNERUNG ("todo")**: 
+   - Wähle IMMER "todo", wenn Formulierungen wie **"vergiss nicht"**, **"erinnere mich"**, **"merk dir"**, **"schreib auf"** verwendet werden.
+   - **WICHTIG:** Wenn eine Uhrzeit genannt wird (z.B. *"Erinnere mich um 14 Uhr an Isabelle"* oder *"Vergiss nicht, Isabelle um 14 Uhr abzuholen"*), ist das **KEIN** Kalendertermin! Trage es **niemals** in den Kalender ein, sondern wähle "todo".
+   - Berechne für "reminder_timestamp" (als Millimeter-Timestamp oder ISO String oder Unix Timestamp in Millisekunden) den genauen Zeitpunkt basierend auf dem aktuellen Datum/Uhrzeit (${now.getTime()}). Wenn keine Uhrzeit genannt wird, setze "reminder_timestamp" auf null.
 2. **KALENDER-TERMIN ("calendar")**: 
-   - Wähle "calendar" NUR dann, wenn der Nutzer explizit möchte, dass ein fester **Termin** in seinen Google-Kalender eingetragen wird (z.B. *"Trag in den Kalender ein..."*, *"Ich habe einen Termin um..."*, *"Erstelle einen Termin..."*).
-3. **NAMEN ÄNDERN ("store_memory")**: Sagt der Nutzer "Nenn mich [Name]" oder "Ich heiße [Name]".
-4. **OBJEKT SPEICHERN ("store_memory")**: Sagt der Nutzer, wo etwas liegt (z.B. "Mein Schlüssel ist in der Schublade").
-5. **ORTE ABFRAGEN / TERMINE ANSEHEN / TO-DOS ANSEHEN ("get_calendar", "get_todos", "chat")**: Fragen nach Terminen, To-Dos oder normalen Unterhaltungen.
+   - Wähle "calendar" NUR, wenn explizit steht *"Trag in den Kalender ein..."*.
+3. **NAMEN ÄNDERN / OBJEKT SPEICHERN ("store_memory")**.
+4. **ABFRAGEN / CHAT ("get_calendar", "get_todos", "chat")**.
 
 Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 - "action": Entweder "calendar", "get_calendar", "get_todos", "todo", "store_memory", oder "chat".
-- "calendar_text": (Nur bei echten "calendar"-Befehlen) Der Satz zur Termin-Extraktion.
-- "todo_text": (Nur bei "todo") Der To-Do-Inhalt (z.B. der gesamte Satz oder die Aufgabe).
-- "memory_key": (Nur bei "store_memory") Der Name des Gegenstands oder "mein name".
-- "memory_value": (Nur bei "store_memory") Der Ablageort oder Name.
-- "reply": (Für "chat", "get_calendar", "get_todos" oder Bestätigung) Die fertige, natürliche Antwort an den Nutzer.`;
+- "calendar_text": (Nur bei "calendar")
+- "todo_text": (Nur bei "todo") Der Text der Aufgabe.
+- "reminder_minutes_from_now": (Nur bei "todo", falls eine Uhrzeit/Dauer genannt wurde) Berechne die Minuten von JETZT (${now.getTime()}) bis zu der gewünschten Alarm-Uhrzeit (z.B. 14:00 Uhr). Wenn keine Uhrzeit da ist, 0.
+- "memory_key": ...
+- "memory_value": ...
+- "reply": Die fertige, natürliche Antwort an den Nutzer (z.B. dass die Erinnerung eingestellt wurde).`;
 
 
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -672,7 +739,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 
                 if (parsed.action === "calendar") {
                     if (!accessToken) {
-                        const reply = currentUserName ? `${currentUserName}, bitte melde dich zuerst über den Google-Button an, damit ich Termine in deinen Kalender eintragen kann.` : `Bitte melde dich zuerst über den Google-Button an.`;
+                        const reply = currentUserName ? `${currentUserName}, bitte melde dich zuerst über den Google-Button an.` : `Bitte melde dich zuerst an.`;
                         appendChatBubble(reply, 'assistant');
                         speakTextOut(reply);
                         triggerLogin();
@@ -683,8 +750,6 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 else if (parsed.action === "get_calendar") {
                     const reply = latestEventsSpeechText;
                     appendChatBubble(reply, 'assistant');
-                    const statusEl = document.getElementById('status');
-                    if(statusEl) statusEl.innerText = 'Bereit.';
                     speakTextOut(reply);
                 }
                 else if (parsed.action === "get_todos") {
@@ -692,48 +757,47 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     let reply = "";
                     const namePrefix = currentUserName ? `${currentUserName}, ` : "";
                     if (activeTodos.length === 0) {
-                        reply = `${namePrefix}deine To-Do-Liste ist aktuell komplett leer. Super gemacht!`;
+                        reply = `${namePrefix}deine To-Do-Liste ist aktuell komplett leer.`;
                     } else {
                         const todoTexts = activeTodos.map(t => t.text).join(", ");
-                        reply = `${namePrefix}auf deiner To-Do-Liste stehen folgende offene Aufgaben: ${todoTexts}.`;
+                        reply = `${namePrefix}offene Aufgaben: ${todoTexts}.`;
                     }
                     appendChatBubble(reply, 'assistant');
-                    const statusEl = document.getElementById('status');
-                    if(statusEl) statusEl.innerText = 'Bereit.';
                     speakTextOut(reply);
                 }
                 else if (parsed.action === "todo") {
                     const todoText = parsed.todo_text || userText;
-                    todos.push({ text: todoText, completed: false });
+                    let reminderTime = null;
+                    if (parsed.reminder_minutes_from_now && parsed.reminder_minutes_from_now > 0) {
+                        reminderTime = Date.now() + (parsed.reminder_minutes_from_now * 60 * 1000);
+                    }
+
+                    todos.push({ 
+                        text: todoText, 
+                        completed: false, 
+                        reminderTime: reminderTime,
+                        notified: false 
+                    });
                     saveTodos();
+
                     const namePrefix = currentUserName ? `, ${currentUserName}` : "";
-                    const reply = `Ich habe "${todoText}" auf deine To-Do-Liste geschrieben${namePrefix}!`;
+                    let reply = parsed.reply || `Ich habe "${todoText}" auf deine To-Do-Liste geschrieben${namePrefix}!`;
+                    if (reminderTime) {
+                        reply += " Ich erinnere dich rechtzeitig daran.";
+                    }
                     appendChatBubble(reply, 'assistant');
-                    const statusEl = document.getElementById('status');
-                    if(statusEl) statusEl.innerText = 'Bereit.';
                     speakTextOut(reply);
                 } 
                 else if (parsed.action === "store_memory") {
                     userMemories[parsed.memory_key.toLowerCase()] = parsed.memory_value;
                     localStorage.setItem('omas_memories', JSON.stringify(userMemories));
                     
-                    let reply = parsed.reply;
-                    if (!reply) {
-                        if (parsed.memory_key.toLowerCase().includes("name")) {
-                            reply = `Alles klar, ich nenne dich ab jetzt ${parsed.memory_value}!`;
-                        } else {
-                            reply = `Ich habe vermerkt, dass dein ${parsed.memory_key} jetzt ${parsed.memory_value} ist.`;
-                        }
-                    }
+                    let reply = parsed.reply || `Ich habe es mir gemerkt.`;
                     appendChatBubble(reply, 'assistant');
-                    const statusEl = document.getElementById('status');
-                    if(statusEl) statusEl.innerText = 'Bereit.';
                     speakTextOut(reply);
                 } 
                 else {
                     appendChatBubble(parsed.reply, 'assistant');
-                    const statusEl = document.getElementById('status');
-                    if(statusEl) statusEl.innerText = 'Bereit.';
                     speakTextOut(parsed.reply);
                 }
 
@@ -745,9 +809,8 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
         async function fallbackChat(userText, apiKey) {
             try {
                 const now = new Date();
-                const currentTimeStr = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
                 const memoriesStr = JSON.stringify(userMemories);
-                const prompt = `Du bist ein treuer Sprach-Assistent. Nutze das Gedächtnis (falls ein Name wie "mein name" hinterlegt ist, sprich den Nutzer immer mit diesem Namen an): ${memoriesStr}. Echte aktuelle Uhrzeit: ${currentTimeStr}. Beantworte die Frage liebevoll auf Deutsch: "${userText}"`;
+                const prompt = `Du bist ein Sprach-Assistent. Gedächtnis: ${memoriesStr}. Beantworte auf Deutsch: "${userText}"`;
                 
                 const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
@@ -765,13 +828,9 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 const data = await response.json();
                 const aiReply = data.choices[0].message.content;
                 appendChatBubble(aiReply, 'assistant');
-                const statusEl = document.getElementById('status');
-                if(statusEl) statusEl.innerText = 'Bereit.';
                 speakTextOut(aiReply);
             } catch (e) {
-                const statusEl = document.getElementById('status');
-                if(statusEl) statusEl.innerText = '⚠️ Fehler.';
-                speakTextOut("Entschuldigung, das habe ich nicht ganz verstanden.");
+                speakTextOut("Entschuldigung, das habe ich nicht verstanden.");
             }
         }
 
@@ -781,7 +840,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
             const apiKey = localStorage.getItem('omas_groq_key');
             
             try {
-                const prompt = `Extrahiere aus folgendem Satz einen Kalender-Termin als JSON mit den Feldern "summary" (Titel) und "startDateTime" (im ISO-Format YYYY-MM-DDTHH:mm:ss, aktuelles Jahr is 2026). Satz: "${text}"`;
+                const prompt = `Extrahiere einen Kalender-Termin als JSON mit "summary" und "startDateTime" (ISO YYYY-MM-DDTHH:mm:ss, Jahr 2026). Satz: "${text}"`;
                 
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
@@ -823,24 +882,20 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     body: JSON.stringify(eventResource)
                 });
 
-                const currentUserName = userMemories["mein name"] || userMemories["name"] || "";
-                const nameSuffix = currentUserName ? `, ${currentUserName}` : "";
-
                 if (calRes.ok) {
-                    const reply = `Termin "${parsed.summary}" wurde erfolgreich in deinen Kalender eingetragen${nameSuffix}!`;
+                    const reply = `Termin "${parsed.summary}" eingetragen!`;
                     appendChatBubble(reply, 'assistant');
                     speakTextOut(reply);
                     fetchUpcomingEvents();
                 } else {
-                    throw new Error("Fehler beim Speichern im Kalender");
+                    throw new Error();
                 }
             } catch (e) {
-                const reply = "Entschuldigung, ich konnte den Termin für den Kalender nicht automatisch verstehen.";
+                const reply = "Fehler beim Eintragen in den Kalender.";
                 appendChatBubble(reply, 'assistant');
                 speakTextOut(reply);
             }
-            const statusEl2 = document.getElementById('status');
-            if(statusEl2) statusEl2.innerText = 'Bereit.';
+            if(statusEl) statusEl.innerText = 'Bereit.';
         }
 
         function appendChatBubble(text, sender) {
@@ -854,14 +909,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
         }
 
         function fetchUpcomingEvents() {
-            if (!accessToken) {
-                const evCont = document.getElementById('eventsContainer');
-                if(evCont) evCont.innerHTML = 'Nicht angemeldet.';
-                const lBtn = document.getElementById('loginBtn');
-                if(lBtn) lBtn.style.display = 'block';
-                return;
-            }
-            
+            if (!accessToken) return;
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const now = today.toISOString();
@@ -879,30 +927,21 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 
                 if (!data.items || data.items.length === 0) {
                     container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine anstehenden Termine.</div>';
-                    latestEventsSpeechText = `${currentUserName}, es sind keine anstehenden Termine eingetragen.`;
+                    latestEventsSpeechText = `${currentUserName}, keine anstehenden Termine.`;
                     return;
                 }
 
                 const filteredItems = data.items.filter(item => {
                     const summary = (item.summary || "").toLowerCase();
-                    if (summary.includes("geburtstag") || summary.includes("birthday")) return false;
-                    if (summary.includes("feiertag") || summary.includes("holiday")) return false;
-                    if (summary.includes("jahrestag")) return false;
+                    if (summary.includes("geburtstag") || summary.includes("feiertag") || summary.includes("jahrestag")) return false;
                     return true;
                 });
-
-                if (filteredItems.length === 0) {
-                    container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine wichtigen Termine.</div>';
-                    latestEventsSpeechText = `${currentUserName}, es sind keine wichtigen Termine anstehend.`;
-                    return;
-                }
 
                 let speechParts = [];
                 const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
                 filteredItems.forEach((item) => {
-                    let d;
-                    let timeStr = "";
+                    let d, timeStr = "";
                     if (item.start && item.start.dateTime) {
                         d = new Date(item.start.dateTime);
                         timeStr = ` um ${d.getHours()} Uhr`;
@@ -925,12 +964,8 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     container.appendChild(div);
                 });
                 
-                latestEventsSpeechText = `${currentUserName}, deine nächsten Termine sind: ` + speechParts.join(". ");
-            }).catch(err => {
-                const currentUserName = userMemories["mein name"] || userMemories["name"] || "";
-                const namePrefix = currentUserName ? `${currentUserName}, ` : "";
-                latestEventsSpeechText = `${namePrefix}ich konnte die Termine gerade nicht abrufen.`;
-            });
+                latestEventsSpeechText = `${currentUserName}, deine nächsten Termine: ` + speechParts.join(". ");
+            }).catch(err => {});
         }
 
         function deleteCalendarEvent(id) {
@@ -955,9 +990,15 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 div.style.background = t.completed ? '#f8f9fa' : '#f1f8f5';
                 div.style.borderLeftColor = t.completed ? '#ccc' : '#198754';
                 
+                let timeInfo = "";
+                if (t.reminderTime && !t.completed) {
+                    const remDate = new Date(t.reminderTime);
+                    timeInfo = `<br><span style="color:#d97706; font-size:12px;">⏰ Erinnerung um ${remDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit'})} Uhr</span>`;
+                }
+
                 const span = document.createElement('span');
                 span.style.cssText = t.completed ? 'text-decoration: line-through; color: #888;' : '';
-                span.innerText = t.text;
+                span.innerHTML = `${t.text}${timeInfo}`;
                 
                 const del = document.createElement('button');
                 del.className = 'event-delete-btn';
