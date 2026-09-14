@@ -308,7 +308,7 @@
             <button id="tabContactsBtn" class="tab-btn">📞 Anrufen</button>
         </div>
 
-        <!-- REITER 1: EINZIGER SPRACH-BUTTON -->
+        <!-- REITER 1 -->
         <div id="tab-speak" class="tab-content active">
             <div style="font-size: 15px; color: #555; margin-bottom: 15px; text-align: center; font-weight: bold;">
                 Drücken & einfach frei drauf los sprechen:
@@ -323,7 +323,7 @@
             <div class="hint-box">
                 💡 <b>Beispiele:</b><br>
                 • <i>"Arzttermin morgen um 14 Uhr"</i> (Kalender)<br>
-                • <i>"Ich lege meinen Schlüssel in den Schlafzimmerschrank"</i> (Merken)<br>
+                • <i>"Meinen Schlüssel tue ich in den Schrank"</i> (Merken)<br>
                 • <i>"Wo ist mein Schlüssel?"</i> (Suchen)<br>
                 • <i>"Milch kaufen"</i> (Notiz)
             </div>
@@ -624,23 +624,27 @@
             btn.innerHTML = '🎤 Sprechen...';
         }
 
-        // INTELLIGENTE ROUTING-FUNKTION
+        // VOLLSTÄNDIG ERWEITERTE ROUTING-FUNKTION (FÜR ALLE SATZSTELLUNGEN)
         function routeSpeechInput(text) {
             const lower = text.toLowerCase();
 
-            // 1. Suchen: "Wo ist..." / "Wo habe ich..." / "Wo sind..."
+            // 1. Suchen: "Wo ist..." / "Wo habe ich..." / "Wo sind..." / "Wo liegt..."
             if (lower.startsWith('wo ist') || lower.startsWith('wo sind') || lower.includes('wo habe ich') || lower.includes('wo liegt')) {
                 searchMemory(text);
                 return;
             }
 
-            // 2. ERWEITERTE ERKENNUNG FÜR UNSICHTBARE ABLAGE (lege, liege, packe, gepackt, getan etc.)
-            if (lower.includes('lege') || lower.includes('liege') || lower.includes('packe') || lower.includes('gelegt') || lower.includes('gepackt') || lower.includes('versteckt') || lower.includes('getan') || lower.includes('in') || lower.includes('auf')) {
-                // Prüfen ob es wirklich ein Versteck-Satz ist (muss ein Ort-Wort wie Schrank, Tasche etc. enthalten)
-                if (lower.includes('schrank') || lower.includes('tasche') || lower.includes('kasten') || lower.includes('kommode') || lower.includes('fach') || lower.includes('schublade') || lower.includes('zimmer') || lower.includes('küche') || lower.includes('keller') || lower.includes('boden')) {
-                    saveMemorySilently(text);
-                    return;
-                }
+            // 2. ERWEITERTE ERKENNUNG FÜR UNSICHTBARE ABLAGE (egal ob am Anfang, in der Mitte oder umgestellt)
+            const isStoringAction = 
+                lower.includes('lege') || lower.includes('liege') || 
+                lower.includes('packe') || lower.includes('pack') || 
+                lower.includes('tue') || lower.includes('tust') || lower.includes('getan') || 
+                lower.includes('gelegt') || lower.includes('gepackt') || 
+                lower.includes('versteckt') || lower.includes('räume') || lower.includes('schiebe');
+
+            if (isStoringAction) {
+                saveMemorySilently(text);
+                return;
             }
 
             // 3. Kalender-Eintrag
@@ -659,14 +663,14 @@
             document.getElementById('status').innerText = `✅ Notiz gespeichert: "${text}"`;
         }
 
-        // --- INTELLIGENTE GEDÄCHTNIS-LOGIK (IM HINTERGRUND) ---
+        // --- INTELLIGENTE GEDÄCHTNIS-LOGIK (FÜR BEIDE SATZVARIANTEN) ---
         function saveMemorySilently(text) {
             let lower = text.toLowerCase();
             let itemName = "Gegenstand";
             let locationName = "verstecktem Ort";
 
             // Bekannte Gegenstände erkennen
-            const commonItems = ['lebenslauf', 'unterlagen', 'akten', 'schlüssel', 'brille', 'geldbeutel', 'portemonnaie', 'handy', 'ausweis', 'tasche', 'schmuck', 'uhr', 'stift'];
+            const commonItems = ['schlüssel', 'lebenslauf', 'unterlagen', 'akten', 'brille', 'geldbeutel', 'portemonnaie', 'handy', 'ausweis', 'tasche', 'schmuck', 'uhr', 'stift', 'dokumente', 'papiere'];
             for (let item of commonItems) {
                 if (lower.includes(item)) {
                     itemName = item;
@@ -677,12 +681,12 @@
 
             if (itemName === "Gegenstand") {
                 let match = lower.match(/(?:meinen|meine|mein|ein|eine)\s+([a-zäöü]+)/i);
-                if (match && match[1] && !['in', 'auf', 'unter'].includes(match[1])) {
+                if (match && match[1] && !['in', 'auf', 'unter', 'packe', 'lege', 'tue', 'schlüssel'].includes(match[1])) {
                     itemName = match[1].charAt(0).toUpperCase() + match[1].slice(1);
                 }
             }
 
-            // Ort extrahieren
+            // Ort extrahieren (sucht nach in/auf/unter + Ort)
             let locMatch = text.match(/(?:in\s+den|in\s+die|in\s+dem|im|auf\s+dem|auf\s+der|unter\s+dem|unter\s+der|in|auf|unter)\s+(.*)/i);
             if (locMatch && locMatch[1]) {
                 locationName = locMatch[1].trim();
@@ -713,11 +717,11 @@
 
             if (foundKey) {
                 let entry = memory[foundKey];
-                let answerText = `Silvia, dein ${entry.item.toLowerCase()} ist ${entry.location}, da hattest du es hingelegt.`;
+                let answerText = `Dino, dein ${entry.item.toLowerCase()} ist ${entry.location}, da hattest du es hingelegt.`;
                 document.getElementById('status').innerText = `💡 ${answerText}`;
                 speakTextOut(answerText);
             } else {
-                let notFound = `Silvia, dazu habe ich mir nichts im Gedächtnis aufgeschrieben.`;
+                let notFound = `Dino, dazu habe ich mir nichts im Gedächtnis aufgeschrieben.`;
                 document.getElementById('status').innerText = notFound;
                 speakTextOut(notFound);
             }
