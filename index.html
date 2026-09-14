@@ -405,7 +405,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v3.2-2026-09-14";
+        const APP_VERSION = "v3.3-2026-09-14";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -645,7 +645,7 @@
             btn.innerHTML = '🎤 Sprechen...';
         }
 
-        // PRÄZISE GROQ KI AUSWERTUNG MIT STABILEM MODELL
+        // PRÄZISE GROQ KI AUSWERTUNG MIT KORRIGIERTEM MODELL
         async function processWithGroqAI(text) {
             const apiKey = localStorage.getItem('omas_groq_key');
             if (!apiKey) {
@@ -678,7 +678,7 @@ JSON-Struktur:
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
-                        model: "llama-3.3-70b-versatile",
+                        model: "llama-3.1-8b-instant",
                         messages: [{ role: "user", content: prompt }],
                         temperature: 0.1,
                         response_format: { type: "json_object" }
