@@ -36,14 +36,43 @@
             margin: 10px 0;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             width: 100%;
+            transition: background-color 0.3s;
         }
         button:active {
             background-color: #3367D6;
+        }
+        button.recording {
+            background-color: #EA4335;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234, 67, 53, 0.4); }
+            70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(234, 67, 53, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234, 67, 53, 0); }
         }
         #status {
             margin-top: 20px;
             font-weight: bold;
             color: #555;
+        }
+        #eventList {
+            margin-top: 25px;
+            text-align: left;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+        #eventList h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #444;
+        }
+        .event-item {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            border-left: 4px solid #4285F4;
         }
     </style>
 </head>
@@ -56,6 +85,11 @@
         <button id="micBtn" onclick="startSpeechRecognition()">🎤 Sprechen</button>
         
         <div id="status">Bereit...</div>
+
+        <div id="eventList">
+            <h3>Eingetragene Termine:</h3>
+            <div id="eventsContainer">Noch keine Termine in dieser Sitzung.</div>
+        </div>
     </div>
 
     <!-- Google GIS (Google Identity Services) -->
@@ -67,6 +101,7 @@
         
         let tokenClient;
         let accessToken = null;
+        let createdEvents = [];
 
         window.onload = function () {
             tokenClient = google.accounts.oauth2.initTokenClient({
@@ -86,7 +121,6 @@
 
         function startSpeechRecognition() {
             if (!accessToken) {
-                // Beim ersten Klick Google Login anfordern
                 tokenClient.requestAccessToken({ prompt: 'consent' });
             } else {
                 listenAndProcess();
@@ -102,9 +136,14 @@
 
             const recognition = new SpeechRecognition();
             recognition.lang = 'de-DE';
-            recognition.start();
+            
+            const btn = document.getElementById('micBtn');
 
-            document.getElementById('status').innerText = '🎙️ Höre zu... Bitte sprich jetzt.';
+            recognition.onstart = function() {
+                btn.classList.add('recording');
+                btn.innerText = '🔴 Höre zu...';
+                document.getElementById('status').innerText = '🎙️ Bitte sprich jetzt...';
+            };
 
             recognition.onresult = function(event) {
                 const speechText = event.results[0][0].transcript;
@@ -114,11 +153,23 @@
 
             recognition.onerror = function(event) {
                 document.getElementById('status').innerText = 'Fehler bei der Spracherkennung: ' + event.error;
+                resetButton();
             };
+
+            recognition.onend = function() {
+                resetButton();
+            };
+
+            recognition.start();
+        }
+
+        function resetButton() {
+            const btn = document.getElementById('micBtn');
+            btn.classList.remove('recording');
+            btn.innerText = '🎤 Sprechen';
         }
 
         function createCalendarEvent(text) {
-            // Einfacher Demoeintrag für den Kalender (wird auf morgen gelegt)
             const event = {
                 'summary': text,
                 'description': 'Erstellt über Sprach-App',
@@ -141,12 +192,25 @@
             .then(response => {
                 if (response.ok) {
                     document.getElementById('status').innerText = '✅ Termin erfolgreich eingetragen!';
+                    addEventToList(text);
                 } else {
                     document.getElementById('status').innerText = '❌ Fehler beim Speichern im Kalender.';
                 }
             })
             .catch(error => {
                 document.getElementById('status').innerText = '❌ Netzwerkfehler.';
+            });
+        }
+
+        function addEventToList(text) {
+            createdEvents.push(text);
+            const container = document.getElementById('eventsContainer');
+            container.innerHTML = '';
+            createdEvents.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'event-item';
+                div.innerText = `${index + 1}. ${item}`;
+                container.appendChild(div);
             });
         }
     </script>
