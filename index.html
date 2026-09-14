@@ -81,6 +81,7 @@
             border: none;
             cursor: pointer;
             box-shadow: 0 4px 10px rgba(251, 188, 5, 0.3);
+            display: none;
         }
         .tab-bar {
             display: flex;
@@ -319,7 +320,7 @@
                 🎤 Sprechen...
             </button>
             
-            <div id="status">Bitte bei Google anmelden, um zu starten.</div>
+            <div id="status">Bereit zum Sprechen...</div>
 
             <div class="hint-box">
                 💡 <b>Beispiele:</b><br>
@@ -457,7 +458,8 @@
                         fetchUpcomingEvents();
                     },
                 });
-                document.getElementById('status').innerText = 'Bereit. Bitte einmal anmelden.';
+                // Direkt leise Token holen, wenn schon mal verbunden
+                tokenClient.requestAccessToken({ prompt: '' });
             } catch (e) {
                 document.getElementById('loginBtn').style.display = 'block';
                 document.getElementById('status').innerText = 'Fehler beim Initialisieren.';
@@ -627,23 +629,23 @@
             btn.innerHTML = '🎤 Sprechen...';
         }
 
-        // --- INTELLIGENTE & FEHLERTOLERANTE SPRACH-STEUERUNG ---
+        // --- SICHERE SPRACH-STEUERUNG OHNE OBJEKT-FEHLER ---
         function routeSpeechInput(text) {
             const lower = text.toLowerCase();
 
-            // 1. SUCHEN / FRAGEN ("Wo", "Hast du", "Weißt du", "Gesehen")
+            // 1. SUCHEN / FRAGEN
             if (lower.includes('wo') || lower.includes('hast du') || lower.includes('weißt du') || lower.includes('gesehen') || lower.includes('wohin')) {
                 searchMemory(text);
                 return;
             }
 
-            // 2. SPEICHERN VON GEGENSTÄNDEN (Flexibel über Ortsangaben oder Verben)
+            // 2. SPEICHERN VON GEGENSTÄNDEN
             if (lower.includes(' in ') || lower.includes(' auf ') || lower.includes(' unter ') || lower.includes(' neben ') || lower.includes(' an ') || lower.includes('gelegt') || lower.includes('gepackt') || lower.includes('getan') || lower.includes('packe') || lower.includes('lege') || lower.includes('tue')) {
                 parseAndSaveMemory(text);
                 return;
             }
 
-            // 3. TERMINE (Uhrzeiten, morgen, heute, Termin)
+            // 3. TERMINE
             if (lower.includes('uhr') || lower.includes('morgen') || lower.includes('termin') || lower.includes('heute')) {
                 if (!accessToken) {
                     alert('Bitte erst bei Google anmelden für Termine!');
@@ -654,7 +656,7 @@
                 return;
             }
 
-            // 4. ALLES ANDERE: Als Notiz / To-Do abspeichern
+            // 4. NOTIZ
             addTodo(text);
             document.getElementById('status').innerText = `✅ Notiz gespeichert: "${text}"`;
         }
@@ -680,11 +682,13 @@
                 return;
             }
 
-            // Bereinigter Regex zur korrekten Textextrahierung (verhindert [object Object])
-            const locationMatch = lower.match(/(?:in\s+den|in\s+die|in\s+dem|in\s+einen|in\s+eine|in|auf\s+den|auf\s+die|auf\s+dem|auf|unter|neben|an)\s+(?:den|die|das|dem)?\s*([a-zäöüß\s]+)$/i);
-            let foundLocation = locationMatch ? locationMatch[1].trim() : '';
-
-            if (!foundLocation) {
+            // Absolut sichere Extraktion des Ortes als reiner Textstring
+            let foundLocation = "";
+            const prepMatch = lower.match(/(?:in\s+den|in\s+die|in\s+dem|in\s+einen|in\s+eine|in|auf\s+den|auf\s+die|auf\s+dem|auf|unter|neben|an)\s+(?:den|die|das|dem)?\s*([a-zäöüß\s]+)/i);
+            
+            if (prepMatch && prepMatch[1]) {
+                foundLocation = prepMatch[1].trim();
+            } else {
                 let parts = lower.split(foundItem);
                 if (parts[1]) {
                     foundLocation = parts[1].replace(/legen|gelegt|packen|gepackt|tue|tun/g, '').trim();
@@ -741,7 +745,6 @@
                 }
             }
         }
-        // --------------------------------------------------------
 
         function fetchUpcomingEvents() {
             if (!accessToken) {
