@@ -323,7 +323,7 @@
             <div id="status">Bereit zum Sprechen...</div>
 
             <div class="hint-box">
-                💡 <i>"Nenn mich Heinz Hermann"</i> • <i>"Ich muss..."</i> (To-Do) • <i>"Termin um..."</i> (Kalender)
+                💡 <i>"Nenn mich Dino"</i> • <i>"Ich muss..."</i> (To-Do) • <i>"Termin um..."</i> (Kalender)
             </div>
         </div>
 
@@ -389,7 +389,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v5.6-2026-09-14-fixed-regex";
+        const APP_VERSION = "v5.7-2026-09-14-perfect-location";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -662,20 +662,33 @@
                     const currentUserName = userMemories["mein name"] || userMemories["name"] || "";
                     const namePrefix = currentUserName ? `${currentUserName}, ` : "";
                     
-                    // Korrigierte Bereinigung für Präpositionen und Besitzanzeigende Fürwörter
+                    // Bereinigung von Besitzanzeigenden Fürwörtern und Präpositionen
                     let cleanLocation = foundLocation
                         .replace(/^(unter|in|auf|an)\s+meinem\s+/i, "$1 ")
                         .replace(/^(unter|in|auf|an)\s+meiner\s+/i, "$1 ")
                         .replace(/^(unter|in|auf|an)\s+mein\s+/i, "$1 ")
                         .replace(/^meinem\s+/i, "")
                         .replace(/^meiner\s+/i, "")
-                        .replace(/^mein\s+/i, "");
+                        .replace(/^mein\s+/i, "")
+                        .trim();
 
-                    if (!cleanLocation.startsWith("unter") && !cleanLocation.startsWith("in") && !cleanLocation.startsWith("auf") && !cleanLocation.startsWith("an")) {
-                        cleanLocation = "unter " + cleanLocation;
+                    // Wenn bereits eine Präposition enthalten ist, wandeln wir "meinem" in "deinem" um
+                    if (/^(in|auf|an|unter)\s+/i.test(cleanLocation)) {
+                        cleanLocation = cleanLocation
+                            .replace(/meinem\s+/i, "deinem ")
+                            .replace(/meiner\s+/i, "deiner ")
+                            .replace(/mein\s+/i, "dein ");
+                        
+                        const reply = `${namePrefix}dein ${queryItem} ist ${cleanLocation}.`;
+                        appendChatBubble(reply, 'assistant');
+                        const statusEl = document.getElementById('status');
+                        if(statusEl) statusEl.innerText = 'Bereit.';
+                        speakTextOut(reply);
+                        return;
                     }
 
-                    const reply = `${namePrefix}dein ${queryItem} ist ${cleanLocation}.`;
+                    // Andernfalls setzen wir sauber "unter deinem" davor
+                    const reply = `${namePrefix}dein ${queryItem} ist unter deinem ${cleanLocation}.`;
                     appendChatBubble(reply, 'assistant');
                     const statusEl = document.getElementById('status');
                     if(statusEl) statusEl.innerText = 'Bereit.';
