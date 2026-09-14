@@ -325,10 +325,9 @@
 
             <div class="hint-box">
                 💡 <b>Mit Groq-KI-Power:</b><br>
-                • Versteht "Wohnzimmerschrank", "Küchentisch" und korrigiert Tippfehler automatisch!<br>
-                • <i>"Schlüssel in Wohnzimmerschrank legen"</i><br>
-                • <i>"Wo ist mein Schlüssel?"</i><br>
-                • <i>"Arzttermin morgen um 14 Uhr"</i>
+                • Erkennt sofort, ob du etwas weglegst oder suchst!<br>
+                • <i>"Ich lege mein Portemonnaie auf den Küchentisch"</i><br>
+                • <i>"Wo ist mein Portemonnaie?"</i>
             </div>
         </div>
 
@@ -391,7 +390,7 @@
         <div id="tab-settings" class="tab-content">
             <div class="section-title">Groq KI-Schlüssel</div>
             <div style="font-size: 14px; color: #555; margin-bottom: 15px;">
-                Trage hier deinen Groq API-Key ein (beginnt mit <code>gsk_</code>). Er wird sicher auf deinem Handy gespeichert und taucht nirgendwo im Code auf.
+                Trage hier deinen Groq API-Key ein (beginnt mit <code>gsk_...</code>).
             </div>
 
             <div class="settings-card">
@@ -405,8 +404,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        // AUTO-CACHE-BREAKER (Version v3.0 mit Groq KI)
-        const APP_VERSION = "v3.0-2026-09-14";
+        const APP_VERSION = "v3.1-2026-09-14";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -646,31 +644,30 @@
             btn.innerHTML = '🎤 Sprechen...';
         }
 
-        // INTELLIGENTE AUSWERTUNG ÜBER GROQ API
+        // PRÄZISE GROQ KI AUSWERTUNG
         async function processWithGroqAI(text) {
             const apiKey = localStorage.getItem('omas_groq_key');
             if (!apiKey) {
-                // Fallback wenn kein Key eingetragen ist
-                fallbackRoute(text);
+                alert("Bitte erst im Reiter '⚙️ KI-Key' deinen Groq-Schlüssel eintragen!");
+                document.getElementById('status').innerText = 'Fehler: Kein API-Key hinterlegt.';
                 return;
             }
 
             try {
-                const prompt = `Analysiere folgenden deutschen Sprachbefehl und antworte AUSSCHLIESSLICH im JSON-Format.
-Befehl: "${text}"
+                const prompt = `Analysiere diesen deutschen Sprachbefehl für einen Haushalts-Assistenten und antworte AUSSCHLIESSLICH als JSON.
+Sprachbefehl: "${text}"
 
-Bestimme den Typ (intent):
-- "save_memory" wenn ein Gegenstand irgendwo hingelegt/aufbewahrt wurde (z.B. Schlüssel in Wohnzimmerschrank).
-- "query_memory" wenn nach einem Gegenstand gefragt wird (z.B. Wo ist mein Schlüssel?).
-- "calendar" wenn ein Termin mit Uhrzeit genannt wird.
-- "todo" für alles andere (Einkaufszettel, allgemeine Notizen).
+Bestimme den "intent":
+- "save_memory": Wenn Gegenstände irgendwo hingelegt, reingepackt, deponiert oder aufbewahrt wurden (z.B. "Portemonnaie in den Küchentisch gelegt", "Schlüssel in Schrank").
+- "query_memory": Wenn nach dem Ablageort eines Gegenstands gefragt wird (z.B. "Wo ist mein Portemonnaie?", "Weißt du wo der Schlüssel ist?").
+- "calendar": Wenn ein Kalendertermin mit Uhrzeit oder Datum genannt wird (z.B. "Arzt morgen um 14 Uhr").
+- "todo": Nur wenn es eine allgemeine Notiz oder ein Einkaufszettel ist (z.B. "Milch kaufen").
 
 JSON-Struktur:
 {
   "intent": "save_memory" | "query_memory" | "calendar" | "todo",
-  "item": "Name des Gegenstands im Nominativ (z.B. Schlüssel, Brille, Portemonnaie - korrigiere Tippfehler wie Popmanee zu Portemonnaie)",
-  "location": "Genauer Ablageort (z.B. Wohnzimmerschrank, Küchentisch)",
-  "clean_text": "Der bereinigte Text oder Termintitel"
+  "item": "Name des Gegenstands im Nominativ (z.B. Portemonnaie, Schlüssel - korrigiere Tippfehler wie Popmanee direkt zu Portemonnaie)",
+  "location": "Genauer Ablageort im Nominativ (z.B. Küchentisch, Wohnzimmerschrank)"
 }`;
 
                 const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -690,13 +687,14 @@ JSON-Struktur:
                 if (!response.ok) throw new Error("API-Fehler");
 
                 const data = await response.json();
-                const result = JSON.parse(data.choices[0].message.content);
+                const res = JSON.parse(data.choices[0].message.content);
 
-                handleAIResult(result, text);
+                handleAIResult(res, text);
 
             } catch (err) {
-                console.error("Groq KI Fehler, nutze Fallback:", err);
-                fallbackRoute(text);
+                console.error("Groq KI Fehler:", err);
+                document.getElementById('status').innerText = 'KI-Fehler aufgetreten. Bitte erneut versuchen.';
+                speakTextOut("Es gab einen Fehler bei der KI-Abfrage.");
             }
         }
 
@@ -707,7 +705,7 @@ JSON-Struktur:
                 memory[item] = loc;
                 localStorage.setItem('omas_memory', JSON.stringify(memory));
                 
-                const msg = `Du hast deinen ${item} in den ${loc} gepackt.`;
+                const msg = `Du hast dein ${item} in den ${loc} gelegt.`;
                 document.getElementById('status').innerText = `🧠 ${msg}`;
                 speakTextOut(msg);
 
@@ -717,7 +715,7 @@ JSON-Struktur:
                 
                 if (foundKey && memory[foundKey]) {
                     let loc = memory[foundKey];
-                    let msg = `Du hast deinen ${foundKey} in den ${loc} gepackt.`;
+                    let msg = `Du hast dein ${foundKey} in den ${loc} gelegt.`;
                     document.getElementById('status').innerText = `💡 ${msg}`;
                     speakTextOut(msg);
                 } else {
@@ -735,33 +733,11 @@ JSON-Struktur:
                 parseAndCreateEvent(originalText);
 
             } else {
-                // Todo Fallback
                 addTodo(originalText);
+                const msg = "Notiz gespeichert.";
                 document.getElementById('status').innerText = `✅ Notiz gespeichert: "${originalText}"`;
-                speakTextOut("Notiz gespeichert.");
+                speakTextOut(msg);
             }
-        }
-
-        function fallbackRoute(text) {
-            const lower = text.toLowerCase();
-            if (lower.includes('wo ') || lower.includes('wo ist')) {
-                searchMemoryLegacy(text);
-            } else if (lower.includes(' in ') || lower.includes(' auf ') || lower.includes('gelegt') || lower.includes('gepackt')) {
-                parseAndSaveMemoryLegacy(text);
-            } else {
-                addTodo(text);
-                document.getElementById('status').innerText = `✅ Notiz gespeichert: "${text}"`;
-                speakTextOut("Notiz gespeichert.");
-            }
-        }
-
-        // Alte Hilfsfunktionen als Fallback
-        function parseAndSaveMemoryLegacy(text) {
-            addTodo(text);
-            document.getElementById('status').innerText = `✅ Notiz gespeichert: "${text}"`;
-        }
-        function searchMemoryLegacy(text) {
-            document.getElementById('status').innerText = `💡 Kein Ablageort gefunden.`;
         }
 
         // Google Kalender & Todos Logik
@@ -892,8 +868,9 @@ JSON-Struktur:
                 body: JSON.stringify({ 'summary': eventTitle, 'start': { 'dateTime': toLocalISOString(eventDate) }, 'end': { 'dateTime': toLocalISOString(endDate) } })
             }).then(res => {
                 if (res.ok) {
+                    const msg = `Termin ${eventTitle} eingetragen.`;
                     document.getElementById('status').innerText = `✅ Termin "${eventTitle}" eingetragen!`;
-                    speakTextOut(`Termin ${eventTitle} eingetragen.`);
+                    speakTextOut(msg);
                     fetchUpcomingEvents();
                 }
             });
