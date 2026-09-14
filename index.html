@@ -412,7 +412,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v3.10-2026-09-14";
+        const APP_VERSION = "v3.11-2026-09-14";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -507,7 +507,7 @@
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
-                        model: "llama-3.1-8b-instant",
+                        model: "llama3-8b-8192",
                         messages: [
                             { role: "system", content: "Antworte exakt als JSON: {\"status\": \"ok\"}" },
                             { role: "user", content: "Test" }
@@ -717,7 +717,7 @@
             }
 
             const apiUrl = "https://api.groq.com/openai/v1/chat/completions";
-            const modelName = "llama-3.1-8b-instant";
+            const modelName = "llama3-8b-8192";
 
             try {
                 const systemPrompt = `Du bist ein extrem präziser deutscher Sprachassistent. Deine Aufgabe ist es, den deutschen Sprachbefehl zu analysieren und AUSSCHLIESSLICH als kompaktes JSON im exakten Format unten zu antworten.
