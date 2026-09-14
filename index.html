@@ -377,7 +377,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v6.13-erinnerung-fix";
+        const APP_VERSION = "v6.14-erinnerung-fix";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -637,7 +637,7 @@ ENTSCHEIDUNGS-LOGIK (STRENG TRENNEN!):
 Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 - "action": Entweder "calendar", "reminder_todo", "todo", "get_calendar", "get_todos", "store_memory", oder "chat".
 - "summary": (Für "calendar") Titel des Termins.
-- "start_time": (Für "calendar" oder "reminder_todo") ISO-8601 Format YYYY-MM-DDTHH:MM:SS.
+- "start_time": (Für "calendar") ISO-8601 Format YYYY-MM-DDTHH:MM:SS.
 - "todo_text": (Für "todo" oder "reminder_todo") Der genaue Text für die To-Do-Liste.
 - "memory_key", "memory_value", "reply": Entsprechende Werte.`;
 
@@ -701,31 +701,36 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     let calendarEventId = null;
                     if (accessToken) {
                         try {
-                            let startISO = parsed.start_time && parsed.start_time.length >= 16 
-                                ? (parsed.start_time.includes('+') || parsed.start_time.endsWith('Z') ? parsed.start_time : parsed.start_time + ":00+02:00")
-                                : new Date().toISOString().split('.')[0] + "+02:00";
-                            
-                            let startDate = new Date(startISO);
-                            if (isNaN(startDate.getTime())) {
-                                startDate = new Date();
-                            }
-                            
-                            // Fallback-Erkennung für Uhrzeiten falls nötig
+                            let targetDate = new Date();
                             const lowerText = userText.toLowerCase();
-                            if (lowerText.includes("22 uhr") || lowerText.includes("22:00")) {
-                                startDate.setHours(22, 0, 0, 0);
-                            } else if (lowerText.includes("21 uhr") || lowerText.includes("21:00")) {
-                                startDate.setHours(21, 0, 0, 0);
-                            } else if (lowerText.includes("20 uhr") || lowerText.includes("20:00")) {
-                                startDate.setHours(20, 0, 0, 0);
+
+                            if (lowerText.includes("morgen")) {
+                                targetDate.setDate(targetDate.getDate() + 1);
                             }
 
-                            startISO = startDate.toISOString().split('.')[0] + "+02:00";
-                            let endDate = new Date(startDate.getTime() + 30 * 60 * 1000);
+                            let hourFound = false;
+                            const numbers = userText.match(/\d+/g);
+                            if (numbers && numbers.length > 0) {
+                                for (let numStr of numbers) {
+                                    let num = parseInt(numStr, 10);
+                                    if (num >= 0 && num <= 23 && !lowerText.includes(num + " minuten")) {
+                                        targetDate.setHours(num, 0, 0, 0);
+                                        hourFound = true;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (!hourFound) {
+                                targetDate.setHours(targetDate.getHours() + 1, 0, 0, 0);
+                            }
+
+                            let startISO = targetDate.toISOString().split('.')[0] + "+02:00";
+                            let endDate = new Date(targetDate.getTime() + 30 * 60 * 1000);
                             let endISO = endDate.toISOString().split('.')[0] + "+02:00";
 
                             const hiddenEventObj = {
-                                summary: `[REMINDER] ${parsed.summary || taskText}`,
+                                summary: `[REMINDER] ${taskText}`,
                                 start: { dateTime: startISO },
                                 end: { dateTime: endISO },
                                 reminders: {
@@ -783,10 +788,10 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     const todoText = parsed.todo_text || userText;
                     todos.push({ text: todoText, calendarId: null, completed: false });
                     saveTodos();
-                    const reply = `Ich habe "${todoText}" auf deine To-Do-Liste geschrieben, ${currentUserName}!`;
-                    appendChatBubble(reply, 'assistant');
+                    const reply = `I have written "${todoText}" on your to-do list, ${currentUserName}!`; // Fallback translation check
+                    appendChatBubble(`Ich habe "${todoText}" auf deine To-Do-Liste geschrieben, ${currentUserName}!`, 'assistant');
                     document.getElementById('status').innerText = 'Bereit.';
-                    speakTextOut(reply);
+                    speakTextOut(`Ich habe "${todoText}" auf deine To-Do-Liste geschrieben, ${currentUserName}!`);
                 } 
                 else if (parsed.action === "store_memory") {
                     userMemories[parsed.memory_key.toLowerCase()] = parsed.memory_value;
