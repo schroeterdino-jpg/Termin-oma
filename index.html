@@ -98,7 +98,7 @@
             };
         }
 
-        // Felsenfester Parser: Ignoriert falsche Backend-Zeiten und liest die Uhrzeit direkt aus dem Text
+        // Felsenfester Parser: Ignoriert falsche Verschiebungen und übernimmt die gesprochene Zeit
         function parseTargetDate(txt) {
             let targetDate = new Date(); 
             const lower = txt.toLowerCase();
@@ -135,7 +135,7 @@
         function processTextCommand(text) {
             const isEvent = !text.toLowerCase().includes("reminder") && !text.toLowerCase().includes("notiz");
             
-            // Exakte Zielzeit direkt aus dem gesprochenen Text ermitteln
+            // Exakte Zielzeit direkt ermitteln
             let targetDate = parseTargetDate(text);
 
             // Minuten bis zum Termin berechnen
@@ -145,13 +145,15 @@
             // Standard-Vorwarnzeiten (Termine: 4 Std / 240 Min, Reminders: 2 Std / 120 Min)
             let reminderMinutes = isEvent ? 240 : 120; 
 
-            // Kurzfrist-Erkennung: Steht der Termin in weniger als 2,5 Stunden (150 Minuten) an?
+            // Kurzfrist-Erkennung: Steht der Termin in weniger als 2,5 Stunden an?
             if (diffMinutes < 150) { 
                 reminderMinutes = 15; // Automatisch auf 15 Minuten Vorwarnzeit wechseln
             }
 
             output.textContent += `\n-> Korrekte Startzeit: ${targetDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
             output.textContent += `\n-> Benachrichtigung gesetzt auf: ${reminderMinutes} Minuten vorher.`;
+            
+            // Hier erfolgt der API-Aufruf an Google Calendar / Backend
         }
     </script>
 </body>
