@@ -67,7 +67,6 @@
         const recordBtn = document.getElementById('recordBtn');
         const output = document.getElementById('output');
 
-        // Überprüfung auf Spracherkennung
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         
         if (!SpeechRecognition) {
@@ -99,8 +98,8 @@
             };
         }
 
-        // Felsenfester Parser & smarte Benachrichtigungslogik
-        function parseTargetDate(txt, parsedIso) {
+        // Felsenfester Parser: Ignoriert falsche Backend-Zeiten und liest die Uhrzeit direkt aus dem Text
+        function parseTargetDate(txt) {
             let targetDate = new Date(); 
             const lower = txt.toLowerCase();
             
@@ -128,11 +127,6 @@
 
             if (foundHour !== null && foundHour >= 0 && foundHour <= 23) {
                 targetDate.setHours(foundHour, foundMinute, 0, 0);
-            } else if (parsedIso) {
-                let dTest = new Date(parsedIso);
-                if (!isNaN(dTest.getTime())) {
-                    targetDate.setHours(dTest.getHours(), dTest.getMinutes(), 0, 0);
-                }
             }
 
             return targetDate;
@@ -141,28 +135,23 @@
         function processTextCommand(text) {
             const isEvent = !text.toLowerCase().includes("reminder") && !text.toLowerCase().includes("notiz");
             
-            // Datum sauber ermitteln
-            let targetDate = parseTargetDate(text, null);
+            // Exakte Zielzeit direkt aus dem gesprochenen Text ermitteln
+            let targetDate = parseTargetDate(text);
 
             // Minuten bis zum Termin berechnen
             const now = new Date();
             const diffMinutes = Math.floor((targetDate - now) / (1000 * 60));
 
-            // Standard-Vorwarnzeiten
-            let reminderMinutes = 120; // 2 Stunden für To-Dos/Reminders
-            if (isEvent) {
-                reminderMinutes = 240; // 4 Stunden für echte Termine
-            }
+            // Standard-Vorwarnzeiten (Termine: 4 Std / 240 Min, Reminders: 2 Std / 120 Min)
+            let reminderMinutes = isEvent ? 240 : 120; 
 
-            // Kurzfrist-Erkennung: Wenn der Termin in weniger als 2,5 Stunden ansteht
+            // Kurzfrist-Erkennung: Steht der Termin in weniger als 2,5 Stunden (150 Minuten) an?
             if (diffMinutes < 150) { 
-                reminderMinutes = 15; // Automatisch auf 15 Minuten vorziehen
+                reminderMinutes = 15; // Automatisch auf 15 Minuten Vorwarnzeit wechseln
             }
 
-            output.textContent += `\n-> Geplant für: ${targetDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
-            output.textContent += `\n-> Erinnerung aktiv: ${reminderMinutes} Minuten vorher.`;
-            
-            // Hier greift dann die Weiterleitung an deine Google Calendar API / Vercel Backend
+            output.textContent += `\n-> Korrekte Startzeit: ${targetDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+            output.textContent += `\n-> Benachrichtigung gesetzt auf: ${reminderMinutes} Minuten vorher.`;
         }
     </script>
 </body>
