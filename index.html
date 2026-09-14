@@ -311,7 +311,7 @@
             <div id="status">Bereit zum Sprechen...</div>
 
             <div class="hint-box">
-                💡 <i>"Termin: Zahnarzt morgen um 15 Uhr"</i> (4 Std. vorher) • <i>"Ich darf nicht vergessen, Isabelle um 22:30 Uhr abzuholen"</i> (To-Do + Wecker)
+                💡 <i>"Termin: Zahnarzt morgen um 15 Uhr"</i> (automatische Vorlaufzeit) • <i>"Isabelle um 22 Uhr abholen"</i> (To-Do + Wecker)
             </div>
         </div>
 
@@ -377,7 +377,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v6.20-fix-dynamic-reminder";
+        const APP_VERSION = "v6.18-smart-reminders-fixed";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -629,7 +629,7 @@ Analysiere die Eingabe des Nutzers: "${userText}"
 
 ENTSCHEIDUNGS-LOGIK (STRENG TRENNEN!):
 1. **ECHTER TERMIN ("calendar")**: Wähle das AUSSCHLIESSLICH bei echten festen Terminen, Verabredungen oder ortsgebundenen Events, wo man irgendwo hingeht, Besuch bekommt oder ein Ereignis stattfindet (z.B. "Termin: Zahnarzt heute um 15 Uhr", "Morgen Friseur um 14 Uhr", "Arzttermin am Freitag").
-2. **ERINNERUNG / AUFGABE MIT UHRZEIT ("reminder_todo")**: Wähle das, wenn der Nutzer eine persönliche Handlungsanweisung, eine Abholung, einen Anruf oder eine Erledigung mit Uhrzeit nennt, besonders bei Formulierungen wie "ich darf nicht vergessen", "ich muss... abholen/anrufen" (z.B. "Ich darf nicht vergessen, Isabelle um 22:30 Uhr abzuholen", "Erinnere mich, Isabelle um 18 Uhr vom Kindergarten abzuholen"). Das wandert als To-Do auf die Liste und legt im Hintergrund einen versteckten Wecker an.
+2. **ERINNERUNG / AUFGABE MIT UHRZEIT ("reminder_todo")**: Wähle das, wenn der Nutzer eine Handlungsanweisung, eine Abholung oder eine Erledigung mit Uhrzeit nennt (z.B. "Erinnere mich, Isabelle um 18 Uhr vom Kindergarten abzuholen", "Ich muss um 14 Uhr anrufen", "Ich muss heute noch Isabella um 22 Uhr abholen"). Das wandert als To-Do auf die Liste und legt im Kalender einen Wecker an.
 3. **REINE TO-DO ("todo")**: Normale Aufgaben oder Einkäufe OHNE Uhrzeit (z.B. "Schreib Milch auf die Liste").
 4. **NAMEN / GEDÄCHTNIS ("store_memory")**: Details speichern.
 5. **ABFRAGEN / CHAT ("get_calendar", "get_todos", "chat")**: Fragen oder allgemeines.
@@ -637,7 +637,7 @@ ENTSCHEIDUNGS-LOGIK (STRENG TRENNEN!):
 Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 - "action": Entweder "calendar", "reminder_todo", "todo", "get_calendar", "get_todos", "store_memory", oder "chat".
 - "summary": (Für "calendar") Titel des Termins.
-- "start_time": (Für "calendar" oder "reminder_todo") ISO-8601 Format YYYY-MM-DDTHH:MM:SS (Ermittle die korrekte Zieluhrzeit aus dem Text).
+- "start_time": (Für "calendar") ISO-8601 Format YYYY-MM-DDTHH:MM:SS.
 - "todo_text": (Für "todo" oder "reminder_todo") Der genaue Text für die To-Do-Liste.
 - "memory_key", "memory_value", "reply": Entsprechende Werte.`;
 
