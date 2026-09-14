@@ -241,7 +241,7 @@
             <button class="close-app-btn" onclick="exitApp()">❌ Beenden</button>
         </div>
         
-        <!-- Login-Button falls nötig -->
+        <!-- Login-Button falls manueller Eingriff nötig ist -->
         <button id="loginBtn" class="login-btn" onclick="triggerLogin()" style="display:none;">🔐 Bei Google anmelden</button>
 
         <!-- Reiter (Tabs) -->
@@ -250,7 +250,7 @@
             <button class="tab-btn" onclick="switchTab('calendar', event)">📅 Termine & Notizen</button>
         </div>
 
-        <!-- SEITE 1: SPRECHEN & EINTRAGEN -->
+        <!-- REITER 1: SPRECHEN & EINTRAGEN -->
         <div id="tab-speak" class="tab-content active">
             <div style="font-size: 15px; color: #555; margin-bottom: 15px; text-align: center; font-weight: bold;">
                 Wähle aus, was du sagen möchtest:
@@ -264,14 +264,14 @@
                 🗣️ Notiz / To-Do sprechen
             </button>
             
-            <div id="status">Bereit zum Sprechen...</div>
+            <div id="status">Verbinde mit Kalender...</div>
 
             <div class="hint-box">
                 💡 Tipp: Sag z.B. <i>"Arzttermin morgen um 14 Uhr"</i>.
             </div>
         </div>
 
-        <!-- SEITE 2: TERMINE & NOTIZEN -->
+        <!-- REITER 2: TERMINE & NOTIZEN -->
         <div id="tab-calendar" class="tab-content">
             <div class="section-title">
                 <span>Anstehende Termine</span>
@@ -313,17 +313,19 @@
                 scope: SCOPES,
                 callback: (response) => {
                     if (response.error !== undefined) {
-                        document.getElementById('status').innerText = 'Fehler bei Anmeldung: ' + response.error;
+                        // Wenn der stille Hintergrund-Login fehlschlägt, zeigen wir den Button
+                        document.getElementById('status').innerText = 'Bitte einmal bei Google anmelden.';
                         document.getElementById('loginBtn').style.display = 'block';
                         return;
                     }
                     accessToken = response.access_token;
                     document.getElementById('loginBtn').style.display = 'none';
-                    document.getElementById('status').innerText = 'Angemeldet! Bereit...';
+                    document.getElementById('status').innerText = 'Bereit zum Sprechen...';
                     fetchUpcomingEvents();
                 },
             });
 
+            // Automatischer Silent-Login im Hintergrund beim App-Start
             try {
                 tokenClient.requestAccessToken({ prompt: '' });
             } catch (e) {
@@ -342,7 +344,7 @@
                 document.getElementById('tab-speak').classList.add('active');
             } else {
                 document.getElementById('tab-calendar').classList.add('active');
-                fetchUpcomingEvents(); // Direkt frische Termine laden beim Seiten-Wechsel
+                fetchUpcomingEvents();
             }
             event.currentTarget.classList.add('active');
         }
@@ -657,10 +659,10 @@
                 const mm = pad(date.getMinutes());
                 const ss = pad(date.getSeconds());
                 
-                const offsetMinutes = -date.getTimezoneOffset();
-                const sign = offsetMinutes >= 0 ? '+' : '-';
-                const absOffsetHours = pad(Math.floor(Math.abs(offsetMinutes) / 60));
-                const absOffsetMins = pad(Math.abs(offsetMinutes) % 60);
+                let offsetMinutes = -date.getTimezoneOffset();
+                let sign = offsetMinutes >= 0 ? '+' : '-';
+                let absOffsetHours = pad(Math.floor(Math.abs(offsetMinutes) / 60));
+                let absOffsetMins = pad(Math.abs(offsetMinutes) % 60);
 
                 return `${yyyy}-${MM}-${dd}T${hh}:${mm}:${ss}${sign}${absOffsetHours}:${absOffsetMins}`;
             }
