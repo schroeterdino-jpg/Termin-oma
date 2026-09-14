@@ -377,7 +377,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v6.14-erinnerung-fix";
+        const APP_VERSION = "v6.15-termin-fix";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -628,8 +628,8 @@ Gespeichertes Gedächtnis des Nutzers: ${memoriesStr}
 Analysiere die Eingabe des Nutzers: "${userText}"
 
 ENTSCHEIDUNGS-LOGIK (STRENG TRENNEN!):
-1. **ECHTER TERMIN ("calendar")**: Wähle das AUSSCHLIESSLICH bei echten festen Terminen, wo man irgendwo hingeht oder ein Ereignis stattfindet (z.B. "Morgen Friseur", "Arzttermin am Freitag um 10 Uhr", "Morgen um 14 Uhr Zahnarzt").
-2. **ERINNERUNG / AUFGABE MIT UHRZEIT ("reminder_todo")**: Wähle das, wenn der Nutzer eine Handlungsanweisung, eine Abholung oder eine Erledigung mit Uhrzeit nennt (z.B. "Erinnere mich, Isabelle um 18 Uhr vom Kindergarten abzuholen", "Ich muss um 14 Uhr anrufen", "Um 20:45 Uhr Kaffeetrinken", "Ich muss heute noch Isabelle um 22 Uhr abholen"). Das wandert als To-Do auf die Liste und legt im Hintergrund einen versteckten Wecker an.
+1. **ECHTER TERMIN ("calendar")**: Wähle das AUSSCHLIESSLICH bei echten festen Terminen, Verabredungen oder ortsgebundenen Events, wo man irgendwo hingeht, Besuch bekommt oder ein Ereignis stattfindet (z.B. "Termin: Zahnarzt heute um 15 Uhr", "Morgen Friseur um 14 Uhr", "Arzttermin am Freitag").
+2. **ERINNERUNG / AUFGABE MIT UHRZEIT ("reminder_todo")**: Wähle das, wenn der Nutzer eine Handlungsanweisung, eine Abholung oder eine Erledigung mit Uhrzeit nennt (z.B. "Erinnere mich, Isabelle um 18 Uhr vom Kindergarten abzuholen", "Ich muss um 14 Uhr anrufen", "Ich muss heute noch Isabella um 22 Uhr abholen"). Das wandert als To-Do auf die Liste und legt im Hintergrund einen versteckten Wecker an.
 3. **REINE TO-DO ("todo")**: Normale Aufgaben oder Einkäufe OHNE Uhrzeit (z.B. "Schreib Milch auf die Liste").
 4. **NAMEN / GEDÄCHTNIS ("store_memory")**: Details speichern.
 5. **ABFRAGEN / CHAT ("get_calendar", "get_todos", "chat")**: Fragen oder allgemeines.
@@ -670,29 +670,83 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                         alert("Bitte zuerst bei Google anmelden (Reiter Termine / Login-Button)!");
                         return;
                     }
+                    
+                    let eventSummary = parsed.summary || userText;
+                    let targetDate = new Date();
+                    const lowerText = userText.toLowerCase();
+
+                    if (lowerText.includes("morgen")) {
+                        targetDate.setDate(targetDate.getDate() + 1);
+                    }
+
+                    let hourFound = false;
+                    const timeColonMatch = userText.match(/(\d{1,2}):(\d{2})/);
+                    if (timeColonMatch) {
+                        targetDate.setHours(parseInt(timeColonMatch[1], 10), parseInt(timeColonMatch[2], 10), 0, 0);
+                        hourFound = true;
+                    } else {
+                        const numbers = userText.match(/\d+/g);
+                        if (numbers && numbers.length > 0) {
+                            for (let numStr of numbers) {
+                                let num = parseInt(numStr, 10);
+                                if (num >= 0 && num <= 23 && !lowerText.includes(num + " minuten") && !lowerText.includes(num + "te")) {
+                                    targetDate.setHours(num, 0, 0, 0);
+                                    hourFound = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (!hourFound) {
+                        targetDate.setHours(targetDate.getHours() + 1, 0, 0, 0);
+                    }
+
+                    let startISO = targetDate.toISOString().split('.')[0] + "+02:00";
+                    let endDate = new Date(targetDate.getTime() + 60 * 60 * 1000);
+                    let endISO = endDate.toISOString().split('.')[0] + "+02:00";
+
+                    if (parsed.start_time && parsed.start_time.includes("T")) {
+                        try {
+                            let customDate = new Date(parsed.start_time);
+                            if (!isNaN(customDate.getTime())) {
+                                startISO = customDate.toISOString().split('.')[0] + "+02:00";
+                                endDate = new Date(customDate.getTime() + 60 * 60 * 1000);
+                                endISO = endDate.toISOString().split('.')[0] + "+02:00";
+                            }
+                        } catch(e) {}
+                    }
+
                     const eventObj = {
-                        summary: parsed.summary,
-                        start: { dateTime: parsed.start_time + ":00+02:00" },
-                        end: { dateTime: new Date(new Date(parsed.start_time).getTime() + 3600000).toISOString().split('.')[0] + "+02:00" }
+                        summary: eventSummary,
+                        start: { dateTime: startISO },
+                        end: { dateTime: endISO }
                     };
 
-                    const calRes = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
-                        method: "POST",
-                        headers: {
-                            "Authorization": `Bearer ${accessToken}`,
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify(eventObj)
-                    });
+                    try {
+                        const calRes = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
+                            method: "POST",
+                            headers: {
+                                "Authorization": `Bearer ${accessToken}`,
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify(eventObj)
+                        });
 
-                    if (calRes.ok) {
-                        const reply = `Ich habe den Termin "${parsed.summary}" in deine Termine eingetragen, ${currentUserName}!`;
-                        appendChatBubble(reply, 'assistant');
-                        document.getElementById('status').innerText = 'Bereit.';
-                        speakTextOut(reply);
-                        fetchUpcomingEvents();
-                    } else {
-                        throw new Error("Kalender-Fehler");
+                        const calData = await calRes.json();
+                        if (calRes.ok && calData.id) {
+                            const reply = `Ich habe den Termin "${eventSummary}" in deinen Kalender eingetragen, ${currentUserName}!`;
+                            appendChatBubble(reply, 'assistant');
+                            document.getElementById('status').innerText = 'Bereit.';
+                            speakTextOut(reply);
+                            fetchUpcomingEvents();
+                        } else {
+                            throw new Error("Kalender-Fehler");
+                        }
+                    } catch (err) {
+                        const errReply = `Entschuldigung ${currentUserName}, ich konnte den Termin wegen eines Fehlers nicht im Kalender speichern.`;
+                        appendChatBubble(errReply, 'assistant');
+                        speakTextOut(errReply);
                     }
                 }
                 else if (parsed.action === "reminder_todo") {
@@ -788,10 +842,10 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     const todoText = parsed.todo_text || userText;
                     todos.push({ text: todoText, calendarId: null, completed: false });
                     saveTodos();
-                    const reply = `I have written "${todoText}" on your to-do list, ${currentUserName}!`; // Fallback translation check
-                    appendChatBubble(`Ich habe "${todoText}" auf deine To-Do-Liste geschrieben, ${currentUserName}!`, 'assistant');
+                    const reply = `Ich habe "${todoText}" auf deine To-Do-Liste geschrieben, ${currentUserName}!`;
+                    appendChatBubble(reply, 'assistant');
                     document.getElementById('status').innerText = 'Bereit.';
-                    speakTextOut(`Ich habe "${todoText}" auf deine To-Do-Liste geschrieben, ${currentUserName}!`);
+                    speakTextOut(reply);
                 } 
                 else if (parsed.action === "store_memory") {
                     userMemories[parsed.memory_key.toLowerCase()] = parsed.memory_value;
