@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Termin- und NotizApp für Oma</title>
+    <title>Omas Sprach-Assistent</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            color: #333;
+            background-color: #f0f2f5;
+            color: #222;
             margin: 0;
-            padding: 15px;
+            padding: 10px;
             display: flex;
             justify-content: center;
         }
@@ -19,182 +19,186 @@
             max-width: 480px;
             background: #fff;
             padding: 20px;
-            border-radius: 16px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-radius: 20px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
             box-sizing: border-box;
         }
-        /* Header-Bereich mit Titel und Verlassen-Button nebeneinander */
         .app-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 12px;
             margin-bottom: 15px;
         }
         h1 {
-            font-size: 18px;
+            font-size: 22px;
             margin: 0;
-            color: #222;
-            text-align: left;
+            color: #111;
         }
         .close-app-btn {
             background-color: #dc3545;
             color: white;
             border: none;
-            padding: 6px 12px;
-            font-size: 13px;
-            border-radius: 20px;
+            padding: 8px 14px;
+            font-size: 14px;
+            border-radius: 30px;
             cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-weight: bold;
         }
         .close-app-btn:active {
             background-color: #b02a37;
         }
-        .subtitle {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 12px;
-            text-align: center;
+        .login-btn {
+            background-color: #fbbc05;
+            color: #111;
+            font-weight: bold;
+            font-size: 16px;
+            padding: 14px;
+            margin-bottom: 15px;
+            width: 100%;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
         }
-        .btn-group {
+        /* Reiter-Navigation (Tabs) */
+        .tab-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            background: #e4e6eb;
+            padding: 5px;
+            border-radius: 14px;
+        }
+        .tab-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: bold;
+            color: #555;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .tab-btn.active {
+            background: #fff;
+            color: #0d6efd;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        /* Große Aktions-Buttons */
+        .big-btn {
+            width: 100%;
+            background-color: #0d6efd;
+            color: white;
+            border: none;
+            padding: 22px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 16px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        .big-btn:active {
+            transform: scale(0.98);
+        }
+        .big-btn.todo-btn {
+            background-color: #198754;
+            box-shadow: 0 4px 10px rgba(25, 135, 84, 0.3);
+        }
+        .big-btn.recording {
+            background-color: #dc3545 !important;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.5); }
+            70% { transform: scale(1.02); box-shadow: 0 0 0 12px rgba(220, 53, 69, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+        #status {
+            margin: 15px 0;
+            font-weight: bold;
+            color: #333;
+            font-size: 16px;
+            background: #f8f9fa;
+            padding: 14px;
+            border-radius: 12px;
+            text-align: center;
+            border-left: 5px solid #0d6efd;
+        }
+        /* Sektionen & Listen */
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #222;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .action-row {
             display: flex;
             gap: 10px;
             margin-bottom: 15px;
         }
-        button {
-            background-color: #4285F4;
-            color: white;
-            border: none;
-            padding: 12px 15px;
-            font-size: 15px;
-            border-radius: 12px;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        .action-sub-btn {
             flex: 1;
-            font-weight: bold;
-            transition: background-color 0.2s;
-        }
-        button:active {
-            opacity: 0.9;
-        }
-        button.recording {
-            background-color: #EA4335 !important;
-            animation: pulse 1.5s infinite;
-        }
-        button.todo-btn {
-            background-color: #34A853;
-        }
-        .login-btn {
-            background-color: #fbbc05;
-            color: #333;
-            font-weight: bold;
-            margin-bottom: 15px;
-            width: 100%;
-            border-radius: 10px;
-        }
-        .secondary-btn {
-            background-color: #e9ecef;
-            color: #333;
-            font-size: 13px;
-            padding: 6px 12px;
-            border-radius: 8px;
-            box-shadow: none;
-            flex: none;
-            font-weight: normal;
-        }
-        .secondary-btn:active {
-            background-color: #dee2e6;
-        }
-        .speak-btn {
-            background-color: #e7f1ff;
-            color: #0d6efd;
-        }
-        .danger-btn {
-            background-color: #fff5f5;
-            color: #dc3545;
-            border: 1px solid #f5c6cb;
-            font-size: 13px;
-            padding: 10px;
-            border-radius: 10px;
-            width: 100%;
-            margin-top: 10px;
-            box-shadow: none;
-            font-weight: bold;
-        }
-        .danger-btn:active {
-            background-color: #f8d7da;
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234, 67, 53, 0.4); }
-            70% { transform: scale(1.02); box-shadow: 0 0 0 8px rgba(234, 67, 53, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234, 67, 53, 0); }
-        }
-        #status {
-            margin: 10px 0 15px 0;
-            font-weight: bold;
-            color: #444;
-            font-size: 13px;
-            background: #f8f9fa;
-            padding: 8px;
-            border-radius: 8px;
-            text-align: center;
-        }
-        .section-box {
-            margin-top: 20px;
-            text-align: left;
-            border-top: 1px solid #eee;
-            padding-top: 15px;
-        }
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-        .section-box h3 {
+            background: #e9ecef;
+            color: #222;
+            border: none;
+            padding: 12px;
             font-size: 15px;
-            margin: 0;
-            color: #333;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .action-sub-btn:active {
+            background: #dee2e6;
         }
         .event-item {
             background: #f8f9fa;
-            padding: 10px 12px;
-            border-radius: 8px;
-            margin-bottom: 6px;
-            font-size: 13px;
-            border-left: 4px solid #4285F4;
-            cursor: pointer;
+            padding: 14px 16px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            font-size: 16px;
+            border-left: 6px solid #0d6efd;
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-        .event-item:hover {
-            background: #f1f3f5;
         }
         .event-delete-btn {
             background: #dc3545;
             color: white;
             border: none;
-            border-radius: 6px;
-            width: 28px;
-            height: 28px;
-            font-size: 13px;
+            border-radius: 10px;
+            width: 44px;
+            height: 44px;
+            font-size: 20px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: none;
             flex: none;
-            padding: 0;
+        }
+        .event-delete-btn:active {
+            background-color: #b02a37;
         }
         .todo-item {
             background: #f1f8f5;
-            padding: 10px 12px;
-            border-radius: 8px;
-            margin-bottom: 6px;
-            font-size: 13px;
-            border-left: 4px solid #34A853;
+            padding: 14px 16px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            font-size: 16px;
+            border-left: 6px solid #198754;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -211,77 +215,83 @@
         .delete-btn {
             background: none;
             border: none;
-            color: #cc0000;
-            font-size: 15px;
+            color: #dc3545;
+            font-size: 22px;
             cursor: pointer;
             padding: 0 5px;
-            box-shadow: none;
             flex: none;
         }
-        #deleteManager {
-            display: none;
-            background: #fff8f8;
-            border: 1px solid #f5c6cb;
+        .hint-box {
+            font-size: 13px;
+            color: #666;
+            text-align: center;
+            margin-top: 15px;
+            background: #fff3cd;
             padding: 10px;
             border-radius: 8px;
-            margin-top: 8px;
-        }
-        .hint-text {
-            font-size: 11px;
-            color: #888;
-            margin-top: 6px;
-            text-align: center;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <!-- Aufgeräumter Header -->
+        <!-- Header -->
         <div class="app-header">
             <h1>Omas Sprach-Assistent</h1>
-            <button class="close-app-btn" onclick="exitApp()">❌ Verlassen</button>
+            <button class="close-app-btn" onclick="exitApp()">❌ Beenden</button>
         </div>
         
-        <!-- Manueller Login-Button falls es klemmt -->
+        <!-- Login-Button falls nötig -->
         <button id="loginBtn" class="login-btn" onclick="triggerLogin()" style="display:none;">🔐 Bei Google anmelden</button>
 
-        <div class="subtitle">Wähle aus, was du eintragen möchtest:</div>
-        
-        <div class="btn-group">
-            <button id="micEventBtn" onclick="startSpeechRecognition('event')">🎤 Termin</button>
-            <button id="micTodoBtn" class="todo-btn" onclick="startSpeechRecognition('todo')">🗣️ Notiz / To-Do</button>
+        <!-- Reiter (Tabs) -->
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchTab('speak', event)">🎤 Sprechen</button>
+            <button class="tab-btn" onclick="switchTab('calendar', event)">📅 Termine & Löschen</button>
         </div>
-        
-        <div id="status">Warte auf Anmeldung...</div>
 
-        <div class="section-box">
-            <div class="section-header">
-                <h3>Nächste Termine</h3>
-                <div style="display: flex; gap: 5px;">
-                    <button class="secondary-btn speak-btn" onclick="speakSummary()">🔊 Vorlesen</button>
-                    <button class="secondary-btn" onclick="fetchUpcomingEvents()">🔄 Laden</button>
-                </div>
+        <!-- REITER 1: SPRECHEN & EINTRAGEN -->
+        <div id="tab-speak" class="tab-content active">
+            <div style="font-size: 15px; color: #555; margin-bottom: 15px; text-align: center; font-weight: bold;">
+                Wähle aus, was du sagen möchtest:
             </div>
-            <div id="eventsContainer" style="font-size: 13px; color: #666; padding: 5px 0;">Noch nicht geladen.</div>
+
+            <button id="micEventBtn" class="big-btn" onclick="startSpeechRecognition('event')">
+                🎤 Neuen Termin sprechen
+            </button>
             
-            <!-- Button zum Aufklappen der Termin-Löschliste -->
-            <button class="danger-btn" onclick="toggleDeleteManager()">🗑️ Termine verwalten / löschen</button>
-            <div id="deleteManager">
-                <div style="font-size: 12px; margin-bottom: 8px; font-weight: bold; color: #dc3545;">Klicke auf den Mülleimer, um den Termin zu löschen:</div>
-                <div id="deleteEventsContainer">Lade Liste...</div>
-            </div>
+            <button id="micTodoBtn" class="big-btn todo-btn" onclick="startSpeechRecognition('todo')">
+                🗣️ Notiz / To-Do sprechen
+            </button>
+            
+            <div id="status">Bereit zum Sprechen...</div>
 
-            <div class="hint-text">💡 Klick auf einen Termin öffnet den Google Kalender</div>
+            <div class="hint-box">
+                💡 Tipp: Sag z.B. <i>"Arzttermin morgen um 14 Uhr"</i>.
+            </div>
         </div>
 
-        <div class="section-box">
-            <h3>Merkliste / To-Dos <span style="font-size: 11px; font-weight: normal; color: #666;">(Klick zum Abhaken)</span></h3>
-            <div id="todosContainer" style="margin-top: 8px;">Noch keine Notizen vorhanden.</div>
+        <!-- REITER 2: TERMINE & LÖSCHEN -->
+        <div id="tab-calendar" class="tab-content">
+            <div class="section-title">
+                <span>Anstehende Termine</span>
+            </div>
+            
+            <div class="action-row">
+                <button class="action-sub-btn" style="background: #cfe2ff; color: #084298;" onclick="speakSummary()">🔊 Vorlesen</button>
+                <button class="action-sub-btn" onclick="fetchUpcomingEvents()">🔄 Neu laden</button>
+            </div>
+
+            <div id="deleteEventsContainer" style="margin-top: 10px;">Lade Termine...</div>
+
+            <div style="margin-top: 25px;">
+                <div class="section-title">Merkliste / To-Dos <span style="font-size: 13px; font-weight: normal; color: #666;">(Klick = Abhaken)</span></div>
+                <div id="todosContainer">Noch keine Notizen.</div>
+            </div>
         </div>
     </div>
 
-    <!-- Google GIS (Google Identity Services) -->
+    <!-- Google GIS -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
@@ -306,7 +316,7 @@
                     }
                     accessToken = response.access_token;
                     document.getElementById('loginBtn').style.display = 'none';
-                    document.getElementById('status').innerText = 'Angemeldet! Lade Termine...';
+                    document.getElementById('status').innerText = 'Angemeldet! Bereit...';
                     fetchUpcomingEvents();
                 },
             });
@@ -320,6 +330,19 @@
 
             renderTodos();
         };
+
+        function switchTab(tabName, event) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+            if (tabName === 'speak') {
+                document.getElementById('tab-speak').classList.add('active');
+            } else {
+                document.getElementById('tab-calendar').classList.add('active');
+                fetchUpcomingEvents(); // Direkt frische Termine laden beim Tab-Wechsel
+            }
+            event.currentTarget.classList.add('active');
+        }
 
         function exitApp() {
             window.close();
@@ -356,17 +379,16 @@
 
         function speakSummary() {
             if (!('speechSynthesis' in window)) {
-                alert('Dein Browser unterstützt leider keine Sprachausgabe.');
+                alert('Dein Browser unterstützt keine Sprachausgabe.');
                 return;
             }
 
             window.speechSynthesis.cancel();
-
             let speechText = latestEventsText;
             
             const activeTodos = todos.filter(t => !t.completed);
             if (activeTodos.length > 0) {
-                speechText += " Ausserdem hast du noch folgende Notizen auf der Liste: ";
+                speechText += " Ausserdem hast du noch folgende Notizen: ";
                 activeTodos.forEach((t, i) => {
                     speechText += (i + 1) + ". " + t.text + ". ";
                 });
@@ -387,24 +409,12 @@
             listenAndProcess(mode);
         }
 
-        function toggleDeleteManager() {
-            const manager = document.getElementById('deleteManager');
-            if (manager.style.display === 'block') {
-                manager.style.display = 'none';
-            } else {
-                manager.style.display = 'block';
-                renderDeleteManagerList();
-            }
-        }
-
         function fetchUpcomingEvents() {
             if (!accessToken) {
-                document.getElementById('eventsContainer').innerHTML = 'Nicht angemeldet.';
+                document.getElementById('deleteEventsContainer').innerHTML = 'Nicht angemeldet.';
                 document.getElementById('loginBtn').style.display = 'block';
                 return;
             }
-
-            document.getElementById('status').innerText = 'Lade Termine...';
 
             const now = new Date().toISOString();
             fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now}&maxResults=30&singleEvents=true&orderBy=startTime`, {
@@ -414,14 +424,13 @@
             })
             .then(res => res.json())
             .then(data => {
-                const container = document.getElementById('eventsContainer');
+                const container = document.getElementById('deleteEventsContainer');
                 container.innerHTML = '';
 
                 if (!data.items || data.items.length === 0) {
-                    container.innerHTML = 'Keine anstehenden Termine gefunden.';
+                    container.innerHTML = '<div style="font-size: 15px; color: #666; padding: 10px; text-align: center;">Keine anstehenden Termine gefunden.</div>';
                     latestEventsText = "Es sind keine anstehenden Termine im Kalender.";
                     rawEventsList = [];
-                    document.getElementById('status').innerText = 'Bereit...';
                     return;
                 }
 
@@ -429,14 +438,13 @@
                 rawEventsList = timedEvents;
 
                 if (timedEvents.length === 0) {
-                    container.innerHTML = 'Keine anstehenden Uhrzeit-Termine gefunden.';
+                    container.innerHTML = '<div style="font-size: 15px; color: #666; padding: 10px; text-align: center;">Keine anstehenden Uhrzeit-Termine gefunden.</div>';
                     latestEventsText = "Keine anstehenden Uhrzeit-Termine gefunden.";
-                    document.getElementById('status').innerText = 'Bereit...';
                     return;
                 }
 
                 let speechParts = [];
-                timedEvents.slice(0, 5).forEach((item, index) => {
+                timedEvents.slice(0, 10).forEach((item) => {
                     const startDate = new Date(item.start.dateTime);
                     const formattedDate = startDate.toLocaleDateString('de-DE', {weekday: 'short', day: '2-digit', month: '2-digit'});
                     const formattedTime = startDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'}) + ' Uhr';
@@ -445,63 +453,26 @@
 
                     const div = document.createElement('div');
                     div.className = 'event-item';
-                    div.innerHTML = `<span><strong>${item.summary}</strong><br><span style="color:#666; font-size:12px;">📅 ${formattedDate}, ${formattedTime}</span></span>`;
-                    
-                    div.onclick = function() {
-                        const calendarUrl = item.htmlLink || 'https://calendar.google.com/';
-                        window.open(calendarUrl, '_blank');
-                    };
 
+                    const span = document.createElement('span');
+                    span.innerHTML = `<strong>${item.summary}</strong><br><span style="color:#555; font-size:14px;">📅 ${formattedDate}, ${formattedTime}</span>`;
+
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'event-delete-btn';
+                    delBtn.innerHTML = '🗑️';
+                    delBtn.title = 'Termin löschen';
+                    delBtn.onclick = () => deleteCalendarEvent(item.id, item.summary);
+
+                    div.appendChild(span);
+                    div.appendChild(delBtn);
                     container.appendChild(div);
                 });
 
                 latestEventsText = "Deine nächsten Termine sind: " + speechParts.join(". ");
-                document.getElementById('status').innerText = 'Bereit...';
-                
-                if (document.getElementById('deleteManager').style.display === 'block') {
-                    renderDeleteManagerList();
-                }
             })
             .catch(err => {
                 console.error(err);
-                document.getElementById('eventsContainer').innerHTML = 'Fehler beim Laden.';
-                document.getElementById('status').innerText = 'Fehler beim Abrufen.';
-            });
-        }
-
-        function renderDeleteManagerList() {
-            const container = document.getElementById('deleteEventsContainer');
-            container.innerHTML = '';
-
-            if (rawEventsList.length === 0) {
-                container.innerHTML = '<div style="font-size: 12px; color: #777;">Keine Termine zum Löschen vorhanden.</div>';
-                return;
-            }
-
-            rawEventsList.forEach((item) => {
-                const startDate = new Date(item.start.dateTime);
-                const formattedDate = startDate.toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit'});
-                const formattedTime = startDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'}) + ' Uhr';
-
-                const div = document.createElement('div');
-                div.className = 'event-item';
-                div.style.background = '#ffffff';
-
-                const span = document.createElement('span');
-                span.innerHTML = `<strong>${item.summary}</strong> <span style="color:#666; font-size:11px;">(${formattedDate}, ${formattedTime})</span>`;
-
-                const delBtn = document.createElement('button');
-                delBtn.className = 'event-delete-btn';
-                delBtn.innerHTML = '🗑️';
-                delBtn.title = 'Termin löschen';
-                delBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    deleteCalendarEvent(item.id, item.summary);
-                };
-
-                div.appendChild(span);
-                div.appendChild(delBtn);
-                container.appendChild(div);
+                document.getElementById('deleteEventsContainer').innerHTML = 'Fehler beim Laden der Termine.';
             });
         }
 
@@ -547,8 +518,8 @@
             recognition.onstart = function() {
                 playBeep();
                 btn.classList.add('recording');
-                btn.innerText = '🔴 Höre zu...';
-                document.getElementById('status').innerText = '🎙️ Sprich jetzt...';
+                btn.innerHTML = '🔴 Bitte sprechen...';
+                document.getElementById('status').innerText = '🎙️ Höre zu...';
             };
 
             recognition.onresult = function(event) {
@@ -579,9 +550,9 @@
             const btnEvent = document.getElementById('micEventBtn');
             const btnTodo = document.getElementById('micTodoBtn');
             btnEvent.classList.remove('recording');
-            btnEvent.innerText = '🎤 Termin';
+            btnEvent.innerHTML = '🎤 Neuen Termin sprechen';
             btnTodo.classList.remove('recording');
-            btnTodo.innerText = '🗣️ Notiz / To-Do';
+            btnTodo.innerHTML = '🗣️ Notiz / To-Do sprechen';
         }
 
         function addTodo(text) {
@@ -610,7 +581,7 @@
             container.innerHTML = '';
 
             if (todos.length === 0) {
-                container.innerHTML = '<div style="color: #888; font-size: 13px; text-align: center; padding: 4px;">Noch keine Notizen vorhanden.</div>';
+                container.innerHTML = '<div style="color: #666; font-size: 15px; text-align: center; padding: 10px;">Noch keine Notizen vorhanden.</div>';
                 return;
             }
 
@@ -712,7 +683,7 @@
             })
             .then(async response => {
                 if (response.ok) {
-                    document.getElementById('status').innerText = '✅ Termin eingetragen!';
+                    document.getElementById('status').innerText = `✅ "${eventTitle}" eingetragen!`;
                     fetchUpcomingEvents();
                 } else {
                     const errData = await response.json();
