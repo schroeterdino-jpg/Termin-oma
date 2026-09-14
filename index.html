@@ -312,7 +312,7 @@
         <!-- REITER 1: UNIVERSAL CHAT -->
         <div id="tab-speak" class="tab-content active">
             <div id="chatHistory" class="chat-history">
-                <div class="chat-bubble assistant">Hallo Dino! Ich bin bereit. Sag mir einfach, was anliegt.</div>
+                <div class="chat-bubble assistant">Hallo! Sag mir einfach, was du abgelegt hast oder wissen möchtest.</div>
             </div>
 
             <button id="masterMicBtn" class="big-btn">
@@ -322,7 +322,9 @@
             <div id="status">Bereit zum Sprechen...</div>
 
             <div class="hint-box">
-                💡 <i>"Termin: Friseur um 14 Uhr"</i> • <i>"Ich muss Isabelle abholen"</i> (To-Do)
+                💡 <i>"Ich habe meinen Schlüssel unter das Kopfkissen gepackt"</i><br>
+                💡 <i>"Wo habe ich meinen Schlüssel hingepackt?"</i><br>
+                💡 <i>"Termin: Friseur um 14 Uhr"</i>
             </div>
         </div>
 
@@ -339,8 +341,7 @@
 
             <div style="margin-top: 20px;">
                 <div class="section-title">
-                    <span>Merkliste / To-Dos</span>
-                    <span style="font-size: 12px; font-weight: normal; color: #666;">(Klick = Abhaken)</span>
+                    <span>To-Do-Liste & Erinnerungen</span>
                 </div>
                 <div id="todosContainer">Noch keine Notizen.</div>
             </div>
@@ -376,9 +377,9 @@
 
         <!-- REITER 4: EINSTELLUNGEN -->
         <div id="tab-settings" class="tab-content">
-            <div class="section-title">Groq API-Key</div>
+            <div class="section-title">Groq (GSK) API-Key</div>
             <div class="settings-card">
-                <label>API-Key</label>
+                <label>API-Schlüssel (gsk_...)</label>
                 <input type="password" id="groqApiKeyInput" class="settings-input" placeholder="gsk_...">
                 <button id="saveGroqKeyBtn" class="save-settings-btn">Schlüssel speichern</button>
             </div>
@@ -388,7 +389,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v5.7-2026-09-14-fixed";
+        const APP_VERSION = "v6.1-2026-09-14-gsk-prompt";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -413,14 +414,29 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             initApp();
+            checkApiKeyOnStartup();
             attachEventListeners();
+            startReminderChecker();
         });
+
+        function checkApiKeyOnStartup() {
+            let apiKey = localStorage.getItem('omas_groq_key');
+            if (!apiKey || !apiKey.startsWith('gsk_')) {
+                // Wenn kein gültiger Key da ist, direkt beim Start abfragen
+                let userInput = prompt("Bitte gib deinen Groq (GSK) API-Schlüssel ein (gsk_...):");
+                if (userInput && userInput.trim().startsWith('gsk_')) {
+                    localStorage.setItem('omas_groq_key', userInput.trim());
+                    alert("API-Key erfolgreich gespeichert!");
+                } else {
+                    alert("Ohne gültigen GSK-Key kann die App die KI-Sprachbefehle nicht verarbeiten. Du kannst ihn jederzeit im Tab '⚙️ Key' nachtragen.");
+                    switchTab('settings', { currentTarget: document.getElementById('tabSettingsBtn') });
+                }
+            }
+        }
 
         function attachEventListeners() {
             const closeBtn = document.getElementById('closeAppBtn');
-            if (closeBtn) {
-                closeBtn.addEventListener('click', exitApp);
-            }
+            if (closeBtn) closeBtn.addEventListener('click', exitApp);
 
             const loginBtn = document.getElementById('loginBtn');
             if (loginBtn) loginBtn.addEventListener('click', triggerLogin);
@@ -464,10 +480,12 @@
 
         function saveGroqApiKey() {
             const keyInput = document.getElementById('groqApiKeyInput');
-            if (keyInput) {
+            if (keyInput && keyInput.value.trim().startsWith('gsk_')) {
                 localStorage.setItem('omas_groq_key', keyInput.value.trim());
-                alert("API-Key gespeichert!");
+                alert("API-Key erfolgreich gespeichert!");
                 switchTab('speak', { currentTarget: document.getElementById('tabSpeakBtn') });
+            } else {
+                alert("Bitte einen gültigen GSK-Schlüssel (beginnend mit gsk_) eingeben!");
             }
         }
 
@@ -500,19 +518,15 @@
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
 
             if (tabName === 'speak') {
-                const tab = document.getElementById('tab-speak');
-                if (tab) tab.classList.add('active');
+                document.getElementById('tab-speak').classList.add('active');
             } else if (tabName === 'calendar') {
-                const tab = document.getElementById('tab-calendar');
-                if (tab) tab.classList.add('active');
+                document.getElementById('tab-calendar').classList.add('active');
                 if (accessToken) fetchUpcomingEvents();
             } else if (tabName === 'contacts') {
-                const tab = document.getElementById('tab-contacts');
-                if (tab) tab.classList.add('active');
+                document.getElementById('tab-contacts').classList.add('active');
                 loadContactsUI();
             } else if (tabName === 'settings') {
-                const tab = document.getElementById('tab-settings');
-                if (tab) tab.classList.add('active');
+                document.getElementById('tab-settings').classList.add('active');
             }
 
             if (event && event.currentTarget) {
@@ -521,9 +535,7 @@
         }
 
         function exitApp() {
-            try {
-                window.close();
-            } catch (e) {}
+            try { window.close(); } catch (e) {}
             window.location.href = "about:blank";
         }
 
@@ -597,9 +609,8 @@
         function speakSummary() {
             let speechText = latestEventsSpeechText;
             const activeTodos = todos.filter(t => !t.completed);
-            const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
             if (activeTodos.length > 0) {
-                speechText += ` ${currentUserName}, du hast noch offene Aufgaben: `;
+                speechText += ` Du hast noch offene Aufgaben und Erinnerungen: `;
                 activeTodos.forEach(t => { speechText += t.text + ". "; });
             }
             speakTextOut(speechText);
@@ -657,15 +668,32 @@
         async function handleSmartCommand(userText) {
             const apiKey = localStorage.getItem('omas_groq_key');
             if (!apiKey) {
-                alert("Bitte zuerst im Reiter '⚙️ Key' deinen Groq API-Schlüssel eintragen!");
-                const statusEl = document.getElementById('status');
-                if (statusEl) statusEl.innerText = 'Kein API-Key hinterlegt.';
+                alert("Bitte zuerst im Reiter '⚙️ Key' deinen GSK API-Schlüssel eintragen!");
+                switchTab('settings', { currentTarget: document.getElementById('tabSettingsBtn') });
                 return;
             }
 
             const lowerText = userText.toLowerCase();
-            if (lowerText.startsWith("wo ist") || lowerText.includes("wo habe ich") || lowerText.includes("wo liegt")) {
-                let queryItem = lowerText.replace("wo ist", "").replace("wo habe ich", "").replace("wo liegt", "").replace("mein", "").replace("meine", "").replace("dein", "").replace("deine", "").trim();
+
+            // 1. ABLAGEORT SPEICHERN
+            if (lowerText.includes("gelegt") || lowerText.includes("gepackt") || lowerText.includes("hingestellt") || lowerText.includes("getan") || lowerText.includes("ist in") || lowerText.includes("ist auf")) {
+                let cleanText = userText.replace(/ich habe (meinen|meine|ein|eine)?/gi, "").trim();
+                let words = cleanText.split(" ");
+                let itemKey = words[0] ? words[0].toLowerCase() : "gegenstand";
+                
+                userMemories[itemKey] = cleanText;
+                localStorage.setItem('omas_memories', JSON.stringify(userMemories));
+
+                let reply = `Ich habe mir gemerkt: ${cleanText}.`;
+                appendChatBubble(reply, 'assistant');
+                document.getElementById('status').innerText = 'Bereit.';
+                speakTextOut(reply);
+                return;
+            }
+
+            // 2. FRAGE NACH DEM ABLAGEORT
+            if (lowerText.startsWith("wo ist") || lowerText.includes("wo habe ich") || lowerText.includes("wo liegt") || lowerText.includes("hingepackt")) {
+                let queryItem = lowerText.replace("wo ist", "").replace("wo habe ich meinen", "").replace("wo habe ich meine", "").replace("wo habe ich", "").replace("wo liegt", "").replace("hingepackt", "").replace("hingestellt", "").replace("hingelegt", "").trim();
                 
                 let foundLocation = null;
                 for (const [key, value] of Object.entries(userMemories)) {
@@ -676,11 +704,22 @@
                 }
 
                 if (foundLocation) {
-                    const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
-                    const reply = `${currentUserName}, dein ${queryItem} ist ${foundLocation}.`;
+                    let placePart = foundLocation;
+                    if (placePart.includes(" gepackt")) placePart = placePart.split(" gepackt")[0];
+                    if (placePart.includes(" gelegt")) placePart = placePart.split(" gelegt")[0];
+                    if (placePart.includes(" hingestellt")) placePart = placePart.split(" hingestellt")[0];
+
+                    placePart = placePart.replace("meinen ", "deinen ").replace("meine ", "deine ");
+
+                    let reply = `Dein ${queryItem} ist ${placePart}.`;
                     appendChatBubble(reply, 'assistant');
-                    const statusEl = document.getElementById('status');
-                    if (statusEl) statusEl.innerText = 'Bereit.';
+                    document.getElementById('status').innerText = 'Bereit.';
+                    speakTextOut(reply);
+                    return;
+                } else {
+                    let reply = `Ich weiß leider nicht, wo ${queryItem} ist.`;
+                    appendChatBubble(reply, 'assistant');
+                    document.getElementById('status').innerText = 'Bereit.';
                     speakTextOut(reply);
                     return;
                 }
@@ -690,32 +729,23 @@
                 const now = new Date();
                 const currentTimeStr = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
                 const currentDateStr = now.toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-                if (!userMemories["mein name"] && !userMemories["name"]) {
-                    userMemories["mein name"] = "Dino";
-                }
-                const memoriesStr = JSON.stringify(userMemories);
-                const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
+                const currentISODate = now.toISOString().split('T')[0];
 
                 const routerPrompt = `Du bist das Gehirn eines intelligenten Sprach-Assistenten. 
-Echte aktuelle Zeit des Geräts: ${currentTimeStr}, Datum: ${currentDateStr}.
-Vorhandenes Gedächtnis des Nutzers: ${memoriesStr}
+Echte aktuelle Zeit: ${currentTimeStr}, Datum: ${currentDateStr} (ISO: ${currentISODate}).
+Analysiere die Eingabe: "${userText}"
 
-Analysiere die Eingabe des Nutzers: "${userText}"
+ENTSCHEIDUNGS-REGELN:
+1. "action": "calendar" -> NUR für klassische Termine (Arzt, Friseur, Treffen), die in den Google Kalender sollen.
+2. "action": "todo_with_reminder" -> Wenn es eine Aufgabe/Erinnerung mit Uhrzeit ist (z.B. "Isabelle abholen um 18 Uhr"). Extrahiere "todo_text" und "reminder_time" (ISO-Format YYYY-MM-DDTHH:mm:00).
+3. "action": "todo" -> Normale To-Do ohne Uhrzeit (z.B. "Milch kaufen").
+4. "action": "chat" -> Smalltalk oder Fragen.
 
-ABSOLUTE UND UNUMSTÖßLICHE REGELN:
-1. EXAKTER KALENDER-TERMIN ("action": "calendar"): Nur wenn im Satz eine konkrete Uhrzeit genannt wird (z.B. "um 14 Uhr", "um 15:30 Uhr"). Wenn KEINE Uhrzeit genannt wird, ist es NIEMALS ein Kalender-Termin!
-2. TO-DO / AUFGABE ("action": "todo"): Wenn der Satz KEINE konkrete Uhrzeit enthält (z.B. "ich muss Isabelle heute noch abholen", "ich muss Milch kaufen"), musst du IMMER "action": "todo" wählen! Setze den Text der Aufgabe in "todo_text".
-3. NAMEN MERKEN ("action": "store_memory"): Wenn der Nutzer sagt "Nenn mich [Name]" oder "Ich heiße [Name]".
-4. Verwende in der Antwort ("reply") IMMER den Namen des Nutzers (${currentUserName}).
-
-Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
-- "action": Entweder "calendar", "get_calendar", "get_todos", "todo", "store_memory", oder "chat".
-- "calendar_text": (Nur bei "calendar") Der Satz zur Termin-Extraktion.
-- "todo_text": (Nur bei "todo") Der genaue To-Do-Inhalt (z.B. "Isabelle heute noch abholen").
-- "memory_key": (Nur bei "store_memory") Das Merkmal.
-- "memory_value": (Nur bei "store_memory") Der Wert.
-- "reply": Eine natürliche Antwort an den Nutzer unter Verwendung seines Namens (${currentUserName}).`;
+Antworte AUSSCHLIESSLICH im JSON-Format:
+- "action": "calendar", "todo_with_reminder", "todo", oder "chat".
+- "todo_text": (Bei todo oder todo_with_reminder) Der Text.
+- "reminder_time": (Bei todo_with_reminder) ISO-String.
+- "reply": Eine natürliche, kurze Antwort auf Deutsch.`;
 
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
@@ -742,7 +772,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 
                 if (parsed.action === "calendar") {
                     if (!accessToken) {
-                        const reply = `${currentUserName}, bitte melde dich zuerst über den Google-Button an, damit ich Termine in deinen Kalender eintragen kann.`;
+                        const reply = `Bitte melde dich zuerst über den Google-Button an, damit ich Termine in deinen Kalender eintragen kann.`;
                         appendChatBubble(reply, 'assistant');
                         speakTextOut(reply);
                         triggerLogin();
@@ -750,51 +780,35 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     }
                     parseAndCreateEvent(userText);
                 } 
-                else if (parsed.action === "get_calendar") {
-                    const reply = latestEventsSpeechText;
-                    appendChatBubble(reply, 'assistant');
-                    const statusEl = document.getElementById('status');
-                    if (statusEl) statusEl.innerText = 'Bereit.';
-                    speakTextOut(reply);
-                }
-                else if (parsed.action === "get_todos") {
-                    const activeTodos = todos.filter(t => !t.completed);
-                    let reply = "";
-                    if (activeTodos.length === 0) {
-                        reply = `${currentUserName}, deine To-Do-Liste ist aktuell komplett leer. Super gemacht!`;
-                    } else {
-                        const todoTexts = activeTodos.map(t => t.text).join(", ");
-                        reply = `${currentUserName}, auf deiner To-Do-Liste stehen folgende offene Aufgaben: ${todoTexts}.`;
+                else if (parsed.action === "todo_with_reminder") {
+                    const todoText = parsed.todo_text || userText;
+                    const reminderTime = parsed.reminder_time || null;
+                    
+                    todos.push({ text: todoText, reminder: reminderTime, completed: false, alerted: false });
+                    saveTodos();
+
+                    if (accessToken && reminderTime) {
+                        syncReminderToGoogleCalendar(todoText, reminderTime);
                     }
+
+                    const timeStr = reminderTime ? reminderTime.split('T')[1].substring(0,5) + ' Uhr' : '';
+                    const reply = `Ich habe "${todoText}" für ${timeStr} auf deine To-Do-Liste gesetzt und im Hintergrund als Erinnerung eingetragen!`;
                     appendChatBubble(reply, 'assistant');
-                    const statusEl = document.getElementById('status');
-                    if (statusEl) statusEl.innerText = 'Bereit.';
+                    document.getElementById('status').innerText = 'Bereit.';
                     speakTextOut(reply);
                 }
                 else if (parsed.action === "todo") {
                     const todoText = parsed.todo_text || userText;
-                    todos.push({ text: todoText, completed: false });
+                    todos.push({ text: todoText, reminder: null, completed: false, alerted: false });
                     saveTodos();
-                    const reply = `Ich habe "${todoText}" auf deine To-Do-Liste geschrieben, ${currentUserName}!`;
+                    const reply = `Ich habe "${todoText}" auf deine To-Do-Liste geschrieben!`;
                     appendChatBubble(reply, 'assistant');
-                    const statusEl = document.getElementById('status');
-                    if (statusEl) statusEl.innerText = 'Bereit.';
-                    speakTextOut(reply);
-                } 
-                else if (parsed.action === "store_memory") {
-                    userMemories[parsed.memory_key.toLowerCase()] = parsed.memory_value;
-                    localStorage.setItem('omas_memories', JSON.stringify(userMemories));
-                    
-                    let reply = parsed.reply || `Alles klar, ich habe es mir gemerkt, ${currentUserName}!`;
-                    appendChatBubble(reply, 'assistant');
-                    const statusEl = document.getElementById('status');
-                    if (statusEl) statusEl.innerText = 'Bereit.';
+                    document.getElementById('status').innerText = 'Bereit.';
                     speakTextOut(reply);
                 } 
                 else {
                     appendChatBubble(parsed.reply, 'assistant');
-                    const statusEl = document.getElementById('status');
-                    if (statusEl) statusEl.innerText = 'Bereit.';
+                    document.getElementById('status').innerText = 'Bereit.';
                     speakTextOut(parsed.reply);
                 }
 
@@ -805,12 +819,6 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 
         async function fallbackChat(userText, apiKey) {
             try {
-                const now = new Date();
-                const currentTimeStr = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-                const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
-                const memoriesStr = JSON.stringify(userMemories);
-                const prompt = `Du bist ein treuer Sprach-Assistent. Nutze das Gedächtnis und sprich den Nutzer immer mit "${currentUserName}" an: ${memoriesStr}. Echte aktuelle Uhrzeit: ${currentTimeStr}. Beantworte die Frage liebevoll auf Deutsch: "${userText}"`;
-                
                 const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
                     headers: {
@@ -819,7 +827,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     },
                     body: JSON.stringify({
                         model: "openai/gpt-oss-120b",
-                        messages: [{ role: "user", content: prompt }],
+                        messages: [{ role: "user", content: `Beantworte die Frage kurz und hilfreich auf Deutsch: "${userText}"` }],
                         temperature: 0.7
                     })
                 });
@@ -827,23 +835,20 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 const data = await response.json();
                 const aiReply = data.choices[0].message.content;
                 appendChatBubble(aiReply, 'assistant');
-                const statusEl = document.getElementById('status');
-                if (statusEl) statusEl.innerText = 'Bereit.';
+                document.getElementById('status').innerText = 'Bereit.';
                 speakTextOut(aiReply);
             } catch (e) {
-                const statusEl = document.getElementById('status');
-                if (statusEl) statusEl.innerText = '⚠️ Fehler.';
+                document.getElementById('status').innerText = '⚠️ Fehler.';
                 speakTextOut("Entschuldigung, das habe ich nicht ganz verstanden.");
             }
         }
 
         async function parseAndCreateEvent(text) {
-            const statusEl = document.getElementById('status');
-            if (statusEl) statusEl.innerText = 'Erstelle Termin...';
+            document.getElementById('status').innerText = 'Erstelle Termin...';
             const apiKey = localStorage.getItem('omas_groq_key');
             
             try {
-                const prompt = `Extrahiere aus folgendem Satz einen Kalender-Termin als JSON mit den Feldern "summary" (Titel) und "startDateTime" (im ISO-Format YYYY-MM-DDTHH:mm:ss, aktuelles Jahr is 2026). Satz: "${text}"`;
+                const prompt = `Extrahiere aus folgendem Satz einen Kalender-Termin als JSON mit den Feldern "summary" (Titel) und "startDateTime" (im ISO-Format YYYY-MM-DDTHH:mm:ss, aktuelles Jahr ist 2026). Satz: "${text}"`;
                 
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
@@ -885,22 +890,69 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     body: JSON.stringify(eventResource)
                 });
 
-                const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
-
                 if (calRes.ok) {
-                    const reply = `Termin "${parsed.summary}" wurde erfolgreich in deinen Kalender eingetragen, ${currentUserName}!`;
+                    const reply = `Termin "${parsed.summary}" wurde erfolgreich eingetragen!`;
                     appendChatBubble(reply, 'assistant');
                     speakTextOut(reply);
                     fetchUpcomingEvents();
                 } else {
-                    throw new Error("Fehler beim Speichern im Kalender");
+                    throw new Error("Fehler beim Speichern");
                 }
             } catch (e) {
-                const reply = "Entschuldigung, ich konnte den Termin für den Kalender nicht automatisch verstehen.";
+                const reply = "Entschuldigung, ich konnte den Termin nicht eintragen.";
                 appendChatBubble(reply, 'assistant');
                 speakTextOut(reply);
             }
-            if (statusEl) statusEl.innerText = 'Bereit.';
+            document.getElementById('status').innerText = 'Bereit.';
+        }
+
+        async function syncReminderToGoogleCalendar(todoText, reminderIsoString) {
+            try {
+                const startDate = new Date(reminderIsoString);
+                const endDate = new Date(startDate.getTime() + 15 * 60 * 1000);
+
+                const eventResource = {
+                    summary: `[Erinnerung] ${todoText}`,
+                    description: "Automatische Erinnerung aus der To-Do-Liste",
+                    start: { dateTime: startDate.toISOString() },
+                    end: { dateTime: endDate.toISOString() }
+                };
+
+                const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + accessToken,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(eventResource)
+                });
+                const data = await res.json();
+                return data.id;
+            } catch (e) {
+                console.error("Fehler beim Google-Sync der Erinnerung", e);
+            }
+            return null;
+        }
+
+        function startReminderChecker() {
+            setInterval(() => {
+                const now = new Date();
+                let updated = false;
+                todos.forEach(t => {
+                    if (t.reminder && !t.completed && !t.alerted) {
+                        const remTime = new Date(t.reminder);
+                        if (now >= remTime) {
+                            t.alerted = true;
+                            updated = true;
+                            playBeep();
+                            const alertMsg = `Erinnerung: ${t.text}`;
+                            speakTextOut(alertMsg);
+                            alert(alertMsg);
+                        }
+                    }
+                });
+                if (updated) saveTodos();
+            }, 15000);
         }
 
         function appendChatBubble(text, sender) {
@@ -935,32 +987,30 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 if (!container) return;
                 container.innerHTML = '';
                 
-                const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
-
                 if (!data.items || data.items.length === 0) {
                     container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine anstehenden Termine.</div>';
-                    latestEventsSpeechText = `${currentUserName}, es sind keine anstehenden Termine eingetragen.`;
+                    latestEventsSpeechText = `Es sind keine anstehenden Termine eingetragen.`;
                     return;
                 }
 
-                const filteredItems = data.items.filter(item => {
+                const realEvents = data.items.filter(item => {
                     const summary = (item.summary || "").toLowerCase();
+                    if (summary.includes("[erinnerung]")) return false;
                     if (summary.includes("geburtstag") || summary.includes("birthday")) return false;
                     if (summary.includes("feiertag") || summary.includes("holiday")) return false;
-                    if (summary.includes("jahrestag")) return false;
                     return true;
                 });
 
-                if (filteredItems.length === 0) {
+                if (realEvents.length === 0) {
                     container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine wichtigen Termine.</div>';
-                    latestEventsSpeechText = `${currentUserName}, es sind keine wichtigen Termine anstehend.`;
+                    latestEventsSpeechText = `Es sind keine wichtigen Termine anstehend.`;
                     return;
                 }
 
                 let speechParts = [];
                 const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
-                filteredItems.forEach((item) => {
+                realEvents.forEach((item) => {
                     let d;
                     let timeStr = "";
                     if (item.start && item.start.dateTime) {
@@ -985,19 +1035,23 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     container.appendChild(div);
                 });
                 
-                latestEventsSpeechText = `${currentUserName}, deine nächsten Termine sind: ` + speechParts.join(". ");
+                latestEventsSpeechText = `Deine nächsten Termine sind: ` + speechParts.join(". ");
             }).catch(err => {
-                const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
-                latestEventsSpeechText = `${currentUserName}, ich konnte die Termine gerade nicht abrufen.`;
+                latestEventsSpeechText = `Ich konnte die Termine gerade nicht abrufen.`;
             });
         }
 
         function deleteCalendarEvent(id) {
-            if (!confirm("Termin wirklich löschen?")) return;
+            if (!confirm("Termin wirklich aus dem Google Kalender löschen?")) return;
             fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': 'Bearer ' + accessToken }
-            }).then(() => fetchUpcomingEvents());
+            }).then(() => {
+                alert("Termin gelöscht!");
+                fetchUpcomingEvents();
+            }).catch(err => {
+                alert("Fehler beim Löschen des Termins.");
+            });
         }
 
         function renderTodos() {
@@ -1005,7 +1059,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
             if (!container) return;
             container.innerHTML = '';
             if (todos.length === 0) {
-                container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine Notizen.</div>';
+                container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine To-Dos oder Erinnerungen.</div>';
                 return;
             }
             todos.forEach((t, i) => {
@@ -1013,7 +1067,14 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 div.className = 'event-item' + (t.completed ? ' completed' : '');
                 div.style.background = t.completed ? '#f8f9fa' : '#f1f8f5';
                 div.style.borderLeftColor = t.completed ? '#ccc' : '#198754';
-                div.innerHTML = `<span style="${t.completed ? 'text-decoration: line-through; color: #888;' : ''}">${t.text}</span>`;
+                
+                let timeDisplay = "";
+                if (t.reminder) {
+                    const rDate = new Date(t.reminder);
+                    timeDisplay = ` ⏰ ${rDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit'})} Uhr`;
+                }
+
+                div.innerHTML = `<span style="${t.completed ? 'text-decoration: line-through; color: #888;' : ''}"><strong>${t.text}</strong><br><span style="font-size:12px; color:#555;">${timeDisplay}</span></span>`;
                 const del = document.createElement('button');
                 del.className = 'event-delete-btn';
                 del.style.background = '#dc3545';
