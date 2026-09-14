@@ -412,7 +412,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v3.13-2026-09-14-gpt-fix";
+        const APP_VERSION = "v3.14-2026-09-14-gpt-smart-grammar";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -720,14 +720,15 @@
             const modelName = "openai/gpt-oss-120b";
 
             try {
-                const systemPrompt = `Du bist ein extrem präziser deutscher Sprachassistent. Deine Aufgabe ist es, den deutschen Sprachbefehl zu analysieren und AUSSCHLIESSLICH als kompaktes JSON im exakten Format unten zu antworten.
-Achte penibel auf deutsche Grammatik: Nutze IMMER den korrekten grammatikalischen Artikel im Nominativ für das Item (z.B. "die Brieftasche", "der Schlüssel", "das Portemonnaie", "die Jacke"). Verwende NIEMALS falsche Artikel.
+                // VERBESSERTER SYSTEM-PROMPT: Zwingt die KI zu grammatikalischer Intelligenz & automatischer Korrektur
+                const systemPrompt = `Du bist ein intelligenter, fehlerkorrigierender deutscher Sprachassistent. Deine Aufgabe ist es, den gesprochenen Satz (der von Personen mit holprigem Deutsch oder Grammatikfehlern stammen kann) inhaltlich zu verstehen und IMMER in absolut perfektes, grammatikalisch fehlerfreies Hochdeutsch zu übersetzen.
+Korrigiere verquere Fälle und falsche Präpositionen automatisch (z.B. aus "den schlüssel in der Arbeitstisch" wird "den Schlüssel" und "auf den Arbeitstisch").
 
-JSON-Struktur:
+Antworte AUSSCHLIESSLICH als kompaktes JSON im exakten Format:
 {
   "intent": "save_memory" | "query_memory" | "calendar" | "todo",
-  "item": "Name des Gegenstands im Nominativ mit absolut korrektem deutschen Artikel (z.B. die Brieftasche, der Schlüssel)",
-  "location": "Genauer Ablageort im Nominativ (z.B. Küchentisch, Küchenschrank)"
+  "item": "Der Gegenstand im Akkusativ mit fehlerfreiem Artikel (z.B. den Schlüssel, das Portemonnaie)",
+  "location": "Der Ablageort mit korrekter Präposition (z.B. auf den Arbeitstisch, in den Küchenschrank, auf das Sofa)"
 }`;
 
                 const response = await fetch(apiUrl, {
@@ -772,7 +773,6 @@ JSON-Struktur:
         }
 
         function handleAIResult(res, originalText) {
-            // FIX: Prüfen, ob item und location Strings sind, um [object Object] zu verhindern
             let itemStr = (typeof res.item === 'string') ? res.item : (res.item ? JSON.stringify(res.item) : '');
             let locStr = (typeof res.location === 'string') ? res.location : (res.location ? JSON.stringify(res.location) : '');
 
@@ -783,7 +783,8 @@ JSON-Struktur:
                 memory[cleanItem] = cleanLoc;
                 localStorage.setItem('omas_memory', JSON.stringify(memory));
                 
-                const msg = `Du hast ${cleanItem} in den ${cleanLoc} gelegt.`;
+                // Flexible Ausgabe: "Du hast [item] [location] gelegt." (z.B. "... auf den Arbeitstisch gelegt")
+                const msg = `Du hast ${cleanItem} ${cleanLoc} gelegt.`;
                 document.getElementById('status').innerText = `🧠 ${msg}`;
                 speakTextOut(msg);
 
@@ -793,7 +794,7 @@ JSON-Struktur:
                 
                 if (foundKey && memory[foundKey]) {
                     let loc = memory[foundKey];
-                    let msg = `Du hast ${foundKey} in den ${loc} gelegt.`;
+                    let msg = `Du hast ${foundKey} ${loc} gelegt.`;
                     document.getElementById('status').innerText = `💡 ${msg}`;
                     speakTextOut(msg);
                 } else {
