@@ -680,8 +680,16 @@
                 return;
             }
 
+            // Bereinigter Regex zur korrekten Textextrahierung (verhindert [object Object])
             const locationMatch = lower.match(/(?:in\s+den|in\s+die|in\s+dem|in\s+einen|in\s+eine|in|auf\s+den|auf\s+die|auf\s+dem|auf|unter|neben|an)\s+(?:den|die|das|dem)?\s*([a-zäöüß\s]+)$/i);
             let foundLocation = locationMatch ? locationMatch[1].trim() : '';
+
+            if (!foundLocation) {
+                let parts = lower.split(foundItem);
+                if (parts[1]) {
+                    foundLocation = parts[1].replace(/legen|gelegt|packen|gepackt|tue|tun/g, '').trim();
+                }
+            }
 
             if (!foundLocation) {
                 document.getElementById('status').innerText = '❌ Konnte den Ort nicht genau erkennen.';
