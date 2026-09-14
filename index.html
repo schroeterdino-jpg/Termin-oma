@@ -311,7 +311,7 @@
             <div id="status">Bereit zum Sprechen...</div>
 
             <div class="hint-box">
-                💡 <i>"Morgen Friseur um 20 Uhr"</i> (Termin) • <i>"Erinnere mich Isabella um 14 Uhr abzuholen"</i> (Erinnerung)
+                💡 <i>"Morgen Friseur um 20 Uhr"</i> (Termin) • <i>"Erinnere mich Isabella um 14 Uhr abzuholen"</i> (To-Do + Reminder)
             </div>
         </div>
 
@@ -377,7 +377,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v6.12-erinnerung-fix";
+        const APP_VERSION = "v6.13-erinnerung-fix";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -627,19 +627,19 @@ Gespeichertes Gedächtnis des Nutzers: ${memoriesStr}
 
 Analysiere die Eingabe des Nutzers: "${userText}"
 
-ENTSCHEIDUNGS-LOGIK (WICHTIG - UNTERSCHEIDE STRIKT):
-1. **ECHTER TERMIN ("calendar")**: Wähle das, wenn der Nutzer einen festen externen Termin oder Plan äußert, der auf seine offizielle Terminliste gehört (z.B. "Morgen um 14 Uhr Friseur", "Arzttermin am Freitag um 10 Uhr", "Morgen Friseur").
-2. **ERINNERUNG MIT UHRZEIT ("reminder_todo")**: Wähle das, wenn der Nutzer eine Erinnerung oder Handlungsanweisung äußert (z.B. "Erinnere mich, Isabella um 14 Uhr abzuholen", "Ich muss heute noch Isabelle um 22 Uhr abholen", "Ich muss um 20:45 Uhr los"). Das erzeugt eine To-Do-Notiz und einen unsichtbaren Kalender-Alarm im Hintergrund.
-3. **REINE TO-DO ("todo")**: Normale Aufgaben/Einkäufe ohne Uhrzeit (z.B. "Schreib Milch auf die Liste").
-4. **NAMEN / GEDÄCHTNIS ("store_memory")**: "Nenn mich [Name]" oder Details speichern.
-5. **ABFRAGEN / CHAT ("get_calendar", "get_todos", "chat")**: Fragen nach Terminen oder allgemeine Antworten.
+ENTSCHEIDUNGS-LOGIK (STRENG TRENNEN!):
+1. **ECHTER TERMIN ("calendar")**: Wähle das AUSSCHLIESSLICH bei echten festen Terminen, wo man irgendwo hingeht oder ein Ereignis stattfindet (z.B. "Morgen Friseur", "Arzttermin am Freitag um 10 Uhr", "Morgen um 14 Uhr Zahnarzt").
+2. **ERINNERUNG / AUFGABE MIT UHRZEIT ("reminder_todo")**: Wähle das, wenn der Nutzer eine Handlungsanweisung, eine Abholung oder eine Erledigung mit Uhrzeit nennt (z.B. "Erinnere mich, Isabelle um 18 Uhr vom Kindergarten abzuholen", "Ich muss um 14 Uhr anrufen", "Um 20:45 Uhr Kaffeetrinken", "Ich muss heute noch Isabelle um 22 Uhr abholen"). Das wandert als To-Do auf die Liste und legt im Hintergrund einen versteckten Wecker an.
+3. **REINE TO-DO ("todo")**: Normale Aufgaben oder Einkäufe OHNE Uhrzeit (z.B. "Schreib Milch auf die Liste").
+4. **NAMEN / GEDÄCHTNIS ("store_memory")**: Details speichern.
+5. **ABFRAGEN / CHAT ("get_calendar", "get_todos", "chat")**: Fragen oder allgemeines.
 
 Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 - "action": Entweder "calendar", "reminder_todo", "todo", "get_calendar", "get_todos", "store_memory", oder "chat".
-- "summary": (Für "calendar" oder "reminder_todo") Titel des Termins bzw. der Erinnerung.
-- "start_time": (Für "calendar" oder "reminder_todo", ISO-8601 Format YYYY-MM-DDTHH:MM:SS, berechne es exakt basierend auf dem aktuellen Datum ${currentDateStr}).
-- "todo_text": (Für "todo" oder "reminder_todo") Der Text für die To-Do-Liste.
-- "memory_key", "memory_value", "reply": Entsprechende Werte für andere Aktionen.`;
+- "summary": (Für "calendar") Titel des Termins.
+- "start_time": (Für "calendar" oder "reminder_todo") ISO-8601 Format YYYY-MM-DDTHH:MM:SS.
+- "todo_text": (Für "todo" oder "reminder_todo") Der genaue Text für die To-Do-Liste.
+- "memory_key", "memory_value", "reply": Entsprechende Werte.`;
 
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
@@ -700,40 +700,42 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     
                     let calendarEventId = null;
                     if (accessToken) {
-                        let eventDate = new Date();
-                        if (parsed.start_time) {
-                            let parsedDate = new Date(parsed.start_time);
-                            if (!isNaN(parsedDate.getTime())) {
-                                eventDate = parsedDate;
-                            }
-                        }
-                        
-                        // Fallback-Erkennung für Uhrzeiten wie 22 Uhr, falls der Router diese mal nicht exakt parst
-                        const lowerText = userText.toLowerCase();
-                        if (lowerText.includes("22 uhr") || lowerText.includes("22:00")) {
-                            eventDate.setHours(22, 0, 0, 0);
-                        } else if (lowerText.includes("21 uhr") || lowerText.includes("21:00")) {
-                            eventDate.setHours(21, 0, 0, 0);
-                        } else if (lowerText.includes("20 uhr") || lowerText.includes("20:00")) {
-                            eventDate.setHours(20, 0, 0, 0);
-                        }
-
-                        const startTimeISO = eventDate.toISOString().split('.')[0] + "+02:00";
-                        const endTimeISO = new Date(eventDate.getTime() + 1800000).toISOString().split('.')[0] + "+02:00";
-
-                        const hiddenEventObj = {
-                            summary: `[REMINDER] ${parsed.summary || taskText}`,
-                            start: { dateTime: startTimeISO },
-                            end: { dateTime: endTimeISO },
-                            reminders: {
-                                useDefault: false,
-                                overrides: [
-                                    { method: 'popup', minutes: 15 } // 15 Minuten Vorlaufzeit
-                                ]
-                            }
-                        };
-
                         try {
+                            let startISO = parsed.start_time && parsed.start_time.length >= 16 
+                                ? (parsed.start_time.includes('+') || parsed.start_time.endsWith('Z') ? parsed.start_time : parsed.start_time + ":00+02:00")
+                                : new Date().toISOString().split('.')[0] + "+02:00";
+                            
+                            let startDate = new Date(startISO);
+                            if (isNaN(startDate.getTime())) {
+                                startDate = new Date();
+                            }
+                            
+                            // Fallback-Erkennung für Uhrzeiten falls nötig
+                            const lowerText = userText.toLowerCase();
+                            if (lowerText.includes("22 uhr") || lowerText.includes("22:00")) {
+                                startDate.setHours(22, 0, 0, 0);
+                            } else if (lowerText.includes("21 uhr") || lowerText.includes("21:00")) {
+                                startDate.setHours(21, 0, 0, 0);
+                            } else if (lowerText.includes("20 uhr") || lowerText.includes("20:00")) {
+                                startDate.setHours(20, 0, 0, 0);
+                            }
+
+                            startISO = startDate.toISOString().split('.')[0] + "+02:00";
+                            let endDate = new Date(startDate.getTime() + 30 * 60 * 1000);
+                            let endISO = endDate.toISOString().split('.')[0] + "+02:00";
+
+                            const hiddenEventObj = {
+                                summary: `[REMINDER] ${parsed.summary || taskText}`,
+                                start: { dateTime: startISO },
+                                end: { dateTime: endISO },
+                                reminders: {
+                                    useDefault: false,
+                                    overrides: [
+                                        { method: 'popup', minutes: 15 }
+                                    ]
+                                }
+                            };
+
                             const calRes = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
                                 method: "POST",
                                 headers: {
@@ -742,8 +744,9 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                                 },
                                 body: JSON.stringify(hiddenEventObj)
                             });
+                            
                             const calData = await calRes.json();
-                            if (calData.id) {
+                            if (calRes.ok && calData.id) {
                                 calendarEventId = calData.id;
                             }
                         } catch (e) {}
@@ -876,7 +879,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 
                 const filteredItems = data.items.filter(item => {
                     const summary = (item.summary || "").toLowerCase();
-                    if (summary.startsWith("[reminder]")) return false; // Versteckt Reminder aus der reinen Terminliste
+                    if (summary.startsWith("[reminder]")) return false;
                     if (summary.includes("geburtstag") || summary.includes("birthday")) return false;
                     if (summary.includes("feiertag") || summary.includes("holiday")) return false;
                     if (summary.includes("jahrestag")) return false;
