@@ -649,12 +649,12 @@ Analysiere die Eingabe des Nutzers: "${userText}"
 AUFGABEN-LOGIK & REGELN:
 1. NAMEN ÄNDERN: Sagt der Nutzer "Nenn mich [Name]" oder "Ich heiße [Name]", ist das action "store_memory" mit memory_key: "mein name" und memory_value: "[Name]".
 2. OBJEKT SPEICHERN: Sagt der Nutzer, wo etwas liegt (z.B. "Mein Schlüssel ist in der Schublade" oder "Das Buch liegt auf dem Tisch"), speichere es als action "store_memory".
-3. ORTE ABFRAGEN (Sehr wichtig!): Fragt der Nutzer, wo sich ein Gegenstand befindet (z.B. "Wo ist mein Schlüssel?", "Wo habe ich den Schlüssel hingelegt?", "Weißt du, wo das Buch ist?"), suche im Gedächtnis nach dem passenden Gegenstand. 
-   - SEI INTELIGENT BEI DER SUCHE: Ignoriere geringfügige Abweichungen in der Aussprache oder dem Begriff (z.B. wenn im Gedächtnis "autoschlüssel" steht und der Nutzer nur "schlüssel" sagt, oder umgekehrt).
-   - Antworte in diesem Fall als action "chat".
-   - Formuliere die Antwort in natürlichem Deutsch direkt an den Nutzer. Nutze dabei seinen Namen (falls unter "mein name" im Gedächtnis hinterlegt).
-   - Achte auf die Grammatik des Ortes: Wenn der gespeicherte Ort schon mit einer Präposition beginnt (z. B. "im Schrank", "auf dem Tisch"), baue den Satz passend zusammen ("dein Schlüssel ist im Schrank"). Wenn es nur ein reiner Begriff ist (z. B. "Kopfkissen"), baue ihn mit "unter deinem" oder passender Präposition ein.
-   - Falls der Gegenstand **absolut gar nicht** im Gedächtnis zu finden ist, antworte ehrlich, dass du nicht weißt, wo er das hingelegt hat.
+3. ORTE ABFRAGEN: Fragt der Nutzer, wo sich ein Gegenstand befindet (z.B. "Wo ist mein Schlüssel?"), suche im Gedächtnis nach dem passenden Gegenstand. 
+   - Ignoriere geringfügige Abweichungen in der Aussprache oder dem Begriff.
+   - Antworte als action "chat".
+   - **GRAMMATIK-REGEL FÜR ORTE (Sehr wichtig!):** Achte darauf, dass die Ortsangabe im Antwortsatz im **Dativ** steht (wo ist es? -> *in der* Vitrine, *auf dem* Tisch, *im* Schrank, *unter dem* Bett) und **niemals** im Akkusativ (*in die* Vitrine ist falsch für eine Ortsbeschreibung!). Korrigiere das automatisch, falls der Ablageort falsch abgespeichert wurde.
+   - Formuliere die Antwort natürlich direkt an den Nutzer (nutze seinen Namen, falls unter "mein name" hinterlegt).
+   - Falls der Gegenstand gar nicht im Gedächtnis ist, antworte ehrlich.
 
 Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 - "action": Entweder "calendar", "get_calendar", "get_todos", "todo", "store_memory", oder "chat".
@@ -663,6 +663,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 - "memory_key": (Nur bei "store_memory") Der Name des Gegenstands oder "mein name".
 - "memory_value": (Nur bei "store_memory") Der Ablageort oder Name.
 - "reply": (Für "chat", "get_calendar", "get_todos" oder Bestätigung) Die fertige, natürliche Antwort an den Nutzer.`;
+
 
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
