@@ -81,7 +81,7 @@
 
     <div class="container">
         <h1>Termin per Spracheingabe</h1>
-        <p>Drücke den Knopf und sage z.B.:<br><em>"Zahnarzt heute um 16 Uhr"</em></p>
+        <p>Drücke den Knopf und sage z.B.:<br><em>"Zahnarzt heute um 16 Uhr erinnere mich zwei Stunden vorher"</em></p>
         
         <button id="micBtn" onclick="startSpeechRecognition()">🎤 Sprechen</button>
         
@@ -89,7 +89,7 @@
 
         <div id="eventList">
             <h3>Eingetragene Termine:</h3>
-            <div id="eventsContainer">Noch keine Termine in dieser Sitzung.</div>
+            <div id="eventsContainer">Lade Termine aus dem Kalender...</div>
         </div>
     </div>
 
@@ -102,7 +102,6 @@
         
         let tokenClient;
         let accessToken = null;
-        let createdEvents = [];
 
         window.onload = function () {
             tokenClient = google.accounts.oauth2.initTokenClient({
@@ -114,10 +113,12 @@
                         return;
                     }
                     accessToken = response.access_token;
-                    document.getElementById('status').innerText = 'Angemeldet! Du kannst sprechen.';
-                    listenAndProcess();
+                    document.getElementById('status').innerText = 'Angemeldet! Lade Termine...';
+                    fetchUpcomingEvents();
                 },
             });
+            // Automatischer Login-Anstoss beim Start
+            tokenClient.requestAccessToken({ prompt: '' });
         };
 
         function startSpeechRecognition() {
@@ -126,6 +127,46 @@
             } else {
                 listenAndProcess();
             }
+        }
+
+        // Lädt bestehende Termine beim Start aus dem Google Kalender
+        function fetchUpcomingEvents() {
+            if (!accessToken) return;
+
+            const now = new Date().toISOString();
+            fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now}&maxResults=10&singleEvents=true&orderBy=startTime`, {
+                headers: {
+                    'Authorization': 'Bearer ' + accessToken
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                const container = document.getElementById('eventsContainer');
+                container.innerHTML = '';
+
+                if (!data.items || data.items.length === 0) {
+                    container.innerHTML = 'Keine anstehenden Termine gefunden.';
+                    document.getElementById('status').innerText = 'Bereit...';
+                    return;
+                }
+
+                data.items.forEach((item, index) => {
+                    const startDate = new Date(item.start.dateTime || item.start.date);
+                    const formattedDate = startDate.toLocaleDateString('de-DE', {weekday: 'short', day: '2-digit', month: '2-digit'});
+                    const formattedTime = item.start.dateTime ? startDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'}) + ' Uhr' : 'Ganztägig';
+                    
+                    const div = document.createElement('div');
+                    div.className = 'event-item';
+                    div.innerText = `${index + 1}. ${item.summary} (${formattedDate}, ${formattedTime})`;
+                    container.appendChild(div);
+                });
+                document.getElementById('status').innerText = 'Bereit...';
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('eventsContainer').innerHTML = 'Fehler beim Laden der Termine.';
+                document.getElementById('status').innerText = 'Bereit...';
+            });
         }
 
         function listenAndProcess() {
@@ -174,7 +215,7 @@
             let eventDate = new Date();
             let hours = 10; 
             let minutes = 0;
-            let reminderMinutes = 60;
+            let reminderMinutes = 60; // Standard: 1 Stunde
 
             const lowerText = text.toLowerCase();
 
@@ -182,6 +223,7 @@
                 eventDate.setDate(eventDate.getDate() + 1);
             }
 
+            // Uhrzeit erkennen (z.B. "16 Uhr", "16:30 Uhr", "um 16 Uhr")
             const timeMatch = text.match(/(?:um\s+)?(\d{1,2})(?::(\d{2}))?\s*uhr/i);
             if (timeMatch) {
                 hours = parseInt(timeMatch[1], 10);
@@ -196,18 +238,45 @@
                 }
             }
 
-            if (lowerText.includes('2 stunden vorher')) {
-                reminderMinutes = 120;
-            } else if (lowerText.includes('3 stunden vorher')) {
-                reminderMinutes = 180;
-            } else if (lowerText.includes('halbe stunde vorher')) {
-                reminderMinutes = 30;
+            // Flexibles Erkennen von Erinnerungen (z.B. "erinnere mich zwei stunden vorher", "30 minuten vorher")
+            const reminderMatch = text.lowerText ? text.toLowerCase() : lowerText;
+            if (reminderMatch.includes('stunde')) {
+                const numMatch = reminderMatch.match(/(\d+|eine|zwei|drei|vier)\s*stunde/);
+                if (numMatch) {
+                    let val = numMatch[1];
+                    let hrs = 1;
+                    if (val === 'zwei') hrs = 2;
+                    else if (val === 'drei') hrs = 3;
+                    else if (val === 'vier') hrs = 4;
+                    else if (!isNaN(val)) hrs = parseInt(val, 10);
+                    reminderMinutes = hrs * 60;
+                } else if (reminderMatch.includes('halbe stunde')) {
+                    reminderMinutes = 30;
+                } else {
+                    reminderMinutes = 120; // Standard bei "zwei stunden"
+                }
+            } else if (reminderMatch.includes('minute')) {
+                const minMatch = reminderMatch.match(/(\d+)\s*minute/);
+                if (minMatch) {
+                    reminderMinutes = parseInt(minMatch[1], 10);
+                }
+            }
+
+            // Textbereinigung für den Titel (Filtert Füllwörter und Befehle heraus)
+            let eventTitle = text
+                .replace(/heute|morgen/gi, '')
+                .replace(/(?:um\s+)?\d{1,2}(?::\d{2})?\s*uhr/gi, '')
+                .replace(/erinnere mich.*$/i, '')
+                .replace(/sag mir.*$/i, '')
+                .trim();
+
+            if (!eventTitle) {
+                eventTitle = "Termin";
             }
 
             eventDate.setHours(hours, minutes, 0, 0);
             let endDate = new Date(eventDate.getTime() + 60 * 60 * 1000);
 
-            // Hilfsfunktion, um das Datum sauber im lokalen Format (inkl. Zeitzone) für Google zu formatieren
             function toLocalISOString(date) {
                 const pad = (n) => String(n).padStart(2, '0');
                 const yyyy = date.getFullYear();
@@ -217,7 +286,6 @@
                 const mm = pad(date.getMinutes());
                 const ss = pad(date.getSeconds());
                 
-                // Offset für Deutschland ermitteln (+02:00 im Sommer)
                 const offsetMinutes = -date.getTimezoneOffset();
                 const sign = offsetMinutes >= 0 ? '+' : '-';
                 const absOffsetHours = pad(Math.floor(Math.abs(offsetMinutes) / 60));
@@ -227,7 +295,7 @@
             }
 
             const calendarEvent = {
-                'summary': text,
+                'summary': eventTitle,
                 'description': 'Erstellt über Omas Sprach-App',
                 'start': {
                     'dateTime': toLocalISOString(eventDate)
@@ -254,8 +322,9 @@
             })
             .then(async response => {
                 if (response.ok) {
-                    document.getElementById('status').innerText = '✅ Termin erfolgreich im Kalender eingetragen!';
-                    addEventToList(text + ' (' + eventDate.toLocaleDateString('de-DE', {weekday: 'short', day: '2-digit', month: '2-digit'}) + ', ' + (hours < 10 ? '0' : '') + hours + ':' + (minutes < 10 ? '0' : '') + minutes + ' Uhr)');
+                    document.getElementById('status').innerText = '✅ Termin erfolgreich eingetragen!';
+                    // Liste nach erfolgreichem Eintrag direkt neu vom Kalender laden
+                    fetchUpcomingEvents();
                 } else {
                     const errData = await response.json();
                     console.error(errData);
@@ -264,18 +333,6 @@
             })
             .catch(error => {
                 document.getElementById('status').innerText = '❌ Netzwerkfehler: ' + error.message;
-            });
-        }
-
-        function addEventToList(text) {
-            createdEvents.push(text);
-            const container = document.getElementById('eventsContainer');
-            container.innerHTML = '';
-            createdEvents.forEach((item, index) => {
-                const div = document.createElement('div');
-                div.className = 'event-item';
-                div.innerText = `${index + 1}. ${item}`;
-                container.appendChild(div);
             });
         }
     </script>
