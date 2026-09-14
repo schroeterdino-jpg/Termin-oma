@@ -331,8 +331,8 @@
             <div class="hint-box">
                 💡 <b>Mit GPT-OSS & KI Power:</b><br>
                 • Erkennt sofort, ob du etwas weglegst oder suchst!<br>
-                • <i>"Ich lege mein Portemonnaie auf den Küchentisch"</i><br>
-                • <i>"Wo ist mein Portemonnaie?"</i>
+                • <i>"Ich lege meine Tasche auf den Arbeitstisch"</i><br>
+                • <i>"Wo ist meine Tasche?"</i>
             </div>
         </div>
 
@@ -412,7 +412,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v3.12-2026-09-14-gpt";
+        const APP_VERSION = "v3.13-2026-09-14-gpt";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -721,13 +721,14 @@
 
             try {
                 const systemPrompt = `Du bist ein extrem präziser deutscher Sprachassistent. Deine Aufgabe ist es, den deutschen Sprachbefehl zu analysieren und AUSSCHLIESSLICH als kompaktes JSON im exakten Format unten zu antworten.
-Achte penibel auf deutsche Grammatik: Nutze IMMER den korrekten grammatikalischen Artikel im Nominativ für das Item (z.B. "die Brieftasche", "der Schlüssel", "das Portemonnaie", "die Jacke"). Verwende NIEMALS falsche Artikel.
+Ermittle exakt den konkreten Gegenstand (item) und den genauen Ablageort (location) aus dem Text. Schreibe niemals das Wort "Objekt" als Platzhalter, sondern immer den tatsächlichen Begriff (z.B. "Tasche", "Schlüssel", "Portemonnaie").
+Achte penibel auf deutsche Grammatik: Nutze IMMER den korrekten grammatikalischen Artikel im Nominativ für das Item (z.B. "die Tasche", "der Schlüssel", "das Portemonnaie", "die Jacke").
 
 JSON-Struktur:
 {
   "intent": "save_memory" | "query_memory" | "calendar" | "todo",
-  "item": "Name des Gegenstands im Nominativ mit absolut korrektem deutschen Artikel (z.B. die Brieftasche, der Schlüssel)",
-  "location": "Genauer Ablageort im Nominativ (z.B. Küchentisch, Küchenschrank)"
+  "item": "Konkreter Name des Gegenstands im Nominativ mit korrektem Artikel (z.B. die Tasche, der Schlüssel)",
+  "location": "Genauer Ablageort im Nominativ (z.B. Arbeitstisch, Küchentisch, Flur)"
 }`;
 
                 const response = await fetch(apiUrl, {
@@ -778,7 +779,7 @@ JSON-Struktur:
                 memory[item] = loc;
                 localStorage.setItem('omas_memory', JSON.stringify(memory));
                 
-                const msg = `Du hast ${item} in den ${loc} gelegt.`;
+                const msg = `Du hast ${item} auf ${loc} gelegt.`;
                 document.getElementById('status').innerText = `🧠 ${msg}`;
                 speakTextOut(msg);
 
@@ -788,7 +789,7 @@ JSON-Struktur:
                 
                 if (foundKey && memory[foundKey]) {
                     let loc = memory[foundKey];
-                    let msg = `Du hast ${foundKey} in den ${loc} gelegt.`;
+                    let msg = `Du hast ${foundKey} auf ${loc} gelegt.`;
                     document.getElementById('status').innerText = `💡 ${msg}`;
                     speakTextOut(msg);
                 } else {
@@ -939,7 +940,7 @@ JSON-Struktur:
                 headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 'summary': eventTitle, 'start': { 'dateTime': toLocalISOString(eventDate) }, 'end': { 'dateTime': toLocalISOString(endDate) } })
             }).then(res => {
-                if (res.ok) {
+                : res.ok) {
                     const msg = `Termin ${eventTitle} eingetragen.`;
                     document.getElementById('status').innerText = `✅ Termin "${eventTitle}" eingetragen!`;
                     speakTextOut(msg);
