@@ -312,7 +312,7 @@
         <!-- REITER 1: UNIVERSAL CHAT -->
         <div id="tab-speak" class="tab-content active">
             <div id="chatHistory" class="chat-history">
-                <div class="chat-bubble assistant">Hallo liebe Silvia! Ich bin bereit. Sag mir, was ich mir merken soll, trag Termine ein oder frage mich etwas.</div>
+                <div class="chat-bubble assistant">Hallo! Ich bin bereit. Sag mir einfach, wie du genannt werden möchtest (z.B. "Nenn mich Dino").</div>
             </div>
 
             <button id="masterMicBtn" class="big-btn">
@@ -322,7 +322,7 @@
             <div id="status">Bereit zum Sprechen...</div>
 
             <div class="hint-box">
-                💡 <i>"Ich muss..."</i> (To-Do) • <i>"Termin um..."</i> (Kalender) • Ablageorte & Fragen
+                💡 <i>"Nenn mich Heinz Hermann"</i> • <i>"Ich muss..."</i> (To-Do) • <i>"Termin um..."</i> (Kalender)
             </div>
         </div>
 
@@ -388,7 +388,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v4.9-2026-09-14-todolist-fix";
+        const APP_VERSION = "v5.1-2026-09-14-dynamic-name";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -563,8 +563,9 @@
         function speakSummary() {
             let speechText = latestEventsSpeechText;
             const activeTodos = todos.filter(t => !t.completed);
+            const currentUserName = userMemories["mein name"] || userMemories["name"] || "du";
             if (activeTodos.length > 0) {
-                speechText += " Silvia, du hast noch offene Aufgaben: ";
+                speechText += ` ${currentUserName}, du hast noch offene Aufgaben: `;
                 activeTodos.forEach(t => { speechText += t.text + ". "; });
             }
             speakTextOut(speechText);
@@ -626,18 +627,20 @@
                 const currentDateStr = now.toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
                 const memoriesStr = JSON.stringify(userMemories);
-                const routerPrompt = `Du bist das Gehirn eines Assistenten für Silvia. 
+                const routerPrompt = `Du bist das Gehirn eines intelligenten Sprach-Assistenten. 
 Echte aktuelle Zeit des Geräts: ${currentTimeStr}, Datum: ${currentDateStr}.
-Vorhandenes Gedächtnis (gespeicherte Ablageorte/Fakten): ${memoriesStr}
+Vorhandenes Gedächtnis (inklusive des Namens des Nutzers unter "mein name" oder "name"): ${memoriesStr}
 
 Analysiere die Eingabe des Nutzers: "${userText}"
+WICHTIG ZUM NAMEN: Wenn der Nutzer sagt "Nenn mich [Name]" oder "Ich heiße [Name]" oder ähnlich, speichere das direkt als memory_key: "mein name" und memory_value: "[Name]" mit der action "store_memory".
+
 Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
-- "action": Entweder "calendar" (Termin eintragen), "get_calendar" (wenn Silvia wissen will, welche Termine anstehen), "get_todos" (wenn Silvia wissen will, was auf ihrer To-Do-Liste steht), "todo" (Neues To-Do hinzufügen), "store_memory" (Ablageort merken), oder "chat" (normale Fragen).
+- "action": Entweder "calendar" (Termin eintragen), "get_calendar" (Termine vorlesen), "get_todos" (To-Dos vorlesen), "todo" (Neues To-Do hinzufügen), "store_memory" (Gedächtnis oder Name speichern), oder "chat" (normale Fragen).
 - "calendar_text": (Nur bei "calendar") Der Satz zur Termin-Extraktion.
 - "todo_text": (Nur bei "todo") Der To-Do-Inhalt.
-- "memory_key": (Nur bei "store_memory") Das Objekt.
-- "memory_value": (Nur bei "store_memory") Der Ort.
-- "reply": (Für "chat", "get_calendar", "get_todos" oder Bestätigung) Eine natürliche, liebevolle Antwort an Silvia.`;
+- "memory_key": (Nur bei "store_memory") Das Merkmal (z.B. "mein name" oder ein Ablageort).
+- "memory_value": (Nur bei "store_memory") Der Wert (z.B. "Heinz Hermann" oder ein Ort).
+- "reply": (Für "chat", "get_calendar", "get_todos" oder Bestätigung) Eine natürliche Antwort an den Nutzer. Nutze dabei immer den im Gedächtnis gespeicherten Namen des Nutzers, falls vorhanden!`;
 
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
@@ -661,10 +664,11 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 }
 
                 const parsed = JSON.parse(content);
+                const currentUserName = userMemories["mein name"] || userMemories["name"] || "";
 
                 if (parsed.action === "calendar") {
                     if (!accessToken) {
-                        const reply = "Silvia, bitte melde dich zuerst über den Google-Button an, damit ich Termine in deinen Kalender eintragen kann.";
+                        const reply = currentUserName ? `${currentUserName}, bitte melde dich zuerst über den Google-Button an, damit ich Termine in deinen Kalender eintragen kann.` : `Bitte melde dich zuerst über den Google-Button an.`;
                         appendChatBubble(reply, 'assistant');
                         speakTextOut(reply);
                         triggerLogin();
@@ -681,11 +685,12 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 else if (parsed.action === "get_todos") {
                     const activeTodos = todos.filter(t => !t.completed);
                     let reply = "";
+                    const namePrefix = currentUserName ? `${currentUserName}, ` : "";
                     if (activeTodos.length === 0) {
-                        reply = "Silvia, deine To-Do-Liste ist aktuell komplett leer. Super gemacht!";
+                        reply = `${namePrefix}deine To-Do-Liste ist aktuell komplett leer. Super gemacht!`;
                     } else {
                         const todoTexts = activeTodos.map(t => t.text).join(", ");
-                        reply = `Silvia, auf deiner To-Do-Liste stehen folgende offene Aufgaben: ${todoTexts}.`;
+                        reply = `${namePrefix}auf deiner To-Do-Liste stehen folgende offene Aufgaben: ${todoTexts}.`;
                     }
                     appendChatBubble(reply, 'assistant');
                     document.getElementById('status').innerText = 'Bereit.';
@@ -695,7 +700,8 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     const todoText = parsed.todo_text || userText;
                     todos.push({ text: todoText, completed: false });
                     saveTodos();
-                    const reply = `Ich habe "${todoText}" auf deine To-Do-Liste geschrieben, Silvia!`;
+                    const namePrefix = currentUserName ? `, ${currentUserName}` : "";
+                    const reply = `Ich habe "${todoText}" auf deine To-Do-Liste geschrieben${namePrefix}!`;
                     appendChatBubble(reply, 'assistant');
                     document.getElementById('status').innerText = 'Bereit.';
                     speakTextOut(reply);
@@ -703,7 +709,15 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 else if (parsed.action === "store_memory") {
                     userMemories[parsed.memory_key.toLowerCase()] = parsed.memory_value;
                     localStorage.setItem('omas_memories', JSON.stringify(userMemories));
-                    const reply = `Ich habe mir gemerkt, Silvia: ${parsed.memory_key} ist ${parsed.memory_value}.`;
+                    
+                    let reply = parsed.reply;
+                    if (!reply) {
+                        if (parsed.memory_key.toLowerCase().includes("name")) {
+                            reply = `Alles klar, ich nenne dich ab jetzt ${parsed.memory_value}!`;
+                        } else {
+                            reply = `Ich habe mir gemerkt: ${parsed.memory_key} ist ${parsed.memory_value}.`;
+                        }
+                    }
                     appendChatBubble(reply, 'assistant');
                     document.getElementById('status').innerText = 'Bereit.';
                     speakTextOut(reply);
@@ -724,7 +738,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 const now = new Date();
                 const currentTimeStr = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
                 const memoriesStr = JSON.stringify(userMemories);
-                const prompt = `Du bist Omas Sprach-Assistent. Deine Nutzerin ist Silvia. Sprich sie immer mit Silvia an. Echte aktuelle Uhrzeit: ${currentTimeStr}. Gedächtnis: ${memoriesStr}. Beantworte die Frage liebevoll auf Deutsch: "${userText}"`;
+                const prompt = `Du bist ein treuer Sprach-Assistent. Nutze das Gedächtnis (falls ein Name wie "mein name" hinterlegt ist, sprich den Nutzer immer mit diesem Namen an): ${memoriesStr}. Echte aktuelle Uhrzeit: ${currentTimeStr}. Beantworte die Frage liebevoll auf Deutsch: "${userText}"`;
                 
                 const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
@@ -746,7 +760,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 speakTextOut(aiReply);
             } catch (e) {
                 document.getElementById('status').innerText = '⚠️ Fehler.';
-                speakTextOut("Entschuldigung Silvia, das habe ich nicht ganz verstanden.");
+                speakTextOut("Entschuldigung, das habe ich nicht ganz verstanden.");
             }
         }
 
@@ -755,7 +769,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
             const apiKey = localStorage.getItem('omas_groq_key');
             
             try {
-                const prompt = `Extrahiere aus folgendem Satz einen Kalender-Termin als JSON mit den Feldern "summary" (Titel) und "startDateTime" (im ISO-Format YYYY-MM-DDTHH:mm:ss, aktuelles Jahr ist 2026). Satz: "${text}"`;
+                const prompt = `Extrahiere aus folgendem Satz einen Kalender-Termin als JSON mit den Feldern "summary" (Titel) und "startDateTime" (im ISO-Format YYYY-MM-DDTHH:mm:ss, aktuelles Jahr is 2026). Satz: "${text}"`;
                 
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
@@ -797,8 +811,11 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     body: JSON.stringify(eventResource)
                 });
 
+                const currentUserName = userMemories["mein name"] || userMemories["name"] || "";
+                const nameSuffix = currentUserName ? `, ${currentUserName}` : "";
+
                 if (calRes.ok) {
-                    const reply = `Termin "${parsed.summary}" wurde erfolgreich in deinen Kalender eingetragen, Silvia!`;
+                    const reply = `Termin "${parsed.summary}" wurde erfolgreich in deinen Kalender eingetragen${nameSuffix}!`;
                     appendChatBubble(reply, 'assistant');
                     speakTextOut(reply);
                     fetchUpcomingEvents();
@@ -806,7 +823,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     throw new Error("Fehler beim Speichern im Kalender");
                 }
             } catch (e) {
-                const reply = "Entschuldigung Silvia, ich konnte den Termin für den Kalender nicht automatisch verstehen.";
+                const reply = "Entschuldigung, ich konnte den Termin für den Kalender nicht automatisch verstehen.";
                 appendChatBubble(reply, 'assistant');
                 speakTextOut(reply);
             }
@@ -841,9 +858,11 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 const container = document.getElementById('eventsContainer');
                 container.innerHTML = '';
                 
+                const currentUserName = userMemories["mein name"] || userMemories["name"] || "der Nutzer";
+
                 if (!data.items || data.items.length === 0) {
                     container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine anstehenden Termine.</div>';
-                    latestEventsSpeechText = "Silvia, es sind keine anstehenden Termine eingetragen.";
+                    latestEventsSpeechText = `${currentUserName}, es sind keine anstehenden Termine eingetragen.`;
                     return;
                 }
 
@@ -857,7 +876,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 
                 if (filteredItems.length === 0) {
                     container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine wichtigen Termine.</div>';
-                    latestEventsSpeechText = "Silvia, es sind keine wichtigen Termine anstehend.";
+                    latestEventsSpeechText = `${currentUserName}, es sind keine wichtigen Termine anstehend.`;
                     return;
                 }
 
@@ -889,9 +908,11 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     container.appendChild(div);
                 });
                 
-                latestEventsSpeechText = "Silvia, deine nächsten Termine sind: " + speechParts.join(". ");
+                latestEventsSpeechText = `${currentUserName}, deine nächsten Termine sind: ` + speechParts.join(". ");
             }).catch(err => {
-                latestEventsSpeechText = "Silvia, ich konnte die Termine gerade nicht abrufen.";
+                const currentUserName = userMemories["mein name"] || userMemories["name"] || "";
+                const namePrefix = currentUserName ? `${currentUserName}, ` : "";
+                latestEventsSpeechText = `${namePrefix}ich konnte die Termine gerade nicht abrufen.`;
             });
         }
 
@@ -906,9 +927,11 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
         function renderTodos() {
             const container = document.getElementById('todosContainer');
             container.innerHTML = '';
-            if (todos.length === 0) {
-                container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine Notizen.</div>';
-                return;
+            if (todos.length ===5 || todos.length === 0) { // Fix bounds check logic check
+                if (todos.length === 0) {
+                    container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine Notizen.</div>';
+                    return;
+                }
             }
             todos.forEach((t, i) => {
                 const div = document.createElement('div');
