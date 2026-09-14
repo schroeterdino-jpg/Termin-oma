@@ -390,8 +390,8 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        // AUTO-CACHE-BREAKER (Verhindert das lästige manuelle Leeren des Caches!)
-        const APP_VERSION = "v2.2-2026-09-14";
+        // AUTO-CACHE-BREAKER (Version erhöht, damit der Browser sofort umschaltet!)
+        const APP_VERSION = "v2.3-2026-09-14";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -637,7 +637,6 @@
             btn.innerHTML = '🎤 Sprechen...';
         }
 
-        // --- INTELLIGENTE ROUTING-LOGIK ---
         function routeSpeechInput(text) {
             const lower = text.toLowerCase();
 
@@ -653,9 +652,9 @@
                 return;
             }
 
-            // 3. TERMINE (Zwingend mit Uhrzeit, sonst To-Do!)
+            // 3. TERMINE (Zwingend mit Uhrzeit!)
             const hasTime = /(?:um\s+)?\d{1,2}(?::\d{2})?\s*uhr/i.test(text) || /\d{1,2}:\d{2}/.test(text);
-            if (hasTime && (lower.includes('uhr') || lower.includes('morgen') || lower.includes('termin') || lower.includes('heute'))) {
+            if (hasTime && (lower.includes('uhr') || lower.includes('morgen') || lower.includes('termin'))) {
                 if (!accessToken) {
                     alert('Bitte erst bei Google anmelden für Termine!');
                     triggerLogin();
@@ -665,7 +664,7 @@
                 return;
             }
 
-            // 4. ALLES ANDERE (z.B. "Mit Isabel Schuhe einkaufen") landet sauber auf der To-Do-Liste!
+            // 4. ALLES ANDERE -> TO-DO-LISTE
             addTodo(text);
             document.getElementById('status').innerText = `✅ Notiz gespeichert: "${text}"`;
             speakTextOut("Notiz gespeichert.");
@@ -683,7 +682,7 @@
 
             if (!foundItem) {
                 addTodo(text);
-                document.getElementById('status').innerText = `✅ Als Notiz gespeichert: "${text}"`;
+                document.getElementById('status').innerText = `✅ Notiz gespeichert: "${text}"`;
                 return;
             }
 
@@ -961,11 +960,11 @@
             })
             .then(async response => {
                 if (response.ok) {
-                    document.getElementById('status').innerText = `✅ "${eventTitle}" eingetragen!`;
+                    document.getElementById('status').innerText = `✅ Termin "${eventTitle}" eingetragen!`;
                     speakTextOut(`Termin ${eventTitle} wurde eingetragen.`);
                     fetchUpcomingEvents();
                 } else {
-                    const errData =awatt response.json();
+                    const errData = await response.json();
                     console.error(errData);
                     document.getElementById('status').innerText = '❌ Fehler beim Eintragen.';
                 }
