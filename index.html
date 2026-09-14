@@ -394,7 +394,7 @@
         let tokenClient;
         let accessToken = null;
         let todos = JSON.parse(localStorage.getItem('omas_todos') || '[]');
-        let memory = JSON.parse(localStorage.getItem('omas_memory') || '{}'); // Speicher für versteckte Ablageorte
+        let memory = JSON.parse(localStorage.getItem('omas_memory') || '{}');
         let latestEventsSpeechText = "Es sind keine anstehenden Termine geladen.";
         let rawEventsList = [];
 
@@ -628,16 +628,19 @@
         function routeSpeechInput(text) {
             const lower = text.toLowerCase();
 
-            // 1. Suchen: "Wo ist..." / "Wo habe ich..."
-            if (lower.startsWith('wo ist') || lower.includes('wo habe ich') || lower.includes('wo liegt')) {
+            // 1. Suchen: "Wo ist..." / "Wo habe ich..." / "Wo sind..."
+            if (lower.startsWith('wo ist') || lower.startsWith('wo sind') || lower.includes('wo habe ich') || lower.includes('wo liegt')) {
                 searchMemory(text);
                 return;
             }
 
-            // 2. Im Hintergrund Speichern: "...in... gelegt / gepackt / getan"
-            if (lower.includes('lege') || lower.includes('gelegt') || lower.includes('gepackt') || lower.includes('versteckt') || lower.includes('getan') || lower.includes('habe ich in')) {
-                saveMemorySilently(text);
-                return;
+            // 2. ERWEITERTE ERKENNUNG FÜR UNSICHTBARE ABLAGE (lege, liege, packe, gepackt, getan etc.)
+            if (lower.includes('lege') || lower.includes('liege') || lower.includes('packe') || lower.includes('gelegt') || lower.includes('gepackt') || lower.includes('versteckt') || lower.includes('getan') || lower.includes('in') || lower.includes('auf')) {
+                // Prüfen ob es wirklich ein Versteck-Satz ist (muss ein Ort-Wort wie Schrank, Tasche etc. enthalten)
+                if (lower.includes('schrank') || lower.includes('tasche') || lower.includes('kasten') || lower.includes('kommode') || lower.includes('fach') || lower.includes('schublade') || lower.includes('zimmer') || lower.includes('küche') || lower.includes('keller') || lower.includes('boden')) {
+                    saveMemorySilently(text);
+                    return;
+                }
             }
 
             // 3. Kalender-Eintrag
@@ -663,38 +666,36 @@
             let locationName = "verstecktem Ort";
 
             // Bekannte Gegenstände erkennen
-            const commonItems = ['schlüssel', 'brille', 'geldbeutel', 'portemonnaie', 'handy', 'ausweis', 'tasche', 'schmuck', 'uhr', 'stift'];
+            const commonItems = ['lebenslauf', 'unterlagen', 'akten', 'schlüssel', 'brille', 'geldbeutel', 'portemonnaie', 'handy', 'ausweis', 'tasche', 'schmuck', 'uhr', 'stift'];
             for (let item of commonItems) {
                 if (lower.includes(item)) {
                     itemName = item;
-                    // Großschreiben fürs Aussehen
                     itemName = itemName.charAt(0).toUpperCase() + itemName.slice(1);
                     break;
                 }
             }
 
-            // Wenn kein Standardgegenstand dabei ist, versuchen wir das Wort nach "meinen" / "meine" zu nehmen
             if (itemName === "Gegenstand") {
-                let match = lower.match(/(?:meinen|meine|ein|eine)\s+([a-zäöü]+)/i);
+                let match = lower.match(/(?:meinen|meine|mein|ein|eine)\s+([a-zäöü]+)/i);
                 if (match && match[1] && !['in', 'auf', 'unter'].includes(match[1])) {
                     itemName = match[1].charAt(0).toUpperCase() + match[1].slice(1);
                 }
             }
 
-            // Ort extrahieren (alles nach in/auf/unter)
-            let locMatch = text.match(/(?:in\s+den|in\s+die|in\s+dem|auf\s+dem|auf\s+der|unter\s+dem|unter\s+der|in|auf|unter)\s+(.*)/i);
+            // Ort extrahieren
+            let locMatch = text.match(/(?:in\s+den|in\s+die|in\s+dem|im|auf\s+dem|auf\s+der|unter\s+dem|unter\s+der|in|auf|unter)\s+(.*)/i);
             if (locMatch && locMatch[1]) {
                 locationName = locMatch[1].trim();
             }
 
-            // Im Hintergrund speichern (unsichtbar für die To-Do-Liste)
+            // Im Hintergrund speichern (absolut unsichtbar für die To-Do-Liste)
             memory[itemName.toLowerCase()] = {
                 item: itemName,
                 location: locationName
             };
             localStorage.setItem('omas_memory', JSON.stringify(memory));
 
-            // Dezenter Status-Hinweis (ohne den Text plump nachzuplappern)
+            // Status-Hinweis
             document.getElementById('status').innerText = `🧠 Im Gedächtnis abgespeichert.`;
             speakTextOut(`Habe ich mir im Hintergrund gemerkt.`);
         }
@@ -703,7 +704,6 @@
             let lower = text.toLowerCase();
             let foundKey = null;
 
-            // Suche nach dem passenden Gegenstand im Gedächtnis
             for (let key in memory) {
                 if (lower.includes(key)) {
                     foundKey = key;
@@ -713,22 +713,13 @@
 
             if (foundKey) {
                 let entry = memory[foundKey];
-                // Natürliche Antwort formulieren: "Silvia, dein [Gegenstand] ist [Ort], da hattest du ihn hingelegt."
-                let answerText = `Silvia, dein ${entry.item.toLowerCase()} ist ${entry.location}, da hattest du ihn hingelegt.`;
+                let answerText = `Silvia, dein ${entry.item.toLowerCase()} ist ${entry.location}, da hattest du es hingelegt.`;
                 document.getElementById('status').innerText = `💡 ${answerText}`;
                 speakTextOut(answerText);
             } else {
-                // Fallback: In normalen To-Dos suchen
-                let matchingTodo = todos.find(t => lower.split(' ').some(word => word.length > 2 && t.text.toLowerCase().includes(word)));
-                if (matchingTodo) {
-                    let ans = `Dazu habe ich diesen Eintrag gefunden: ${matchingTodo.text}`;
-                    document.getElementById('status').innerText = `💡 ${ans}`;
-                    speakTextOut(ans);
-                } else {
-                    let notFound = `Silvia, dazu habe ich mir nichts im Gedächtnis aufgeschrieben.`;
-                    document.getElementById('status').innerText = notFound;
-                    speakTextOut(notFound);
-                }
+                let notFound = `Silvia, dazu habe ich mir nichts im Gedächtnis aufgeschrieben.`;
+                document.getElementById('status').innerText = notFound;
+                speakTextOut(notFound);
             }
         }
         // ----------------------------------------------------
