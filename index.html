@@ -377,7 +377,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v6.17-smart-reminders";
+        const APP_VERSION = "v6.18-fix-time";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -637,7 +637,7 @@ ENTSCHEIDUNGS-LOGIK (STRENG TRENNEN!):
 Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
 - "action": Entweder "calendar", "reminder_todo", "todo", "get_calendar", "get_todos", "store_memory", oder "chat".
 - "summary": (Für "calendar") Titel des Termins.
-- "start_time": (Für "calendar") ISO-8601 Format YYYY-MM-DDTHH:MM:SS.
+- "start_time": (Für "calendar" oder "reminder_todo") ISO-8601 Format YYYY-MM-DDTHH:MM:SS (Ermittle die korrekte Zieluhrzeit aus dem Text, z.B. bei "22 Uhr" -> 22:00:00).
 - "todo_text": (Für "todo" oder "reminder_todo") Der genaue Text für die To-Do-Liste.
 - "memory_key", "memory_value", "reply": Entsprechende Werte.`;
 
@@ -665,6 +665,42 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                 const parsed = JSON.parse(content);
                 const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
 
+                // Hilfsfunktion zur exakten Zeitermittlung aus dem Text (gegen Uhren-Verschiebungen)
+                function parseTargetDate(txt, parsedIso) {
+                    let targetDate = new Date();
+                    const lower = txt.toLowerCase();
+                    if (lower.includes("morgen")) {
+                        targetDate.setDate(targetDate.getDate() + 1);
+                    }
+                    
+                    let foundHour = null;
+                    let foundMinute = 0;
+
+                    const matchColon = txt.match(/(\d{1,2}):(\d{2})/);
+                    if (matchColon) {
+                        foundHour = parseInt(matchColon[1], 10);
+                        foundMinute = parseInt(matchColon[2], 10);
+                    } else {
+                        const matchUhr = txt.match(/(\d{1,2})\s*uhr/i);
+                        if (matchUhr) {
+                            foundHour = parseInt(matchUhr[1], 10);
+                        } else {
+                            // Fallback auf ISO vom LLM wenn vorhanden
+                            if (parsedIso) {
+                                let dTest = new Date(parsedIso);
+                                if (!isNaN(dTest.getTime())) return dTest;
+                            }
+                        }
+                    }
+
+                    if (foundHour !== null && foundHour >= 0 && foundHour <= 23) {
+                        targetDate.setHours(foundHour, foundMinute, 0, 0);
+                    } else {
+                        targetDate.setHours(targetDate.getHours() + 1, 0, 0, 0);
+                    }
+                    return targetDate;
+                }
+
                 if (parsed.action === "calendar") {
                     if (!accessToken) {
                         alert("Bitte zuerst bei Google anmelden (Reiter Termine / Login-Button)!");
@@ -672,52 +708,12 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     }
                     
                     let eventSummary = parsed.summary || userText;
-                    let targetDate = new Date();
-                    const lowerText = userText.toLowerCase();
-
-                    if (lowerText.includes("morgen")) {
-                        targetDate.setDate(targetDate.getDate() + 1);
-                    }
-
-                    let hourFound = false;
-                    const timeColonMatch = userText.match(/(\d{1,2}):(\d{2})/);
-                    if (timeColonMatch) {
-                        targetDate.setHours(parseInt(timeColonMatch[1], 10), parseInt(timeColonMatch[2], 10), 0, 0);
-                        hourFound = true;
-                    } else {
-                        const numbers = userText.match(/\d+/g);
-                        if (numbers && numbers.length > 0) {
-                            for (let numStr of numbers) {
-                                let num = parseInt(numStr, 10);
-                                if (num >= 0 && num <= 23 && !lowerText.includes(num + " minuten") && !lowerText.includes(num + "te")) {
-                                    targetDate.setHours(num, 0, 0, 0);
-                                    hourFound = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    if (!hourFound) {
-                        targetDate.setHours(targetDate.getHours() + 1, 0, 0, 0);
-                    }
+                    let targetDate = parseTargetDate(userText, parsed.start_time);
 
                     let startISO = targetDate.toISOString().split('.')[0] + "+02:00";
                     let endDate = new Date(targetDate.getTime() + 60 * 60 * 1000);
                     let endISO = endDate.toISOString().split('.')[0] + "+02:00";
 
-                    if (parsed.start_time && parsed.start_time.includes("T")) {
-                        try {
-                            let customDate = new Date(parsed.start_time);
-                            if (!isNaN(customDate.getTime())) {
-                                startISO = customDate.toISOString().split('.')[0] + "+02:00";
-                                endDate = new Date(customDate.getTime() + 60 * 60 * 1000);
-                                endISO = endDate.toISOString().split('.')[0] + "+02:00";
-                            }
-                        } catch(e) {}
-                    }
-
-                    // Echter Termin: Standard 4 Stunden vorher, bei Kurzfristigkeit automatisch 15 Min. (oder direkt)
                     let reminderMinutes = 240; 
                     let diffMs = targetDate.getTime() - new Date().getTime();
                     let diffMins = Math.floor(diffMs / (1000 * 60));
@@ -769,41 +765,11 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
                     let calendarEventId = null;
                     if (accessToken) {
                         try {
-                            let targetDate = new Date();
-                            const lowerText = userText.toLowerCase();
-
-                            if (lowerText.includes("morgen")) {
-                                targetDate.setDate(targetDate.getDate() + 1);
-                            }
-
-                            let hourFound = false;
-                            const timeColonMatch = userText.match(/(\d{1,2}):(\d{2})/);
-                            if (timeColonMatch) {
-                                targetDate.setHours(parseInt(timeColonMatch[1], 10), parseInt(timeColonMatch[2], 10), 0, 0);
-                                hourFound = true;
-                            } else {
-                                const numbers = userText.match(/\d+/g);
-                                if (numbers && numbers.length > 0) {
-                                    for (let numStr of numbers) {
-                                        let num = parseInt(numStr, 10);
-                                        if (num >= 0 && num <= 23 && !lowerText.includes(num + " minuten")) {
-                                            targetDate.setHours(num, 0, 0, 0);
-                                            hourFound = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-
-                            if (!hourFound) {
-                                targetDate.setHours(targetDate.getHours() + 1, 0, 0, 0);
-                            }
-
+                            let targetDate = parseTargetDate(userText, parsed.start_time);
                             let startISO = targetDate.toISOString().split('.')[0] + "+02:00";
                             let endDate = new Date(targetDate.getTime() + 15 * 60 * 1000);
                             let endISO = endDate.toISOString().split('.')[0] + "+02:00";
 
-                            // To-Do mit Uhrzeit: Standard 2 Stunden vorher, bei Kurzfristigkeit automatisch 15 Min. (oder direkt)
                             let reminderMinutes = 120;
                             let diffMs = targetDate.getTime() - new Date().getTime();
                             let diffMins = Math.floor(diffMs / (1000 * 60));
