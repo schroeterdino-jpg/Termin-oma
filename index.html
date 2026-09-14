@@ -1,9 +1,160 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Omas Sprach-Assistent</title>
+    <!-- Tailwind CSS für das moderne Design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
+
+    <!-- Hauptkarte -->
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-lg p-5 flex flex-col justify-between space-y-4">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b pb-3">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-100 p-2 rounded-2xl text-2xl">🎙️</div>
+                <h1 class="text-xl font-bold text-gray-800">Omas Sprach-Assistent</h1>
+            </div>
+            <button onclick="closeApp()" class="bg-red-500 text-white px-4 py-2 rounded-full font-semibold flex items-center space-x-1 shadow hover:bg-red-600 transition">
+                <span>❌ Beenden</span>
+            </button>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="grid grid-cols-3 gap-2 bg-gray-100 p-1.5 rounded-2xl">
+            <button class="bg-white text-blue-600 font-semibold py-2 rounded-xl shadow-sm text-center flex items-center justify-center space-x-1">
+                <span>🎤</span><span>Assistent</span>
+            </button>
+            <button onclick="openCalendar()" class="text-gray-600 font-medium py-2 rounded-xl text-center flex items-center justify-center space-x-1 hover:bg-white/50">
+                <span>📅</span><span>Termine</span>
+            </button>
+            <button onclick="makeCall()" class="text-gray-600 font-medium py-2 rounded-xl text-center flex items-center justify-center space-x-1 hover:bg-white/50">
+                <span>📞</span><span>Anrufen</span>
+            </button>
+        </div>
+
+        <!-- Anleitung -->
+        <div class="text-center py-2">
+            <p class="text-gray-600 font-medium">Drücken & einfach frei drauf los sprechen:</p>
+        </div>
+
+        <!-- Großer Mikrofon-Button -->
+        <button id="recordBtn" onclick="toggleListening()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xl py-6 rounded-2xl shadow-lg flex items-center justify-center space-x-3 transition transform active:scale-95">
+            <span class="text-2xl">🎙️</span>
+            <span id="recordText">Sprechen...</span>
+        </button>
+
+        <!-- Status / Feedback Box -->
+        <div id="statusBox" class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-xl text-gray-700 text-sm">
+            💡 <span id="status">Bereit für deine Sprachnachricht, Silvia.</span>
+        </div>
+
+        <!-- Beispiele -->
+        <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-2xl text-xs text-gray-700 space-y-1">
+            <p class="font-semibold text-yellow-800 mb-1">💡 Beispiele:</p>
+            <p>• "Arzttermin morgen um 14 Uhr" (Kalender)</p>
+            <p>• "Meinen Schlüssel tue ich in den Schrank" (Merken)</p>
+            <p>• "Wo ist mein Schlüssel?" (Suchen)</p>
+            <p>• "Milch kaufen" (Notiz)</p>
+        </div>
+    </div>
+
+    <!-- JavaScript Logik -->
+    <script>
+        // Speicher initialisieren
+        let memory = JSON.parse(localStorage.getItem('omas_memory')) || {};
+        let isListening = false;
+        let recognition = null;
+
+        // Sprachausgabe (TTS)
+        function speakTextOut(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // Vorherige Sprachausgabe stoppen
+                let utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'de-DE';
+                utterance.rate = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // Spracherkennung einrichten
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'de-DE';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = function() {
+                isListening = true;
+                document.getElementById('recordText').innerText = "Höre zu...";
+                document.getElementById('recordBtn').classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                document.getElementById('recordBtn').classList.add('bg-red-600', 'hover:bg-red-700');
+            };
+
+            recognition.onresult = function(event) {
+                let speechResult = event.results[0][0].transcript;
+                processCommand(speechResult);
+            };
+
+            recognition.onerror = function(event) {
+                document.getElementById('status').innerText = "Fehler bei der Spracherkennung. Bitte nochmal versuchen.";
+                stopListeningState();
+            };
+
+            recognition.onend = function() {
+                stopListeningState();
+            };
+        } else {
+            alert("Dein Browser unterstützt leider keine Spracherkennung.");
+        }
+
+        function toggleListening() {
+            if (!recognition) return;
+            if (isListening) {
+                recognition.stop();
+            } else {
+                try {
+                    recognition.start();
+                } catch(e) {
+                    recognition.stop();
+                }
+            }
+        }
+
+        function stopListeningState() {
+            isListening = false;
+            document.getElementById('recordText').innerText = "Sprechen...";
+            document.getElementById('recordBtn').classList.remove('bg-red-600', 'hover:bg-red-700');
+            document.getElementById('recordBtn').classList.add('bg-blue-600', 'hover:bg-blue-700');
+        }
+
+        // Zentraler Befehlsverteiler
+        function processCommand(text) {
+            let lower = text.toLowerCase();
+            document.getElementById('status').innerText = `Erkannt: "${text}"`;
+
+            if (lower.includes('wo ist') || lower.includes('wo sind') || lower.includes('suche')) {
+                searchMemory(text);
+            } else if (lower.includes('lege') || lower.includes('tue') || lower.includes('packe') || lower.includes('ist in') || lower.includes('ist auf')) {
+                saveMemorySilently(text);
+            } else {
+                // Fallback / Standard
+                let defaultMsg = `Silvia, ich habe verstanden: ${text}`;
+                document.getElementById('status').innerText = defaultMsg;
+                speakTextOut(defaultMsg);
+            }
+        }
+
+        // Gegenstand merken (mit Historie / Zeitstempel für wechselnde Ablageorte)
         function saveMemorySilently(text) {
             let lower = text.toLowerCase();
             let itemName = "Gegenstand";
             let locationName = "am festgelegten Ort";
 
-            // Erweiterte Liste für flexiblere Gegenstände
             const commonItems = [
                 'taschentuch', 'taschentücher', 'tücher', 'handtuch', 'handtücher', 
                 'schlüssel', 'lebenslauf', 'unterlagen', 'akten', 'brille', 
@@ -13,7 +164,6 @@
 
             for (let item of commonItems) {
                 if (lower.includes(item)) {
-                    // Singular/Plural schön formen
                     itemName = item.charAt(0).toUpperCase() + item.slice(1);
                     break;
                 }
@@ -34,7 +184,6 @@
 
             let nowTime = new Date().toLocaleDateString('de-DE', { weekday: 'short', hour: '2-digit', minute: '2-digit' });
 
-            // Wir speichern jetzt den Ort inklusive Zeitstempel, falls es öfters wechselt!
             memory[itemName.toLowerCase()] = {
                 item: itemName,
                 location: locationName,
@@ -42,10 +191,12 @@
             };
             localStorage.setItem('omas_memory', JSON.stringify(memory));
 
-            document.getElementById('status').innerText = `🧠 Für ${itemName} gemerkt.`;
-            speakTextOut(`Habe ich mir für ${itemName} gemerkt.`);
+            let feedback = `Habe ich mir für ${itemName} gemerkt.`;
+            document.getElementById('status').innerText = `🧠 ${feedback}`;
+            speakTextOut(feedback);
         }
 
+        // Gegenstand suchen & abrufen
         function searchMemory(text) {
             let lower = text.toLowerCase();
             let foundKey = null;
@@ -66,7 +217,6 @@
                     formattedLoc = "in " + formattedLoc;
                 }
 
-                // Antwort mit Silvia und dem letzten Stand inklusive Zeitpunkt
                 let answerText = `Silvia, deine ${entry.item} sind ${formattedLoc}. Das hattest du zuletzt am ${entry.time} Uhr so hingelegt.`;
                 document.getElementById('status').innerText = `💡 ${answerText}`;
                 speakTextOut(answerText);
@@ -76,3 +226,21 @@
                 speakTextOut(notFound);
             }
         }
+
+        function openCalendar() {
+            speakTextOut("Kalender wird geöffnet.");
+            alert("Hier öffnet sich die Termin-Ansicht.");
+        }
+
+        function makeCall() {
+            speakTextOut("Anruffunktion wird geöffnet.");
+            alert("Hier öffnet sich die Kontakte-Auswahl.");
+        }
+
+        function closeApp() {
+            speakTextOut("Assistent wird geschlossen.");
+            window.close();
+        }
+    </script>
+</body>
+</html>
