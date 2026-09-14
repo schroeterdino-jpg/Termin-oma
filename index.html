@@ -301,7 +301,6 @@
             <button id="closeAppBtn" class="close-app-btn">❌ Beenden</button>
         </div>
         
-        <!-- Der Login-Button ist jetzt der primäre Einstiegspunkt zur Freigabe -->
         <button id="loginBtn" class="login-btn">🔐 Bei Google anmelden</button>
 
         <div class="tab-bar">
@@ -310,7 +309,7 @@
             <button id="tabContactsBtn" class="tab-btn">📞 Anrufen</button>
         </div>
 
-        <!-- REITER 1: EINZIGER SPRACH-BUTTON -->
+        <!-- REITER 1: MASTER-SPRACH-BUTTON -->
         <div id="tab-speak" class="tab-content active">
             <div style="font-size: 15px; color: #555; margin-bottom: 15px; text-align: center; font-weight: bold;">
                 Drücken & einfach frei drauf los sprechen:
@@ -324,14 +323,14 @@
 
             <div class="hint-box">
                 💡 <b>Beispiele:</b><br>
+                • <i>"Schlüssel in Kühlschrank legen"</i> (Gedächtnis)<br>
+                • <i>"Wo ist mein Schlüssel?"</i> (Fragen)<br>
                 • <i>"Arzttermin morgen um 14 Uhr"</i> (Kalender)<br>
-                • <i>"Schlüssel in den Schrank gelegt"</i> (Merken)<br>
-                • <i>"Wo ist mein Schlüssel?"</i> (Suchen)<br>
                 • <i>"Milch kaufen"</i> (Notiz)
             </div>
         </div>
 
-        <!-- REITER 2 -->
+        <!-- REITER 2: TERMINE & NOTIZEN -->
         <div id="tab-calendar" class="tab-content">
             <div class="section-title">Anstehende Termine</div>
             
@@ -351,7 +350,7 @@
             </div>
         </div>
 
-        <!-- REITER 3 -->
+        <!-- REITER 3: KONTAKTE -->
         <div id="tab-contacts" class="tab-content">
             <div class="section-title">Schnellwahl</div>
             <div style="font-size: 14px; color: #555; margin-bottom: 15px;">
@@ -433,7 +432,6 @@
             renderTodos();
             loadContactsUI();
             
-            // Warten bis Google GSI geladen ist
             let checkInterval = setInterval(() => {
                 if (typeof google !== 'undefined' && google.accounts) {
                     clearInterval(checkInterval);
@@ -629,20 +627,24 @@
             btn.innerHTML = '🎤 Sprechen...';
         }
 
+        // --- INTELLIGENTE & FEHLERTOLERANTE SPRACH-STEUERUNG ---
         function routeSpeechInput(text) {
             const lower = text.toLowerCase();
 
-            if (lower.startsWith('wo ist') || lower.includes('wo habe ich') || lower.includes('wo liegt')) {
+            // 1. SUCHEN / FRAGEN ("Wo", "Hast du", "Weißt du", "Gesehen")
+            if (lower.includes('wo') || lower.includes('hast du') || lower.includes('weißt du') || lower.includes('gesehen') || lower.includes('wohin')) {
                 searchMemory(text);
                 return;
             }
 
-            if (lower.includes('hingelegt') || lower.includes('gepackt') || lower.includes('versteckt') || lower.includes('liegt in') || lower.includes('habe ich in')) {
-                saveMemory(text);
+            // 2. SPEICHERN VON GEGENSTÄNDEN (Flexibel über Ortsangaben oder Verben)
+            if (lower.includes(' in ') || lower.includes(' auf ') || lower.includes(' unter ') || lower.includes(' neben ') || lower.includes(' an ') || lower.includes('gelegt') || lower.includes('gepackt') || lower.includes('getan') || lower.includes('packe') || lower.includes('lege') || lower.includes('tue')) {
+                parseAndSaveMemory(text);
                 return;
             }
 
-            if (lower.includes('uhr') || lower.includes('morgen') || lower.includes('termin') || lower.includes('heute um')) {
+            // 3. TERMINE (Uhrzeiten, morgen, heute, Termin)
+            if (lower.includes('uhr') || lower.includes('morgen') || lower.includes('termin') || lower.includes('heute')) {
                 if (!accessToken) {
                     alert('Bitte erst bei Google anmelden für Termine!');
                     triggerLogin();
@@ -652,44 +654,86 @@
                 return;
             }
 
+            // 4. ALLES ANDERE: Als Notiz / To-Do abspeichern
             addTodo(text);
             document.getElementById('status').innerText = `✅ Notiz gespeichert: "${text}"`;
         }
 
-        function saveMemory(text) {
-            memory[text.toLowerCase()] = text;
+        function parseAndSaveMemory(text) {
+            const lower = text.toLowerCase();
+            
+            const commonItems = [
+                'schlüssel', 'brille', 'geldbeutel', 'portemonnaie', 'handy', 'fernbedienung', 
+                'tasche', 'schere', 'karte', 'ausweis', 'brillenetui', 'geldbörse', 'stift', 'zettel'
+            ];
+            
+            let foundItem = commonItems.find(item => lower.includes(item));
+
+            if (!foundItem) {
+                const matchItem = lower.match(/(?:meinen|meine|mein|den|die|das)\s+([a-zäöüß]+)/i);
+                foundItem = matchItem ? matchItem[1] : '';
+            }
+
+            if (!foundItem) {
+                addTodo(text);
+                document.getElementById('status').innerText = `✅ Als Notiz gespeichert: "${text}"`;
+                return;
+            }
+
+            const locationMatch = lower.match(/(?:in\s+den|in\s+die|in\s+dem|in\s+einen|in\s+eine|in|auf\s+den|auf\s+die|auf\s+dem|auf|unter|neben|an)\s+(?:den|die|das|dem)?\s*([a-zäöüß\s]+)$/i);
+            let foundLocation = locationMatch ? locationMatch[1].trim() : '';
+
+            if (!foundLocation) {
+                document.getElementById('status').innerText = '❌ Konnte den Ort nicht genau erkennen.';
+                speakTextOut('Bitte sage mir auch, wohin du es gelegt hast.');
+                return;
+            }
+
+            memory[foundItem] = foundLocation;
             localStorage.setItem('omas_memory', JSON.stringify(memory));
-            document.getElementById('status').innerText = `🧠 Gemerkt!`;
-            speakTextOut(`Alles klar, ich habe mir gemerkt: ${text}`);
+
+            const responseText = `Alles klar, ich habe mir gemerkt: Du hast deinen ${foundItem} in den ${foundLocation} gepackt.`;
+            document.getElementById('status').innerText = `🧠 ${responseText}`;
+            speakTextOut(responseText);
         }
 
         function searchMemory(text) {
-            let foundAnswer = "";
-            let searchQuery = text.toLowerCase().replace(/wo ist|wo habe ich|wo liegt|mein|meine|\?/gi, '').trim();
+            const lower = text.toLowerCase();
+            
+            const commonItems = [
+                'schlüssel', 'brille', 'geldbeutel', 'portemonnaie', 'handy', 'fernbedienung', 
+                'tasche', 'schere', 'karte', 'ausweis', 'brillenetui', 'geldbörse', 'stift', 'zettel'
+            ];
+            
+            let searchedItem = commonItems.find(item => lower.includes(item));
 
-            for (let key in memory) {
-                if (searchQuery.split(' ').some(word => word.length > 2 && key.includes(word))) {
-                    foundAnswer = memory[key];
-                    break;
-                }
+            if (!searchedItem) {
+                const matchItem = lower.match(/(?:mein|meine|meinen|den|die|das)\s+([a-zäöüß]+)/i);
+                searchedItem = matchItem ? matchItem[1] : '';
             }
 
-            if (foundAnswer) {
-                document.getElementById('status').innerText = `💡 ${foundAnswer}`;
-                speakTextOut(foundAnswer);
+            if (searchedItem && memory[searchedItem]) {
+                let location = memory[searchedItem];
+                let answer = `Du hast deinen ${searchedItem} in den ${location} gepackt.`;
+                
+                document.getElementById('status').innerText = `💡 ${answer}`;
+                speakTextOut(answer);
             } else {
-                let matchingTodo = todos.find(t => searchQuery.split(' ').some(word => word.length > 2 && t.text.toLowerCase().includes(word)));
-                if (matchingTodo) {
-                    let ans = `Dazu habe ich diesen Eintrag gefunden: ${matchingTodo.text}`;
-                    document.getElementById('status').innerText = `💡 ${ans}`;
-                    speakTextOut(ans);
+                let foundKey = Object.keys(memory).find(key => searchedItem && key.includes(searchedItem));
+                
+                if (foundKey) {
+                    let location = memory[foundKey];
+                    let answer = `Du hast deinen ${foundKey} in den ${location} gepackt.`;
+                    document.getElementById('status').innerText = `💡 ${answer}`;
+                    speakTextOut(answer);
                 } else {
-                    let notFound = `Dazu habe ich mir leider nichts aufgeschrieben.`;
+                    let notFound = `Dazu habe ich mir keinen Ablageort aufgeschrieben.`;
                     document.getElementById('status').innerText = notFound;
                     speakTextOut(notFound);
                 }
             }
         }
+        // --------------------------------------------------------
 
         function fetchUpcomingEvents() {
             if (!accessToken) {
