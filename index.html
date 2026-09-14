@@ -389,7 +389,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v5.8-2026-09-14-fixed-preposition";
+        const APP_VERSION = "v5.9-2026-09-14-ai-fuzzy-memory";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -634,59 +634,6 @@
                 return;
             }
 
-            const lowerText = userText.toLowerCase();
-            if (lowerText.startsWith("wo ist") || lowerText.includes("wo habe ich") || lowerText.includes("wo liegt")) {
-                let queryItem = lowerText
-                    .replace("wo ist", "")
-                    .replace("wo habe ich", "")
-                    .replace("wo liegt", "")
-                    .replace("mein", "")
-                    .replace("meine", "")
-                    .replace("dein", "")
-                    .replace("deine", "")
-                    .trim();
-                
-                let foundLocation = null;
-                for (const [key, value] of Object.entries(userMemories)) {
-                    if (key.includes(queryItem) || queryItem.includes(key)) {
-                        foundLocation = value;
-                        break;
-                    }
-                }
-
-                if (foundLocation) {
-                    const currentUserName = userMemories["mein name"] || userMemories["name"] || "";
-                    const namePrefix = currentUserName ? `${currentUserName}, ` : "";
-                    
-                    let cleanLocation = foundLocation.trim();
-
-                    // Wenn der gespeicherte Ort schon mit einer Präposition beginnt (in, auf, an, unter, im, am etc.)
-                    if (/^(in|auf|an|unter|im|am)\s+/i.test(cleanLocation)) {
-                        cleanLocation = cleanLocation
-                            .replace(/meinem\s+/i, "deinem ")
-                            .replace(/meiner\s+/i, "deiner ")
-                            .replace(/mein\s+/i, "dein ")
-                            .replace(/^im\s+/i, "im ")
-                            .replace(/^am\s+/i, "am ");
-                        
-                        const reply = `${namePrefix}dein ${queryItem} ist ${cleanLocation}.`;
-                        appendChatBubble(reply, 'assistant');
-                        const statusEl = document.getElementById('status');
-                        if(statusEl) statusEl.innerText = 'Bereit.';
-                        speakTextOut(reply);
-                        return;
-                    }
-
-                    // Andernfalls (wenn nur ein reiner Ort wie "Kopfkissen" gespeichert ist) nutzen wir standardmäßig "unter deinem"
-                    const reply = `${namePrefix}dein ${queryItem} ist unter deinem ${cleanLocation}.`;
-                    appendChatBubble(reply, 'assistant');
-                    const statusEl = document.getElementById('status');
-                    if(statusEl) statusEl.innerText = 'Bereit.';
-                    speakTextOut(reply);
-                    return;
-                }
-            }
-
             try {
                 const now = new Date();
                 const currentTimeStr = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -695,18 +642,27 @@
                 const memoriesStr = JSON.stringify(userMemories);
                 const routerPrompt = `Du bist das Gehirn eines intelligenten Sprach-Assistenten. 
 Echte aktuelle Zeit des Geräts: ${currentTimeStr}, Datum: ${currentDateStr}.
-Vorhandenes Gedächtnis (inklusive des Namens des Nutzers unter "mein name" oder "name"): ${memoriesStr}
+Gespeichertes Gedächtnis des Nutzers (Objekte und deren Ablageorte, sowie der Nutzername unter "mein name"): ${memoriesStr}
 
 Analysiere die Eingabe des Nutzers: "${userText}"
-WICHTIG ZUM NAMEN: Wenn der Nutzer sagt "Nenn mich [Name]" oder "Ich heiße [Name]" oder ähnlich, speichere das direkt als memory_key: "mein name" und memory_value: "[Name]" mit der action "store_memory".
+
+AUFGABEN-LOGIK & REGELN:
+1. NAMEN ÄNDERN: Sagt der Nutzer "Nenn mich [Name]" oder "Ich heiße [Name]", ist das action "store_memory" mit memory_key: "mein name" und memory_value: "[Name]".
+2. OBJEKT SPEICHERN: Sagt der Nutzer, wo etwas liegt (z.B. "Mein Schlüssel ist in der Schublade" oder "Das Buch liegt auf dem Tisch"), speichere es als action "store_memory".
+3. ORTE ABFRAGEN (Sehr wichtig!): Fragt der Nutzer, wo sich ein Gegenstand befindet (z.B. "Wo ist mein Schlüssel?", "Wo habe ich den Schlüssel hingelegt?", "Weißt du, wo das Buch ist?"), suche im Gedächtnis nach dem passenden Gegenstand. 
+   - SEI INTELIGENT BEI DER SUCHE: Ignoriere geringfügige Abweichungen in der Aussprache oder dem Begriff (z.B. wenn im Gedächtnis "autoschlüssel" steht und der Nutzer nur "schlüssel" sagt, oder umgekehrt).
+   - Antworte in diesem Fall als action "chat".
+   - Formuliere die Antwort in natürlichem Deutsch direkt an den Nutzer. Nutze dabei seinen Namen (falls unter "mein name" im Gedächtnis hinterlegt).
+   - Achte auf die Grammatik des Ortes: Wenn der gespeicherte Ort schon mit einer Präposition beginnt (z. B. "im Schrank", "auf dem Tisch"), baue den Satz passend zusammen ("dein Schlüssel ist im Schrank"). Wenn es nur ein reiner Begriff ist (z. B. "Kopfkissen"), baue ihn mit "unter deinem" oder passender Präposition ein.
+   - Falls der Gegenstand **absolut gar nicht** im Gedächtnis zu finden ist, antworte ehrlich, dass du nicht weißt, wo er das hingelegt hat.
 
 Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
-- "action": Entweder "calendar" (Termin eintragen), "get_calendar" (Termine vorlesen), "get_todos" (To-Dos vorlesen), "todo" (Neues To-Do hinzufügen), "store_memory" (Gedächtnis oder Name speichern), oder "chat" (normale Fragen).
+- "action": Entweder "calendar", "get_calendar", "get_todos", "todo", "store_memory", oder "chat".
 - "calendar_text": (Nur bei "calendar") Der Satz zur Termin-Extraktion.
 - "todo_text": (Nur bei "todo") Der To-Do-Inhalt.
-- "memory_key": (Nur bei "store_memory") Das genaue Hauptobjekt, das gesucht wird (z. B. "schlüssel").
-- "memory_value": (Nur bei "store_memory") Der genaue Ablageort exakt so wie angegeben (z. B. "im Küchenschrank" oder "unter dem Tisch").
-- "reply": (Für "chat", "get_calendar", "get_todos" oder Bestätigung) Eine natürliche Antwort an den Nutzer. Nutze dabei immer den im Gedächtnis gespeicherten Namen des Nutzers, falls vorhanden!`;
+- "memory_key": (Nur bei "store_memory") Der Name des Gegenstands oder "mein name".
+- "memory_value": (Nur bei "store_memory") Der Ablageort oder Name.
+- "reply": (Für "chat", "get_calendar", "get_todos" oder Bestätigung) Die fertige, natürliche Antwort an den Nutzer.`;
 
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
@@ -1008,7 +964,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
             if(!container) return;
             container.innerHTML = '';
             if (todos.length === 0) {
-                container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine Notizen.</div>';
+                container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Nokanicht Notizen.</div>';
                 return;
             }
             todos.forEach((t, i) => {
