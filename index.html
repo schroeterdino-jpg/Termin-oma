@@ -55,6 +55,18 @@
         button.todo-btn:active {
             background-color: #2b8c44;
         }
+        .refresh-btn {
+            background-color: #6c757d;
+            font-size: 14px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            margin-top: 10px;
+            flex: none;
+            width: auto;
+        }
+        .refresh-btn:active {
+            background-color: #5a6268;
+        }
         @keyframes pulse {
             0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234, 67, 53, 0.4); }
             70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(234, 67, 53, 0); }
@@ -73,9 +85,15 @@
             border-top: 1px solid #eee;
             padding-top: 15px;
         }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
         .section-box h3 {
             font-size: 16px;
-            margin-bottom: 10px;
+            margin: 0;
             color: #444;
         }
         .event-item {
@@ -138,8 +156,12 @@
         <div id="status">Bereit...</div>
 
         <div class="section-box">
-            <h3>Nächste Termine (Klick öffnet Kalender):</h3>
+            <div class="section-header">
+                <h3>Nächste Termine:</h3>
+                <button class="refresh-btn" onclick="fetchUpcomingEvents()">🔄 Aktualisieren</button>
+            </div>
             <div id="eventsContainer">Lade Termine aus dem Kalender...</div>
+            <div style="font-size: 11px; color: #777; margin-top: 5px; text-align: center;">💡 Klick auf Termin öffnet den Google Kalender</div>
         </div>
 
         <div class="section-box">
@@ -171,6 +193,13 @@
                     accessToken = response.access_token;
                     document.getElementById('status').innerText = 'Angemeldet! Lade Termine...';
                     fetchUpcomingEvents();
+
+                    // Automatisches Aktualisieren der Termine alle 30 Sekunden im Hintergrund
+                    setInterval(() => {
+                        if (accessToken) {
+                            fetchUpcomingEvents(true); // true = leise im Hintergrund laden ohne Statusmeldung
+                        }
+                    }, 30000);
                 },
             });
             tokenClient.requestAccessToken({ prompt: '' });
@@ -206,8 +235,12 @@
             listenAndProcess(mode);
         }
 
-        function fetchUpcomingEvents() {
+        function fetchUpcomingEvents(isBackground = false) {
             if (!accessToken) return;
+
+            if (!isBackground) {
+                document.getElementById('status').innerText = 'Lade Termine neu...';
+            }
 
             const now = new Date().toISOString();
             fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now}&maxResults=30&singleEvents=true&orderBy=startTime`, {
@@ -222,7 +255,7 @@
 
                 if (!data.items || data.items.length === 0) {
                     container.innerHTML = 'Keine anstehenden Termine gefunden.';
-                    document.getElementById('status').innerText = 'Bereit...';
+                    if (!isBackground) document.getElementById('status').innerText = 'Bereit...';
                     return;
                 }
 
@@ -230,7 +263,7 @@
 
                 if (timedEvents.length === 0) {
                     container.innerHTML = 'Keine anstehenden Uhrzeit-Termine gefunden.';
-                    document.getElementById('status').innerText = 'Bereit...';
+                    if (!isBackground) document.getElementById('status').innerText = 'Bereit...';
                     return;
                 }
 
@@ -250,12 +283,14 @@
 
                     container.appendChild(div);
                 });
-                document.getElementById('status').innerText = 'Bereit...';
+                if (!isBackground) document.getElementById('status').innerText = 'Bereit...';
             })
             .catch(err => {
                 console.error(err);
-                document.getElementById('eventsContainer').innerHTML = 'Fehler beim Laden der Termine.';
-                document.getElementById('status').innerText = 'Bereit...';
+                if (!isBackground) {
+                    document.getElementById('eventsContainer').innerHTML = 'Fehler beim Laden der Termine.';
+                    document.getElementById('status').innerText = 'Bereit...';
+                }
             });
         }
 
@@ -323,7 +358,7 @@
         }
 
         function deleteTodo(event, index) {
-            event.stopPropagation(); // Verhindert das Umschalten beim Klick auf den Löschen-Button
+            event.stopPropagation();
             todos.splice(index, 1);
             saveAndRenderTodos();
         }
@@ -450,7 +485,7 @@
                 }
             })
             .catch(error => {
-                document.getElementById('status').innerText = '❌ Netzwerkfehler: ' + error.message;
+                document.getElementById('status'].innerText = '❌ Netzwerkfehler: ' + error.message;
             });
         }
     </script>
