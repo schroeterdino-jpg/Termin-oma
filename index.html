@@ -69,20 +69,33 @@
             cursor: pointer;
             font-weight: bold;
         }
+        .login-btn {
+            background-color: #fbbc05;
+            color: #111;
+            font-weight: bold;
+            font-size: 15px;
+            padding: 12px;
+            margin-bottom: 15px;
+            width: 100%;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            display: none;
+        }
         .tab-bar {
             display: flex;
-            gap: 6px;
+            gap: 4px;
             margin-bottom: 20px;
             background: #e4e6eb;
-            padding: 5px;
+            padding: 4px;
             border-radius: 14px;
         }
         .tab-btn {
             flex: 1;
             background: transparent;
             border: none;
-            padding: 10px 6px;
-            font-size: 13px;
+            padding: 9px 4px;
+            font-size: 12px;
             font-weight: bold;
             color: #555;
             border-radius: 10px;
@@ -105,8 +118,8 @@
             background-color: #0d6efd;
             color: white;
             border: none;
-            padding: 25px;
-            font-size: 22px;
+            padding: 22px;
+            font-size: 20px;
             font-weight: bold;
             border-radius: 16px;
             cursor: pointer;
@@ -139,7 +152,7 @@
             word-break: break-word;
         }
         .chat-history {
-            max-height: 250px;
+            max-height: 220px;
             overflow-y: auto;
             margin-bottom: 15px;
             display: flex;
@@ -166,21 +179,115 @@
             align-self: flex-start;
             border-bottom-left-radius: 2px;
         }
-        .settings-card {
+        .section-title {
+            font-size: 17px;
+            font-weight: bold;
+            color: #222;
+            margin-bottom: 12px;
+        }
+        .action-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .action-sub-btn {
+            flex: 1;
+            background: #e9ecef;
+            color: #222;
+            border: none;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .event-item {
+            background: #f8f9fa;
+            padding: 12px 14px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            font-size: 15px;
+            border-left: 6px solid #0d6efd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .event-delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            width: 40px;
+            height: 40px;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: none;
+        }
+        .todo-item {
+            background: #f1f8f5;
+            padding: 12px 14px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            font-size: 15px;
+            border-left: 6px solid #198754;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+        .todo-item.completed span {
+            text-decoration: line-through;
+            color: #888;
+        }
+        .todo-item.completed {
+            background: #f8f9fa;
+            border-left-color: #ccc;
+        }
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #dc3545;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0 5px;
+            flex: none;
+        }
+        .call-btn {
+            width: 100%;
+            background-color: #198754;
+            color: white;
+            border: none;
+            padding: 16px;
+            font-size: 17px;
+            font-weight: bold;
+            border-radius: 14px;
+            cursor: pointer;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            text-decoration: none;
+            box-sizing: border-box;
+        }
+        .contact-card, .settings-card {
             background: #f8f9fa;
             padding: 15px;
             border-radius: 14px;
             margin-bottom: 15px;
             border: 1px solid #ddd;
         }
-        .settings-card label {
+        .contact-card label, .settings-card label {
             display: block;
             font-size: 13px;
             color: #555;
             margin-bottom: 5px;
             font-weight: bold;
         }
-        .settings-input {
+        .contact-input, .settings-input {
             width: 100%;
             padding: 12px;
             font-size: 15px;
@@ -189,7 +296,7 @@
             margin-bottom: 10px;
             box-sizing: border-box;
         }
-        .save-settings-btn {
+        .save-contact-btn, .save-settings-btn {
             width: 100%;
             background: #0d6efd;
             color: white;
@@ -201,12 +308,12 @@
             cursor: pointer;
         }
         .hint-box {
-            font-size: 13px;
+            font-size: 12px;
             color: #666;
             text-align: center;
-            margin-top: 15px;
+            margin-top: 10px;
             background: #fff3cd;
-            padding: 10px;
+            padding: 8px;
             border-radius: 8px;
         }
     </style>
@@ -217,48 +324,82 @@
         <div class="app-header">
             <div class="header-title-area">
                 <div class="app-logo">🤖</div>
-                <h1>Omas KI-Assistent</h1>
+                <h1>Omas Assistent</h1>
             </div>
             <button id="closeAppBtn" class="close-app-btn">❌ Beenden</button>
         </div>
+        
+        <button id="loginBtn" class="login-btn">🔐 Bei Google anmelden</button>
 
         <div class="tab-bar">
-            <button id="tabSpeakBtn" class="tab-btn active">💬 Chat & Sprache</button>
-            <button id="tabSettingsBtn" class="tab-btn">⚙️ KI-Key</button>
+            <button id="tabSpeakBtn" class="tab-btn active">💬 Chat</button>
+            <button id="tabCalendarBtn" class="tab-btn">📅 Termine</button>
+            <button id="tabContactsBtn" class="tab-btn">📞 Anrufen</button>
+            <button id="tabSettingsBtn" class="tab-btn">⚙️ Key</button>
         </div>
 
-        <!-- REITER 1: UNIVERSAL CHAT & SPRACH-ASSISTENT -->
+        <!-- REITER 1: UNIVERSAL CHAT -->
         <div id="tab-speak" class="tab-content active">
-            <div style="font-size: 14px; color: #555; margin-bottom: 10px; text-align: center; font-weight: bold;">
-                Frage mich alles (Wetter, Wissen, etc.):
-            </div>
-
-            <!-- Chat-Verlauf -->
             <div id="chatHistory" class="chat-history">
-                <div class="chat-bubble assistant">Hallo! Ich bin dein echter KI-Assistent. Frag mich einfach, was du wissen möchtest!</div>
+                <div class="chat-bubble assistant">Hallo! Ich bin bereit. Frag mich etwas oder sag mir, wo du etwas hingelegt hast.</div>
             </div>
 
             <button id="masterMicBtn" class="big-btn">
                 🎤 Sprechen...
             </button>
             
-            <div id="status">Bereit für deine Frage...</div>
+            <div id="status">Bereit zum Sprechen...</div>
 
             <div class="hint-box">
-                💡 <b>Tipps:</b><br>
-                • <i>"Wie wird das Wetter morgen?"</i><br>
-                • <i>"Erklär mir kurz die Relativitätstheorie."</i><br>
-                • <i>"Sprich mich ab jetzt mit Silvia an."</i>
+                💡 <i>"Wo ist mein Schlüssel?"</i> • <i>"Wetter morgen?"</i>
             </div>
         </div>
 
-        <!-- REITER 2: EINSTELLUNGEN / API KEY -->
-        <div id="tab-settings" class="tab-content">
-            <div class="section-title" style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">Groq API-Key</div>
-            <div style="font-size: 14px; color: #555; margin-bottom: 15px;">
-                Trage hier deinen Groq-Schlüssel ein (beginnt mit <code>gsk_...</code>).
+        <!-- REITER 2: TERMINE & NOTIZEN -->
+        <div id="tab-calendar" class="tab-content">
+            <div class="section-title">Anstehende Termine</div>
+            
+            <div class="action-row">
+                <button id="speakSummaryBtn" class="action-sub-btn" style="background: #cfe2ff; color: #084298;">🔊 Vorlesen</button>
+                <button id="refreshEventsBtn" class="action-sub-btn">🔄 Neu laden</button>
             </div>
 
+            <div id="deleteEventsContainer" style="margin-top: 10px;">Lade Termine...</div>
+
+            <div style="margin-top: 20px;">
+                <div class="section-title">
+                    <span>Merkliste / To-Dos</span>
+                    <span style="font-size: 12px; font-weight: normal; color: #666;">(Klick = Abhaken)</span>
+                </div>
+                <div id="todosContainer">Noch keine Notizen.</div>
+            </div>
+        </div>
+
+        <!-- REITER 3: KONTAKTE -->
+        <div id="tab-contacts" class="tab-content">
+            <div class="section-title">Schnellwahl</div>
+            <div id="quickCallContainer"></div>
+
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 15px 0;">
+            <div class="section-title" style="font-size: 15px;">Nummern bearbeiten</div>
+
+            <div class="contact-card">
+                <label>Kontakt 1</label>
+                <input type="text" id="c1Name" class="contact-input" placeholder="Name">
+                <input type="tel" id="c1Phone" class="contact-input" placeholder="Telefonnummer">
+                <button id="saveC1Btn" class="save-contact-btn">Speichern</button>
+            </div>
+            <div class="contact-card">
+                <label>Kontakt 2</label>
+                <input type="text" id="c2Name" class="contact-input" placeholder="Name">
+                <input type="tel" id="c2Phone" class="contact-input" placeholder="Telefonnummer">
+                <button id="saveC2Btn" class="save-contact-btn">Speichern</button>
+            </div>
+        </div>
+
+        <!-- REITER 4: EINSTELLUNGEN -->
+        <div id="tab-settings" class="tab-content">
+            <div class="section-title">Groq API-Key</div>
             <div class="settings-card">
                 <label>API-Key</label>
                 <input type="password" id="groqApiKeyInput" class="settings-input" placeholder="gsk_...">
@@ -267,8 +408,10 @@
         </div>
     </div>
 
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
     <script>
-        const APP_VERSION = "v4.0-2026-09-14-universal-ai";
+        const APP_VERSION = "v4.1-2026-09-14-all-in-one";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -276,8 +419,21 @@
             }
         }
 
+        const CLIENT_ID = '399573320370-qka01ghj0s88eoair7lla665cbj10o4g.apps.googleusercontent.com';
+        const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
+        
+        let tokenClient;
+        let accessToken = null;
+        let todos = JSON.parse(localStorage.getItem('omas_todos') || '[]');
+        let latestEventsSpeechText = "Es sind keine anstehenden Termine geladen.";
+
+        let contacts = JSON.parse(localStorage.getItem('omas_contacts') || JSON.stringify([
+            { name: "Simone", phone: "" },
+            { name: "Kontakt 2", phone: "" }
+        ]));
+
         let chatMessages = [
-            { role: "system", content: "Du bist ein hilfsbereiter, freundlicher und kluger deutscher KI-Assistent. Antworte in klaren, prägnanten und natürlichen Sätzen auf Deutsch, da deine Antworten direkt per Sprachausgabe vorgelesen werden. Merke dir, wenn der Nutzer seinen Namen ändern möchte (standardmäßig spricht der Nutzer dich an, merke dir den Namen des Nutzers aus dem Gespräch, falls er genannt wird)." }
+            { role: "system", content: "Du bist ein hilfsbereiter deutscher KI-Assistent. Antworte in klaren, natürlichen Sätzen auf Deutsch, da deine Antworten per Sprachausgabe vorgelesen werden. Merke dir Ablageorte von Gegenständen oder Notizen, wenn der Nutzer sie dir nennt." }
         ];
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -287,42 +443,121 @@
 
         function attachEventListeners() {
             document.getElementById('closeAppBtn').addEventListener('click', exitApp);
+            document.getElementById('loginBtn').addEventListener('click', triggerLogin);
+
             document.getElementById('tabSpeakBtn').addEventListener('click', (e) => switchTab('speak', e));
+            document.getElementById('tabCalendarBtn').addEventListener('click', (e) => switchTab('calendar', e));
+            document.getElementById('tabContactsBtn').addEventListener('click', (e) => switchTab('contacts', e));
             document.getElementById('tabSettingsBtn').addEventListener('click', (e) => switchTab('settings', e));
 
             document.getElementById('masterMicBtn').addEventListener('click', startMasterSpeechRecognition);
+
+            document.getElementById('speakSummaryBtn').addEventListener('click', speakSummary);
+            document.getElementById('refreshEventsBtn').addEventListener('click', fetchUpcomingEvents);
+
+            document.getElementById('saveC1Btn').addEventListener('click', () => saveContact(1));
+            document.getElementById('saveC2Btn').addEventListener('click', () => saveContact(2));
             document.getElementById('saveGroqKeyBtn').addEventListener('click', saveGroqApiKey);
         }
 
         function initApp() {
-            const savedKey = localStorage.getItem('omas_groq_key') || '';
-            document.getElementById('groqApiKeyInput').value = savedKey;
+            renderTodos();
+            loadContactsUI();
+            document.getElementById('groqApiKeyInput').value = localStorage.getItem('omas_groq_key') || '';
+
+            let checkInterval = setInterval(() => {
+                if (typeof google !== 'undefined' && google.accounts) {
+                    clearInterval(checkInterval);
+                    setupGoogleClient();
+                }
+            }, 300);
         }
 
         function saveGroqApiKey() {
-            const key = document.getElementById('groqApiKeyInput').value.trim();
-            localStorage.setItem('omas_groq_key', key);
-            alert("Groq API-Key sicher gespeichert!");
+            localStorage.setItem('omas_groq_key', document.getElementById('groqApiKeyInput').value.trim());
+            alert("API-Key gespeichert!");
             switchTab('speak', { currentTarget: document.getElementById('tabSpeakBtn') });
+        }
+
+        function setupGoogleClient() {
+            try {
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: CLIENT_ID,
+                    scope: SCOPES,
+                    callback: (response) => {
+                        if (response.error !== undefined) {
+                            document.getElementById('loginBtn').style.display = 'block';
+                            return;
+                        }
+                        accessToken = response.access_token;
+                        document.getElementById('loginBtn').style.display = 'none';
+                        fetchUpcomingEvents();
+                    },
+                });
+                tokenClient.requestAccessToken({ prompt: '' });
+            } catch (e) {
+                document.getElementById('loginBtn').style.display = 'block';
+            }
         }
 
         function switchTab(tabName, event) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
 
-            if (tabName === 'speak') {
-                document.getElementById('tab-speak').classList.add('active');
-            } else if (tabName === 'settings') {
-                document.getElementById('tab-settings').classList.add('active');
+            if (tabName === 'speak') document.getElementById('tab-speak').classList.add('active');
+            else if (tabName === 'calendar') {
+                document.getElementById('tab-calendar').classList.add('active');
+                if (accessToken) fetchUpcomingEvents();
             }
-            if (event && event.currentTarget) {
-                event.currentTarget.classList.add('active');
+            else if (tabName === 'contacts') {
+                document.getElementById('tab-contacts').classList.add('active');
+                loadContactsUI();
             }
+            else if (tabName === 'settings') document.getElementById('tab-settings').classList.add('active');
+
+            if (event && event.currentTarget) event.currentTarget.classList.add('active');
         }
 
         function exitApp() {
             window.close();
             setTimeout(() => { window.location.href = "about:blank"; }, 100);
+        }
+
+        function triggerLogin() {
+            if (tokenClient) tokenClient.requestAccessToken({ prompt: 'consent' });
+        }
+
+        function loadContactsUI() {
+            for (let i = 0; i < 2; i++) {
+                document.getElementById(`c${i+1}Name`).value = contacts[i].name || '';
+                document.getElementById(`c${i+1}Phone`).value = contacts[i].phone || '';
+            }
+            const container = document.getElementById('quickCallContainer');
+            container.innerHTML = '';
+            contacts.forEach((c) => {
+                const a = document.createElement('a');
+                a.className = 'call-btn';
+                if (c.phone) {
+                    a.href = `tel:${c.phone}`;
+                    a.innerHTML = `📞 ${c.name} anrufen`;
+                    a.style.backgroundColor = '#198754';
+                } else {
+                    a.href = '#';
+                    a.onclick = (e) => { e.preventDefault(); alert(`Bitte Nummer für "${c.name}" eintragen!`); };
+                    a.innerHTML = `⚠️ ${c.name} (Nummer fehlt)`;
+                    a.style.backgroundColor = '#6c757d';
+                }
+                container.appendChild(a);
+            });
+        }
+
+        function saveContact(num) {
+            const name = document.getElementById(`c${num}Name`).value.trim();
+            const phone = document.getElementById(`c${num}Phone`).value.trim();
+            contacts[num-1] = { name: name || `Kontakt ${num}`, phone: phone };
+            localStorage.setItem('omas_contacts', JSON.stringify(contacts));
+            loadContactsUI();
+            alert("Kontakt gespeichert!");
         }
 
         function playBeep() {
@@ -349,13 +584,22 @@
             window.speechSynthesis.speak(utterance);
         }
 
+        function speakSummary() {
+            let speechText = latestEventsSpeechText;
+            const activeTodos = todos.filter(t => !t.completed);
+            if (activeTodos.length > 0) {
+                speechText += " Außerdem hast du noch To-Dos: ";
+                activeTodos.forEach(t => { speechText += t.text + ". "; });
+            }
+            speakTextOut(speechText);
+        }
+
         function startMasterSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
-                alert('Spracherkennung wird vom Browser nicht unterstützt.');
+                alert('Spracherkennung wird nicht unterstützt.');
                 return;
             }
-
             const recognition = new SpeechRecognition();
             recognition.lang = 'de-DE';
             const btn = document.getElementById('masterMicBtn');
@@ -370,12 +614,12 @@
             recognition.onresult = function(event) {
                 const text = event.results[0][0].transcript;
                 appendChatBubble(text, 'user');
-                document.getElementById('status').innerText = 'Denke nach...';
+                document.getElementById('status').innerText = 'Verarbeite...';
                 sendQueryToGroq(text);
             };
 
             recognition.onerror = function(event) {
-                document.getElementById('status').innerText = 'Sprachfehler: ' + event.error;
+                document.getElementById('status').innerText = 'Fehler: ' + event.error;
                 resetMasterButton();
             };
 
@@ -395,50 +639,41 @@
         async function sendQueryToGroq(userText) {
             const apiKey = localStorage.getItem('omas_groq_key');
             if (!apiKey) {
-                alert("Bitte zuerst im Reiter '⚙️ KI-Key' deinen Groq API-Schlüssel eintragen!");
-                document.getElementById('status').innerText = 'Fehler: Kein API-Key hinterlegt.';
+                alert("Bitte zuerst im Reiter '⚙️ Key' deinen Groq API-Schlüssel eintragen!");
+                document.getElementById('status').innerText = 'Kein API-Key hinterlegt.';
                 return;
             }
 
-            // Nutzer-Nachricht dem Verlauf hinzufügen
             chatMessages.push({ role: "user", content: userText });
 
-            const apiUrl = "https://api.groq.com/openai/v1/chat/completions";
-            const modelName = "openai/gpt-oss-120b";
-
             try {
-                const response = await fetch(apiUrl, {
+                const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
                     headers: {
                         "Authorization": `Bearer ${apiKey.trim()}`,
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
-                        model: modelName,
+                        model: "openai/gpt-oss-120b",
                         messages: chatMessages,
                         temperature: 0.7
                     })
                 });
 
-                if (!response.ok) {
-                    const errData = await response.text();
-                    throw new Error(`HTTP ${response.status}: ${errData}`);
-                }
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
                 const data = await response.json();
                 const aiReply = data.choices[0].message.content;
 
-                // Antwort speichern und im Chat anzeigen
                 chatMessages.push({ role: "assistant", content: aiReply });
                 appendChatBubble(aiReply, 'assistant');
 
-                document.getElementById('status').innerText = 'Bereit für deine nächste Frage.';
+                document.getElementById('status').innerText = 'Bereit.';
                 speakTextOut(aiReply);
 
             } catch (err) {
-                console.error("KI Fehler:", err);
-                document.getElementById('status').innerText = '⚠️ KI-Fehler: ' + err.err;
-                speakTextOut("Es gab einen Fehler bei der Verbindung.");
+                document.getElementById('status').innerText = '⚠️ KI-Fehler.';
+                speakTextOut("Es gab einen Fehler.");
             }
         }
 
@@ -449,6 +684,80 @@
             bubble.innerText = text;
             history.appendChild(bubble);
             history.scrollTop = history.scrollHeight;
+        }
+
+        function fetchUpcomingEvents() {
+            if (!accessToken) {
+                document.getElementById('deleteEventsContainer').innerHTML = 'Nicht angemeldet.';
+                document.getElementById('loginBtn').style.display = 'block';
+                return;
+            }
+            const now = new Date().toISOString();
+            fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now}&maxResults=20&singleEvents=true&orderBy=startTime`, {
+                headers: { 'Authorization': 'Bearer ' + accessToken }
+            })
+            .then(res => res.json())
+            .then(data => {
+                const container = document.getElementById('deleteEventsContainer');
+                container.innerHTML = '';
+                if (!data.items || data.items.length === 0) {
+                    container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine Termine.</div>';
+                    latestEventsSpeechText = "Keine anstehenden Termine.";
+                    return;
+                }
+                let speechParts = [];
+                const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+
+                data.items.forEach((item) => {
+                    if (!item.start || !item.start.dateTime) return;
+                    const d = new Date(item.start.dateTime);
+                    speechParts.push(`${item.summary}, am ${d.getDate()}. ${monthNames[d.getMonth()]} um ${d.getHours()} Uhr`);
+
+                    const div = document.createElement('div');
+                    div.className = 'event-item';
+                    div.innerHTML = `<span><strong>${item.summary}</strong><br><span style="color:#555; font-size:13px;">📅 ${d.toLocaleDateString('de-DE')}</span></span>`;
+                    const del = document.createElement('button');
+                    del.className = 'event-delete-btn';
+                    del.innerHTML = '🗑️';
+                    del.onclick = () => deleteCalendarEvent(item.id);
+                    div.appendChild(del);
+                    container.appendChild(div);
+                });
+                latestEventsSpeechText = "Deine nächsten Termine: " + speechParts.join(". ");
+            });
+        }
+
+        function deleteCalendarEvent(id) {
+            if (!confirm("Termin löschen?")) return;
+            fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + accessToken }
+            }).then(() => fetchUpcomingEvents());
+        }
+
+        function renderTodos() {
+            const container = document.getElementById('todosContainer');
+            container.innerHTML = '';
+            if (todos.length === 0) {
+                container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine Notizen.</div>';
+                return;
+            }
+            todos.forEach((t, i) => {
+                const div = document.createElement('div');
+                div.className = 'todo-item' + (t.completed ? ' completed' : '');
+                div.innerHTML = `<span>${t.text}</span>`;
+                const del = document.createElement('button');
+                del.className = 'delete-btn';
+                del.innerHTML = '🗑️';
+                del.onclick = (e) => { e.stopPropagation(); todos.splice(i, 1); saveTodos(); };
+                div.appendChild(del);
+                div.onclick = () => { todos[i].completed = !todos[i].completed; saveTodos(); };
+                container.appendChild(div);
+            });
+        }
+        function saveTodos() {
+            localStorage.setItem('omas_todos', JSON.stringify(todos));
+            renderTodos();
         }
     </script>
 </body>
