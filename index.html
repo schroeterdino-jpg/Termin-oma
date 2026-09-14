@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Omas Sprach-Assistent</title>
     
-    <!-- Direkt integriertes Mikrofon-Icon für den Homescreen -->
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/7856/7856387.png">
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/7856/7856387.png">
     
@@ -70,9 +69,6 @@
             cursor: pointer;
             font-weight: bold;
         }
-        .close-app-btn:active {
-            background-color: #b02a37;
-        }
         .login-btn {
             background-color: #fbbc05;
             color: #111;
@@ -85,7 +81,6 @@
             border: none;
             cursor: pointer;
         }
-        /* Reiter-Navigation (Tabs) */
         .tab-bar {
             display: flex;
             gap: 6px;
@@ -117,7 +112,6 @@
         .tab-content.active {
             display: block;
         }
-        /* Große Aktions-Buttons */
         .big-btn {
             width: 100%;
             background-color: #0d6efd;
@@ -134,9 +128,6 @@
             align-items: center;
             justify-content: center;
             gap: 12px;
-        }
-        .big-btn:active {
-            transform: scale(0.98);
         }
         .big-btn.todo-btn {
             background-color: #198754;
@@ -162,15 +153,11 @@
             text-align: center;
             border-left: 5px solid #0d6efd;
         }
-        /* Sektionen & Listen */
         .section-title {
             font-size: 18px;
             font-weight: bold;
             color: #222;
             margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
         .action-row {
             display: flex;
@@ -187,9 +174,6 @@
             font-weight: bold;
             border-radius: 10px;
             cursor: pointer;
-        }
-        .action-sub-btn:active {
-            background: #dee2e6;
         }
         .event-item {
             background: #f8f9fa;
@@ -215,9 +199,6 @@
             align-items: center;
             justify-content: center;
             flex: none;
-        }
-        .event-delete-btn:active {
-            background-color: #b02a37;
         }
         .todo-item {
             background: #f1f8f5;
@@ -248,7 +229,6 @@
             padding: 0 5px;
             flex: none;
         }
-        /* Kontakt-Schnellwahl Styling */
         .call-btn {
             width: 100%;
             background-color: #198754;
@@ -267,9 +247,6 @@
             gap: 12px;
             text-decoration: none;
             box-sizing: border-box;
-        }
-        .call-btn:active {
-            transform: scale(0.98);
         }
         .contact-card {
             background: #f8f9fa;
@@ -305,9 +282,6 @@
             border-radius: 8px;
             cursor: pointer;
         }
-        .save-contact-btn:active {
-            background: #0b5ed7;
-        }
         .hint-box {
             font-size: 13px;
             color: #666;
@@ -322,55 +296,50 @@
 <body>
 
     <div class="container">
-        <!-- Header mit schickem Logo -->
         <div class="app-header">
             <div class="header-title-area">
                 <div class="app-logo">🎙️</div>
                 <h1>Omas Sprach-Assistent</h1>
             </div>
-            <button class="close-app-btn" onclick="exitApp()">❌ Beenden</button>
+            <button id="closeAppBtn" class="close-app-btn">❌ Beenden</button>
         </div>
         
-        <!-- Login-Button falls manueller Eingriff nötig ist -->
-        <button id="loginBtn" class="login-btn" onclick="triggerLogin()" style="display:none;">🔐 Bei Google anmelden</button>
+        <button id="loginBtn" class="login-btn" style="display:none;">🔐 Bei Google anmelden</button>
 
-        <!-- Reiter (Tabs) -->
         <div class="tab-bar">
-            <button class="tab-btn active" onclick="switchTab('speak', event)">🎤 Sprechen</button>
-            <button class="tab-btn" onclick="switchTab('calendar', event)">📅 Termine</button>
-            <button class="tab-btn" onclick="switchTab('contacts', event)">📞 Anrufen</button>
+            <button id="tabSpeakBtn" class="tab-btn active">🎤 Sprechen</button>
+            <button id="tabCalendarBtn" class="tab-btn">📅 Termine</button>
+            <button id="tabContactsBtn" class="tab-btn">📞 Anrufen</button>
         </div>
 
-        <!-- REITER 1: SPRECHEN & EINTRAGEN -->
+        <!-- REITER 1 -->
         <div id="tab-speak" class="tab-content active">
             <div style="font-size: 15px; color: #555; margin-bottom: 15px; text-align: center; font-weight: bold;">
                 Wähle aus, was du sagen möchtest:
             </div>
 
-            <button id="micEventBtn" class="big-btn" onclick="startSpeechRecognition('event')">
+            <button id="micEventBtn" class="big-btn">
                 🎤 Neuen Termin sprechen
             </button>
             
-            <button id="micTodoBtn" class="big-btn todo-btn" onclick="startSpeechRecognition('todo')">
+            <button id="micTodoBtn" class="big-btn todo-btn">
                 🗣️ Notiz / To-Do sprechen
             </button>
             
-            <div id="status">Verbinde mit Kalender...</div>
+            <div id="status">Initialisiere App...</div>
 
             <div class="hint-box">
                 💡 Tipp: Sag z.B. <i>"Arzttermin morgen um 14 Uhr"</i>.
             </div>
         </div>
 
-        <!-- REITER 2: TERMINE & NOTIZEN -->
+        <!-- REITER 2 -->
         <div id="tab-calendar" class="tab-content">
-            <div class="section-title">
-                <span>Anstehende Termine</span>
-            </div>
+            <div class="section-title">Anstehende Termine</div>
             
             <div class="action-row">
-                <button class="action-sub-btn" style="background: #cfe2ff; color: #084298;" onclick="speakSummary()">🔊 Vorlesen</button>
-                <button class="action-sub-btn" onclick="fetchUpcomingEvents()">🔄 Neu laden</button>
+                <button id="speakSummaryBtn" class="action-sub-btn" style="background: #cfe2ff; color: #084298;">🔊 Vorlesen</button>
+                <button id="refreshEventsBtn" class="action-sub-btn">🔄 Neu laden</button>
             </div>
 
             <div id="deleteEventsContainer" style="margin-top: 10px;">Lade Termine...</div>
@@ -384,51 +353,42 @@
             </div>
         </div>
 
-        <!-- REITER 3: SCHNELLWAHL KONTAKTE & EINSTELLUNGEN -->
+        <!-- REITER 3 -->
         <div id="tab-contacts" class="tab-content">
-            <div class="section-title">
-                <span>Schnellwahl</span>
-            </div>
+            <div class="section-title">Schnellwahl</div>
             <div style="font-size: 14px; color: #555; margin-bottom: 15px;">
                 Ein Klick startet sofort den Anruf:
             </div>
 
-            <!-- Schnellwahl-Buttons direkt sichtbar -->
             <div id="quickCallContainer"></div>
 
             <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
 
-            <div class="section-title" style="font-size: 16px;">
-                <span>Nummern bearbeiten</span>
-            </div>
+            <div class="section-title" style="font-size: 16px;">Nummern bearbeiten</div>
 
-            <!-- Kontakt 1 -->
             <div class="contact-card">
                 <label>Kontakt 1 (z.B. Simone)</label>
                 <input type="text" id="c1Name" class="contact-input" placeholder="Name">
                 <input type="tel" id="c1Phone" class="contact-input" placeholder="Telefonnummer">
-                <button class="save-contact-btn" onclick="saveContact(1)">Speichern</button>
+                <button id="saveC1Btn" class="save-contact-btn">Speichern</button>
             </div>
 
-            <!-- Kontakt 2 -->
             <div class="contact-card">
                 <label>Kontakt 2</label>
                 <input type="text" id="c2Name" class="contact-input" placeholder="Name">
                 <input type="tel" id="c2Phone" class="contact-input" placeholder="Telefonnummer">
-                <button class="save-contact-btn" onclick="saveContact(2)">Speichern</button>
+                <button id="saveC2Btn" class="save-contact-btn">Speichern</button>
             </div>
 
-            <!-- Kontakt 3 -->
             <div class="contact-card">
                 <label>Kontakt 3</label>
                 <input type="text" id="c3Name" class="contact-input" placeholder="Name">
                 <input type="tel" id="c3Phone" class="contact-input" placeholder="Telefonnummer">
-                <button class="save-contact-btn" onclick="saveContact(3)">Speichern</button>
+                <button id="saveC3Btn" class="save-contact-btn">Speichern</button>
             </div>
         </div>
     </div>
 
-    <!-- Google GIS -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
@@ -441,40 +401,74 @@
         let latestEventsSpeechText = "Es sind keine anstehenden Termine geladen.";
         let rawEventsList = [];
 
-        // Kontakte laden
         let contacts = JSON.parse(localStorage.getItem('omas_contacts') || JSON.stringify([
             { name: "Simone", phone: "" },
             { name: "Kontakt 2", phone: "" },
             { name: "Kontakt 3", phone: "" }
         ]));
 
-        window.onload = function () {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: CLIENT_ID,
-                scope: SCOPES,
-                callback: (response) => {
-                    if (response.error !== undefined) {
-                        document.getElementById('status').innerText = 'Bitte einmal bei Google anmelden.';
-                        document.getElementById('loginBtn').style.display = 'block';
-                        return;
-                    }
-                    accessToken = response.access_token;
-                    document.getElementById('loginBtn').style.display = 'none';
-                    document.getElementById('status').innerText = 'Bereit zum Sprechen...';
-                    fetchUpcomingEvents();
-                },
-            });
+        // Alles zentral per Event-Listener anbinden, sobald das Dokument bereit ist
+        document.addEventListener('DOMContentLoaded', () => {
+            initApp();
+            attachEventListeners();
+        });
 
+        function attachEventListeners() {
+            document.getElementById('closeAppBtn').addEventListener('click', exitApp);
+            document.getElementById('loginBtn').addEventListener('click', triggerLogin);
+
+            // Tabs
+            document.getElementById('tabSpeakBtn').addEventListener('click', (e) => switchTab('speak', e));
+            document.getElementById('tabCalendarBtn').addEventListener('click', (e) => switchTab('calendar', e));
+            document.getElementById('tabContactsBtn').addEventListener('click', (e) => switchTab('contacts', e));
+
+            // Aktionen
+            document.getElementById('micEventBtn').addEventListener('click', () => startSpeechRecognition('event'));
+            document.getElementById('micTodoBtn').addEventListener('click', () => startSpeechRecognition('todo'));
+            document.getElementById('speakSummaryBtn').addEventListener('click', speakSummary);
+            document.getElementById('refreshEventsBtn').addEventListener('click', fetchUpcomingEvents);
+
+            // Kontakte speichern
+            document.getElementById('saveC1Btn').addEventListener('click', () => saveContact(1));
+            document.getElementById('saveC2Btn').addEventListener('click', () => saveContact(2));
+            document.getElementById('saveC3Btn').addEventListener('click', () => saveContact(3));
+        }
+
+        function initApp() {
+            if (typeof google !== 'undefined' && google.accounts) {
+                setupGoogleClient();
+            } else {
+                // Falls das Google-Skript etwas länger lädt
+                setTimeout(setupGoogleClient, 1000);
+            }
+            renderTodos();
+            loadContactsUI();
+        }
+
+        function setupGoogleClient() {
             try {
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: CLIENT_ID,
+                    scope: SCOPES,
+                    callback: (response) => {
+                        if (response.error !== undefined) {
+                            document.getElementById('status').innerText = 'Bitte einmal bei Google anmelden.';
+                            document.getElementById('loginBtn').style.display = 'block';
+                            return;
+                        }
+                        accessToken = response.access_token;
+                        document.getElementById('loginBtn').style.display = 'none';
+                        document.getElementById('status').innerText = 'Bereit zum Sprechen...';
+                        fetchUpcomingEvents();
+                    },
+                });
+
                 tokenClient.requestAccessToken({ prompt: '' });
             } catch (e) {
                 document.getElementById('loginBtn').style.display = 'block';
                 document.getElementById('status').innerText = 'Bitte bei Google anmelden.';
             }
-
-            renderTodos();
-            loadContactsUI();
-        };
+        }
 
         function switchTab(tabName, event) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -505,7 +499,6 @@
             }
         }
 
-        // Kontakt-Funktionen
         function loadContactsUI() {
             for (let i = 0; i < 3; i++) {
                 document.getElementById(`c${i+1}Name`).value = contacts[i].name || '';
@@ -515,7 +508,7 @@
             const container = document.getElementById('quickCallContainer');
             container.innerHTML = '';
 
-            contacts.forEach((c, index) => {
+            contacts.forEach((c) => {
                 const a = document.createElement('a');
                 a.className = 'call-btn';
                 
@@ -567,7 +560,6 @@
             }
         }
 
-        // Zuverlässiges Vorlesen mit sauberer Textumwandlung für das Datum
         function speakSummary() {
             if (!('speechSynthesis' in window)) {
                 alert('Dein Browser unterstützt keine Sprachausgabe.');
@@ -621,7 +613,6 @@
                 if (!data.items || data.items.length === 0) {
                     container.innerHTML = '<div style="font-size: 15px; color: #666; padding: 10px; text-align: center;">Keine anstehenden Termine gefunden.</div>';
                     latestEventsSpeechText = "Es sind keine anstehenden Termine im Kalender.";
-                    rawEventsList = [];
                     return;
                 }
 
@@ -660,7 +651,7 @@
                     delBtn.className = 'event-delete-btn';
                     delBtn.innerHTML = '🗑️';
                     delBtn.title = 'Termin löschen';
-                    delBtn.onclick = () => deleteCalendarEvent(item.id, item.summary);
+                    delBtn.addEventListener('click', () => deleteCalendarEvent(item.id, item.summary));
 
                     div.appendChild(span);
                     div.appendChild(delBtn);
@@ -794,11 +785,11 @@
                 const delBtn = document.createElement('button');
                 delBtn.className = 'delete-btn';
                 delBtn.innerHTML = '🗑️';
-                delBtn.onclick = (e) => deleteTodo(e, index);
+                delBtn.addEventListener('click', (e) => deleteTodo(e, index));
 
                 div.appendChild(span);
                 div.appendChild(delBtn);
-                div.onclick = () => toggleTodo(index);
+                div.addEventListener('click', () => toggleTodo(index));
 
                 container.appendChild(div);
             });
@@ -890,7 +881,7 @@
                     document.getElementById('status').innerText = '❌ Fehler beim Eintragen.';
                 }
             })
-            .catch(error => {
+            .catch(() => {
                 document.getElementById('status').innerText = '❌ Netzwerkfehler.';
             });
         }
