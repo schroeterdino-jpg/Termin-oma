@@ -397,7 +397,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v6.6-2026-09-15-persistent-token";
+        const APP_VERSION = "v6.7-2026-09-15-fixed";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -510,7 +510,6 @@
                     scope: SCOPES,
                     callback: (response) => {
                         if (response.error !== undefined) {
-                            // Nur anzeigen, wenn explizit ein Fehler auftritt
                             const lb = document.getElementById('loginBtn');
                             if (lb) lb.style.display = 'block';
                             return;
@@ -529,7 +528,6 @@
                     },
                 });
 
-                // Wenn bereits ein Token vorhanden ist, verstecken wir den Login-Button dauerhaft.
                 if (accessToken) {
                     const lb = document.getElementById('loginBtn');
                     if (lb) lb.style.display = 'none';
@@ -545,7 +543,6 @@
                 actionCallback();
             } else {
                 window.pendingGoogleAction = actionCallback;
-                // Versuche es im Silent-Modus, falls der Google-Account im Browser noch aktiv ist
                 try {
                     tokenClient.requestAccessToken({ prompt: 'none' });
                 } catch (err) {
