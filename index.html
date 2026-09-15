@@ -31,6 +31,7 @@
             border-radius: 20px;
             box-shadow: 0 6px 16px rgba(0,0,0,0.5);
             box-sizing: border-box;
+            border: 1px solid #333;
         }
         .app-header {
             display: flex;
@@ -57,10 +58,10 @@
         h1 {
             font-size: 20px;
             margin: 0;
-            color: #ffffff;
+            color: #fff;
         }
         .close-app-btn {
-            background-color: #dc3545;
+            background-color: #b02a37;
             color: white;
             border: none;
             padding: 8px 14px;
@@ -86,7 +87,7 @@
             display: flex;
             gap: 4px;
             margin-bottom: 20px;
-            background: #2c2c2e;
+            background: #2c2c2c;
             padding: 4px;
             border-radius: 14px;
         }
@@ -103,7 +104,7 @@
             text-align: center;
         }
         .tab-btn.active {
-            background: #3a3a3c;
+            background: #383838;
             color: #4dabf7;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         }
@@ -144,7 +145,7 @@
             font-weight: bold;
             color: #e0e0e0;
             font-size: 15px;
-            background: #2a2a2c;
+            background: #2a2a2a;
             padding: 14px;
             border-radius: 12px;
             text-align: center;
@@ -168,13 +169,13 @@
             word-break: break-word;
         }
         .chat-bubble.user {
-            background: #003b6f;
-            color: #d0e8ff;
+            background: #033261;
+            color: #cce5ff;
             align-self: flex-end;
             border-bottom-right-radius: 2px;
         }
         .chat-bubble.assistant {
-            background: #2a2a2c;
+            background: #2a2a2a;
             color: #f1f3f5;
             align-self: flex-start;
             border-bottom-left-radius: 2px;
@@ -182,7 +183,7 @@
         .section-title {
             font-size: 17px;
             font-weight: bold;
-            color: #ffffff;
+            color: #fff;
             margin-bottom: 12px;
         }
         .action-row {
@@ -192,9 +193,9 @@
         }
         .action-sub-btn {
             flex: 1;
-            background: #2c2c2e;
+            background: #2a2a2a;
             color: #e0e0e0;
-            border: none;
+            border: 1px solid #444;
             padding: 12px;
             font-size: 14px;
             font-weight: bold;
@@ -202,7 +203,7 @@
             cursor: pointer;
         }
         .event-item {
-            background: #2a2a2c;
+            background: #2a2a2a;
             padding: 12px 14px;
             border-radius: 12px;
             margin-bottom: 10px;
@@ -214,7 +215,7 @@
             color: #e0e0e0;
         }
         .event-delete-btn {
-            background: #dc3545;
+            background: #b02a37;
             color: white;
             border: none;
             border-radius: 10px;
@@ -246,11 +247,11 @@
             box-sizing: border-box;
         }
         .contact-card, .settings-card {
-            background: #2a2a2c;
+            background: #2a2a2a;
             padding: 15px;
             border-radius: 14px;
             margin-bottom: 15px;
-            border: 1px solid #3a3a3c;
+            border: 1px solid #333;
         }
         .contact-card label, .settings-card label {
             display: block;
@@ -263,9 +264,9 @@
             width: 100%;
             padding: 12px;
             font-size: 15px;
-            border: 1px solid #444;
-            background: #1e1e1e;
+            background: #121212;
             color: #fff;
+            border: 1px solid #444;
             border-radius: 8px;
             margin-bottom: 10px;
             box-sizing: border-box;
@@ -283,11 +284,11 @@
         }
         .hint-box {
             font-size: 12px;
-            color: #aaa;
+            color: #ccc;
             text-align: center;
             margin-top: 10px;
-            background: #2c2a1d;
-            border: 1px solid #4a431e;
+            background: #332701;
+            border: 1px solid #5a4502;
             padding: 8px;
             border-radius: 8px;
         }
@@ -348,7 +349,7 @@
             <div style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <div class="section-title" style="margin: 0;">Merkliste / To-Dos</div>
-                    <button id="clearMemoriesBtn" style="background: #dc3545; color: white; border: none; padding: 6px 10px; font-size: 12px; font-weight: bold; border-radius: 8px; cursor: pointer;">🗑️ Ablageorte löschen</button>
+                    <button id="clearMemoriesBtn" style="background: #b02a37; color: white; border: none; padding: 6px 10px; font-size: 12px; font-weight: bold; border-radius: 8px; cursor: pointer;">🗑️ Ablageorte löschen</button>
                 </div>
                 <div id="todosContainer">Noch keine Notizen.</div>
             </div>
@@ -359,7 +360,7 @@
             <div class="section-title">Schnellwahl</div>
             <div id="quickCallContainer"></div>
 
-            <hr style="border: none; border-top: 1px solid #3a3a3c; margin: 15px 0;">
+            <hr style="border: none; border-top: 1px solid #333; margin: 15px 0;">
             <div class="section-title" style="font-size: 15px;">Nummern bearbeiten</div>
 
             <div class="contact-card">
@@ -396,7 +397,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v6.3-2026-09-15-dark";
+        const APP_VERSION = "v6.1-2026-09-15-dark";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -444,21 +445,14 @@
             ];
         }
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initAll);
-        } else {
-            initAll();
-        }
-
-        function initAll() {
+        document.addEventListener('DOMContentLoaded', () => {
             try {
                 initApp();
                 attachEventListeners();
             } catch (err) {
-                const st = document.getElementById('status');
-                if(st) st.innerText = "Init-Fehler: " + err.message;
+                document.getElementById('status').innerText = "Init-Fehler: " + err.message;
             }
-        }
+        });
 
         function attachEventListeners() {
             const addEv = (id, event, handler) => {
@@ -581,7 +575,7 @@
                     a.href = '#';
                     a.onclick = (e) => { e.preventDefault(); alert(`Bitte Nummer für "${c.name}" eintragen!`); };
                     a.innerHTML = `⚠️ ${c.name} (Nummer fehlt)`;
-                    a.style.backgroundColor = '#555';
+                    a.style.backgroundColor = '#495057';
                 }
                 container.appendChild(a);
             });
@@ -655,12 +649,7 @@
             if (recentImportantMemories.length > 0) {
                 speechText += " Und vergiss nicht: ";
                 recentImportantMemories.forEach(m => {
-                    let locText = m.location.trim();
-                    const lowerLoc = locText.toLowerCase();
-                    if (!lowerLoc.startsWith("auf") && !lowerLoc.startsWith("in") && !lowerLoc.startsWith("unter") && !lowerLoc.startsWith("neben") && !lowerLoc.startsWith("an") && !lowerLoc.startsWith("im") && !lowerLoc.startsWith("am")) {
-                        locText = "auf der " + locText;
-                    }
-                    speechText += `Dein ${m.key} ist ${locText}. `;
+                    speechText += `Dein ${m.key} ist ${m.location}. `;
                 });
             }
 
@@ -752,14 +741,7 @@
                 if (foundLocation) {
                     const currentUserName = userMemories["mein name"] ? (userMemories["mein name"].location || userMemories["mein name"]) : "";
                     const namePrefix = currentUserName ? `${currentUserName}, ` : "";
-                    
-                    let locText = foundLocation.trim();
-                    const lowerLoc = locText.toLowerCase();
-                    if (!lowerLoc.startsWith("auf") && !lowerLoc.startsWith("in") && !lowerLoc.startsWith("unter") && !lowerLoc.startsWith("neben") && !lowerLoc.startsWith("an") && !lowerLoc.startsWith("im") && !lowerLoc.startsWith("am")) {
-                        locText = "auf der " + locText;
-                    }
-
-                    const reply = `${namePrefix}dein ${queryItem} ist ${locText}.`;
+                    const reply = `${namePrefix}dein ${queryItem} ist ${foundLocation}.`;
                     appendChatBubble(reply, 'assistant');
                     const st = document.getElementById('status');
                     if (st) st.innerText = 'Bereit.';
@@ -787,7 +769,7 @@
                     "1. Kalender-Termin (\"action\": \"calendar\") NUR bei expliziter Uhrzeit.\n" +
                     "2. To-Do (\"action\": \"todo\") bei Aufgaben ohne Uhrzeit.\n" +
                     "3. Name speichern (\"action\": \"store_memory\") bei \"ich heiße...\" oder \"nenn mich...\".\n" +
-                    "4. Ablageort speichern (\"action\": \"store_memory\") wenn der Nutzer sagt, wo etwas liegt (z.B. \"Ich lege meinen Apfel auf die Fensterbank\"). Extrahiere Gegenstand als memory_key und Ort als memory_value (z.B. \"Fensterbank\" oder \"Kühlschrank\").\n\n" +
+                    "4. Ablageort speichern (\"action\": \"store_memory\") wenn der Nutzer sagt, wo etwas liegt oder hingepackt wird (z.B. \"Ich packe meinen Apfel auf die Fensterbank\"). Extrahiere Gegenstand als memory_key und den reinen Ort (z. B. \"auf der Fensterbank\" oder \"in den Kühlschrank\") als memory_value, sodass ein flüssiger Antwortsatz wie 'Ich habe mir gemerkt: Dein [memory_key] ist [memory_value]' entsteht (Vermeide doppelte Präpositionen wie 'auf auf').\n\n" +
                     "Antworte AUSSCHLIESSLICH im JSON-Format mit den Feldern: action, calendar_text, todo_text, memory_key, memory_value, reply.";
 
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
