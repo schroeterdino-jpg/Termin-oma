@@ -397,7 +397,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v6.2-2026-09-15-fixed";
+        const APP_VERSION = "v6.3-2026-09-15-fixed";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -769,7 +769,7 @@
                     "1. Kalender-Termin (\"action\": \"calendar\") NUR bei expliziter Uhrzeit.\n" +
                     "2. To-Do (\"action\": \"todo\") bei Aufgaben ohne Uhrzeit.\n" +
                     "3. Name speichern (\"action\": \"store_memory\") bei \"ich heiße...\" oder \"nenn mich...\".\n" +
-                    "4. Ablageort speichern (\"action\": \"store_memory\") wenn der Nutzer sagt, wo etwas liegt oder hingepackt wird (z.B. \"Ich packe meinen Apfel auf die Fensterbank\"). Extrahiere Gegenstand als memory_key und den reinen Ort (z. B. \"auf der Fensterbank\" oder \"in den Kühlschrank\") als memory_value, sodass ein flüssiger Antwortsatz wie 'Ich habe mir gemerkt: Dein [memory_key] ist [memory_value]' entsteht (Vermeide doppelte Präpositionen wie 'auf auf').\n\n" +
+                    "4. Ablageort speichern (\"action\": \"store_memory\") wenn der Nutzer sagt, wo etwas liegt oder hingepackt wird (z.B. \"Ich packe meinen Apfel auf die Fensterbank\"). Extrahiere Gegenstand als memory_key und den reinen Ort (z. B. \"auf der Fensterbank\" oder \"in den Kühlschrank\") as memory_value, sodass ein flüssiger Antwortsatz wie 'Ich habe mir gemerkt: Dein [memory_key] ist [memory_value]' entsteht.\n\n" +
                     "Antworte AUSSCHLIESSLICH im JSON-Format mit den Feldern: action, calendar_text, todo_text, memory_key, memory_value, reply.";
 
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
