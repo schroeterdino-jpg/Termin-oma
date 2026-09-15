@@ -392,7 +392,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v6.1-2026-09-15-grammar-fix";
+        const APP_VERSION = "v6.2-2026-09-15-fixed";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -644,7 +644,12 @@
             if (recentImportantMemories.length > 0) {
                 speechText += " Und vergiss nicht: ";
                 recentImportantMemories.forEach(m => {
-                    speechText += `Dein ${m.key} liegt ${m.location}. `;
+                    let locText = m.location.trim();
+                    const lowerLoc = locText.toLowerCase();
+                    if (!lowerLoc.startsWith("auf") && !lowerLoc.startsWith("in") && !lowerLoc.startsWith("unter") && !lowerLoc.startsWith("neben") && !lowerLoc.startsWith("an") && !lowerLoc.startsWith("im") && !lowerLoc.startsWith("am")) {
+                        locText = "auf der " + locText;
+                    }
+                    speechText += `Dein ${m.key} ist ${locText}. `;
                 });
             }
 
@@ -737,7 +742,6 @@
                     const currentUserName = userMemories["mein name"] ? (userMemories["mein name"].location || userMemories["mein name"]) : "";
                     const namePrefix = currentUserName ? `${currentUserName}, ` : "";
                     
-                    // Grammatik-Korrektur für Ablageorte (fügt automatisch "auf der", "im" etc. ein, falls der Ort ohne Artikel gespeichert wurde)
                     let locText = foundLocation.trim();
                     const lowerLoc = locText.toLowerCase();
                     if (!lowerLoc.startsWith("auf") && !lowerLoc.startsWith("in") && !lowerLoc.startsWith("unter") && !lowerLoc.startsWith("neben") && !lowerLoc.startsWith("an") && !lowerLoc.startsWith("im") && !lowerLoc.startsWith("am")) {
