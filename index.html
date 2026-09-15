@@ -388,7 +388,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v5.5-2026-09-15-memory-fix";
+        const APP_VERSION = "v5.6-2026-09-15-fixed";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -651,25 +651,16 @@
                 const currentDateStr = now.toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
                 const memoriesStr = JSON.stringify(userMemories);
-                const routerPrompt = `Du bist das Gehirn eines intelligenten Sprach-Assistenten. 
-Echte aktuelle Zeit des Geräts: ${currentTimeStr}, Datum: ${currentDateStr}.
-Vorhandenes Gedächtnis (inklusive des Namens des Nutzers unter "mein name" oder "name"): ${memoriesStr}
-
-Analysiere die Eingabe des Nutzers: "${userText}"
-
-ABSOLUTE UND STRIKTE REGELN (Termin vs. To-Do vs. Gedächtnis):
-1. Ein Kalender-Termin ("action": "calendar") darf NUR dann erstellt werden, wenn der Satz eine explizite, feste **Uhrzeit** enthält (z.B. "um 14 Uhr", "um 15:30 Uhr", "um halb drei"). 
-2. Enthält der Satz KEINE konkrete Uhrzeit (z.B. "ich muss Isabelle heute noch abholen", "ich muss Milch kaufen", "muss heute zum Baumarkt"), ist es IMMER eine Aufgabe für die To-Do-Liste ("action": "todo"), selbst wenn Wörter wie "heute", "morgen" oder "muss" vorkommen!
-3. Wenn der Nutzer sagt "Nenn mich [Name]" oder "Ich heiße [Name]", speichere das direkt als memory_key: "mein name" und memory_value: "[Name]" mit der action "store_memory".
-4. Wenn der Nutzer sagt, wo er einen Gegenstand deponiert hat (z.B. "Ich lege meine Zigaretten in den Kühlschrank", "Mein Schlüssel liegt auf dem Tisch"), extrahiere den Gegenstand als "memory_key" (z.B. "zigaretten") und den Ablageort als "memory_value" (z.B. "im Kühlschrank") und nutze die action "store_memory".
-
-Antworte AUSSCHLIESSLICH im JSON-Format mit folgenden Feldern:
-- "action": Entweder "calendar", "get_calendar", "get_todos", "todo", "store_memory", oder "chat".
-- "calendar_text": (Nur bei "calendar") Der Satz zur Termin-Extraktion.
-- "todo_text": (Nur bei "todo") Der To-Do-Inhalt (z.B. "Isabelle heute noch abholen").
-- "memory_key": (Nur bei "store_memory") Das Merkmal oder der Gegenstand (z.B. "mein name", "zigaretten").
-- "memory_value": (Nur bei "store_memory") Der Wert oder Ablageort (z.B. "im Kühlschrank").
-- "reply": (Für "chat", "get_calendar", "get_todos" oder Bestätigung) Eine natürliche Antwort an den Nutzer. Nutze dabei immer den im Gedächtnis gespeicherten Namen des Nutzers, falls vorhanden!`;
+                const routerPrompt = "Du bist das Gehirn eines intelligenten Sprach-Assistenten.\n" +
+                    "Echte aktuelle Zeit des Geräts: " + currentTimeStr + ", Datum: " + currentDateStr + ".\n" +
+                    "Vorhandenes Gedächtnis: " + memoriesStr + "\n\n" +
+                    "Analysiere die Eingabe des Nutzers: \"" + userText + "\"\n\n" +
+                    "REGELN:\n" +
+                    "1. Kalender-Termin (\"action\": \"calendar\") NUR bei expliziter Uhrzeit.\n" +
+                    "2. To-Do (\"action\": \"todo\") bei Aufgaben ohne Uhrzeit.\n" +
+                    "3. Name speichern (\"action\": \"store_memory\") bei \"ich heiße...\" oder \"nenn mich...\".\n" +
+                    "4. Ablageort speichern (\"action\": \"store_memory\") wenn der Nutzer sagt, wo etwas liegt (z.B. \"Ich lege meine Zigaretten in den Kühlschrank\"). Extrahiere Gegenstand als memory_key und Ort als memory_value.\n\n" +
+                    "Antworte AUSSCHLIESSLICH im JSON-Format mit den Feldern: action, calendar_text, todo_text, memory_key, memory_value, reply.";
 
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
