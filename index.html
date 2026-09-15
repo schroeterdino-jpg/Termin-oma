@@ -312,7 +312,7 @@
         <!-- REITER 1: UNIVERSAL CHAT -->
         <div id="tab-speak" class="tab-content active">
             <div id="chatHistory" class="chat-history">
-                <div class="chat-bubble assistant">Hallo Dino! Ich bin bereit. Sag mir einfach, was anliegt.</div>
+                <div class="chat-bubble assistant">Hallo! Ich bin bereit. Sag mir einfach, was anliegt.</div>
             </div>
 
             <button id="masterMicBtn" class="big-btn">
@@ -328,14 +328,19 @@
 
         <!-- REITER 2: TERMINE & NOTIZEN -->
         <div id="tab-calendar" class="tab-content">
-            <div class="section-title">Anstehende Termine</div>
+            <div class="section-title">Übersicht & Vorlesen</div>
             
+            <!-- NEUER GROSSER VORLESE-BUTTON -->
+            <button id="speakSummaryBtn" class="big-btn" style="background-color: #198754; font-size: 17px; padding: 16px; margin-bottom: 12px;">
+                🔊 Alles vorlesen (Termine, To-Dos & Ablageorte)
+            </button>
+
             <div class="action-row">
-                <button id="speakSummaryBtn" class="action-sub-btn" style="background: #cfe2ff; color: #084298;">🔊 Vorlesen</button>
-                <button id="refreshEventsBtn" class="action-sub-btn">🔄 Neu laden</button>
+                <button id="refreshEventsBtn" class="action-sub-btn">🔄 Termine neu laden</button>
             </div>
 
-            <div id="eventsContainer" style="margin-top: 10px;">Lade Termine...</div>
+            <div class="section-title" style="margin-top: 15px;">Anstehende Termine</div>
+            <div id="eventsContainer" style="margin-top: 5px;">Lade Termine...</div>
 
             <div style="margin-top: 20px;">
                 <div class="section-title">
@@ -388,7 +393,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v5.7-2026-09-15-safe";
+        const APP_VERSION = "v5.8-2026-09-15-safe";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -599,14 +604,26 @@
             window.speechSynthesis.speak(utterance);
         }
 
+        // VOLLSTÄNDIGE VORLESE-FUNKTION (Termine + To-Dos + Ablageorte)
         function speakSummary() {
             let speechText = latestEventsSpeechText;
+            
+            // To-Dos hinzufügen
             const activeTodos = todos.filter(t => !t.completed);
-            const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
             if (activeTodos.length > 0) {
-                speechText += ` ${currentUserName}, du hast noch offene Aufgaben: `;
+                speechText += " Ausserdem hast du noch offene Aufgaben: ";
                 activeTodos.forEach(t => { speechText += t.text + ". "; });
             }
+
+            // Gespeicherte Ablageorte / Gedächtnis hinzufügen
+            const memoryEntries = Object.entries(userMemories).filter(([k]) => k !== "mein name" && k !== "name");
+            if (memoryEntries.length > 0) {
+                speechText += " Und hier ist, was du weggelegt hast: ";
+                memoryEntries.forEach(([key, value]) => {
+                    speechText += `Dein ${key} ist ${value}. `;
+                });
+            }
+
             speakTextOut(speechText);
         }
 
@@ -744,26 +761,10 @@
                     parseAndCreateEvent(userText);
                 } 
                 else if (parsed.action === "get_calendar") {
-                    const reply = latestEventsSpeechText;
-                    appendChatBubble(reply, 'assistant');
-                    const st = document.getElementById('status');
-                    if (st) st.innerText = 'Bereit.';
-                    speakTextOut(reply);
+                    speakSummary(); // Liest direkt alles vor
                 }
                 else if (parsed.action === "get_todos") {
-                    const activeTodos = todos.filter(t => !t.completed);
-                    let reply = "";
-                    const namePrefix = currentUserName ? `${currentUserName}, ` : "";
-                    if (activeTodos.length === 0) {
-                        reply = `${namePrefix}deine To-Do-Liste ist aktuell leer.`;
-                    } else {
-                        const todoTexts = activeTodos.map(t => t.text).join(", ");
-                        reply = `${namePrefix}offene Aufgaben: ${todoTexts}.`;
-                    }
-                    appendChatBubble(reply, 'assistant');
-                    const st = document.getElementById('status');
-                    if (st) st.innerText = 'Bereit.';
-                    speakTextOut(reply);
+                    speakSummary();
                 }
                 else if (parsed.action === "todo") {
                     const todoText = parsed.todo_text || userText;
@@ -938,11 +939,11 @@
                 if (!container) return;
                 container.innerHTML = '';
                 
-                const currentUserName = userMemories["mein name"] || userMemories["name"] || "Dino";
+                const currentUserName = userMemories["mein name"] || userMemories["name"] || "du";
 
                 if (!data.items || data.items.length === 0) {
                     container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine anstehenden Termine.</div>';
-                    latestEventsSpeechText = `${currentUserName}, es sind keine anstehenden Termine eingetragen.`;
+                    latestEventsSpeechText = `Es sind keine anstehenden Termine eingetragen.`;
                     return;
                 }
 
@@ -956,7 +957,7 @@
 
                 if (filteredItems.length === 0) {
                     container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine wichtigen Termine.</div>';
-                    latestEventsSpeechText = `${currentUserName}, es sind keine wichtigen Termine anstehend.`;
+                    latestEventsSpeechText = `Es sind keine wichtigen Termine anstehend.`;
                     return;
                 }
 
@@ -988,11 +989,9 @@
                     container.appendChild(div);
                 });
                 
-                latestEventsSpeechText = `${currentUserName}, deine nächsten Termine sind: ` + speechParts.join(". ");
+                latestEventsSpeechText = `Deine nächsten Termine sind: ` + speechParts.join(". ");
             }).catch(err => {
-                const currentUserName = userMemories["mein name"] || userMemories["name"] || "";
-                const namePrefix = currentUserName ? `${currentUserName}, ` : "";
-                latestEventsSpeechText = `${namePrefix}ich konnte die Termine gerade nicht abrufen.`;
+                latestEventsSpeechText = `Ich konnte die Termine gerade nicht abrufen.`;
             });
         }
 
