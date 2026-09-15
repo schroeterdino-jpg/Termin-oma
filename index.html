@@ -344,7 +344,7 @@
             <div style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <div class="section-title" style="margin: 0;">Merkliste / To-Dos</div>
-                    <button id="clearAllTodosBtn" style="background: #dc3545; color: white; border: none; padding: 6px 10px; font-size: 12px; font-weight: bold; border-radius: 8px; cursor: pointer;">🗑️ Alles löschen</button>
+                    <button id="clearMemoriesBtn" style="background: #dc3545; color: white; border: none; padding: 6px 10px; font-size: 12px; font-weight: bold; border-radius: 8px; cursor: pointer;">🗑️ Ablageorte löschen</button>
                 </div>
                 <div id="todosContainer">Noch keine Notizen.</div>
             </div>
@@ -392,7 +392,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v5.9-2026-09-15-safe";
+        const APP_VERSION = "v6.0-2026-09-15-safe";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -406,7 +406,7 @@
         let tokenClient = null;
         let accessToken = null;
         let todos = [];
-        let userMemories = {}; // Format: { "schlüssel": { location: "Schublade", date: "2026-09-15" } } oder alter String
+        let userMemories = {}; 
         let contacts = [];
         let latestEventsSpeechText = "Es sind keine anstehenden Termine geladen.";
 
@@ -416,7 +416,6 @@
 
         try {
             const rawMemories = JSON.parse(localStorage.getItem('omas_memories') || '{}');
-            // Migration falls alte Erinnerungen noch einfache Strings sind
             userMemories = {};
             for (const [k, v] of Object.entries(rawMemories)) {
                 if (typeof v === 'string') {
@@ -468,7 +467,7 @@
 
             addEv('speakSummaryBtn', 'click', speakSummary);
             addEv('refreshEventsBtn', 'click', fetchUpcomingEvents);
-            addEv('clearAllTodosBtn', 'click', clearAllTodos);
+            addEv('clearMemoriesBtn', 'click', clearAllMemories);
 
             addEv('saveGroqKeyBtn', 'click', saveGroqApiKey);
 
@@ -613,7 +612,7 @@
             window.speechSynthesis.speak(utterance);
         }
 
-        // VORLESE-FUNKTION (Nur Ablageorte von heute und gestern)
+        // VORLESE-FUNKTION (Termine + To-Dos + Wichtige Ablageorte von heute/gestern)
         function speakSummary() {
             let speechText = latestEventsSpeechText;
             
@@ -624,40 +623,47 @@
                 activeTodos.forEach(t => { speechText += t.text + ". "; });
             }
 
-            // Ablageorte filtern (nur aus den letzten 2 Tagen)
+            // Ablageorte filtern (nur aus den letzten 2 Tagen & nur WICHTIGE Gegenstände)
             const now = new Date();
             const todayStr = now.toISOString().split('T')[0];
-            
             const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
             const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-            let recentMemories = [];
+            // Liste von wichtigen Wörtern, die beim Verlassen unbedingt wichtig sind
+            const importantKeywords = ["schlüssel", "schluessel", "geldbeutel", "portemonnaie", "handy", "smartphone", "brille", "ausweis", "papiere", "karte", "tasche"];
+
+            let recentImportantMemories = [];
             for (const [key, val] of Object.entries(userMemories)) {
                 if (key === "mein name" || key === "name") continue;
                 const entryDate = val.date || "";
                 if (entryDate === todayStr || entryDate === yesterdayStr) {
-                    recentMemories.push({ key, location: val.location });
+                    const lowerKey = key.toLowerCase();
+                    const isImportant = importantKeywords.some(kw => lowerKey.includes(kw));
+                    if (isImportant) {
+                        recentImportantMemories.push({ key, location: val.location });
+                    }
                 }
             }
 
-            if (recentMemories.length > 0) {
-                speechText += " Und das hast du in den letzten Tagen weggelegt: ";
-                recentMemories.forEach(m => {
-                    speechText += `Dein ${m.key} ist ${m.location}. `;
+            if (recentImportantMemories.length > 0) {
+                speechText += " Und vergiss nicht: ";
+                recentImportantMemories.instances = recentImportantMemories.forEach(m => {
+                    speechText += `Dein ${m.key} liegt ${m.location}. `;
                 });
             }
 
             speakTextOut(speechText);
         }
 
-        function clearAllTodos() {
-            if (todos.length === 0) {
-                alert("Die Merkliste ist bereits leer.");
+        function clearAllMemories() {
+            if (Object.keys(userMemories).length === 0) {
+                alert("Es sind keine Ablageorte gespeichert.");
                 return;
             }
-            if (confirm("Möchtest du wirklich alle Einträge von der Merkliste löschen?")) {
-                todos = [];
-                saveTodos();
+            if (confirm("Möchtest du wirklich alle gemerkten Ablageorte löschen? Deine To-Do-Liste bleibt dabei erhalten.")) {
+                userMemories = {};
+                localStorage.setItem('omas_memories', JSON.stringify({}));
+                alert("Alle Ablageorte wurden gelöscht.");
             }
         }
 
@@ -748,7 +754,6 @@
                 const currentTimeStr = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
                 const currentDateStr = now.toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-                // Nur die reinen Werte fürs Prompt mitgeben
                 let promptMemories = {};
                 for(let [k,v] of Object.entries(userMemories)) {
                     promptMemories[k] = typeof v === 'object' ? v.location : v;
@@ -1056,7 +1061,7 @@
                 container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine Notizen.</div>';
                 return;
             }
-            todos.forEach((t, i) => {
+            todos.todos = todos.forEach((t, i) => {
                 const div = document.createElement('div');
                 div.className = 'event-item' + (t.completed ? ' completed' : '');
                 div.style.background = t.completed ? '#f8f9fa' : '#f1f8f5';
