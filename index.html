@@ -817,8 +817,8 @@
                     "1. Kalender-Termin (\"action\": \"calendar\") NUR bei expliziter Uhrzeit.\n" +
                     "2. To-Do (\"action\": \"todo\") bei Aufgaben ohne Uhrzeit.\n" +
                     "3. Name speichern (\"action\": \"store_memory\") bei \"ich heiße...\" oder \"nenn mich...\".\n" +
-                    "4. Ablageort speichern (\"action\": \"store_memory\") wenn der Nutzer sagt, wo etwas liegt oder hingepackt wird (z.B. \"Ich packe meinen Apfel auf die Fensterbank\"). Extrahiere Gegenstand als memory_key und den reinen Ort as memory_value, sodass ein flüssiger Antwortsatz entsteht.\n\n" +
-                    "Antworte AUSSCHLIESSLICH im JSON-Format mit den Feldern: action, calendar_text, todo_text, memory_key, memory_value, reply.";
+"4. Ablageort speichern (\"action\": \"store_memory\") wenn der Nutzer sagt, wo etwas liegt oder hingepackt wird (z.B. \"Ich lege meinen Schlüssel auf die Vitrine\"). Extrahiere den Gegenstand als memory_key (z. B. \"schlüssel\") und den vollständigen Ort inklusive Präposition als memory_value (z. B. \"auf der Vitrine\" oder \"im Flur\"), damit der Antwortsatz flüssig klingt.\n\n" +
+"Antworte AUSSCHLIESSLICH im JSON-Format mit den Feldern: action, calendar_text, todo_text, memory_key, memory_value, reply.";
 
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
