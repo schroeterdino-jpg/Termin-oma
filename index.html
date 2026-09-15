@@ -392,7 +392,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <script>
-        const APP_VERSION = "v6.0-2026-09-15-safe";
+        const APP_VERSION = "v6.1-2026-09-15-grammar-fix";
         if (localStorage.getItem('omas_app_ver') !== APP_VERSION) {
             localStorage.setItem('omas_app_ver', APP_VERSION);
             if ('caches' in window) {
@@ -612,24 +612,20 @@
             window.speechSynthesis.speak(utterance);
         }
 
-        // VORLESE-FUNKTION (Termine + To-Dos + Wichtige Ablageorte von heute/gestern)
         function speakSummary() {
             let speechText = latestEventsSpeechText;
             
-            // To-Dos hinzufügen
             const activeTodos = todos.filter(t => !t.completed);
             if (activeTodos.length > 0) {
                 speechText += " Ausserdem hast du noch offene Aufgaben: ";
                 activeTodos.forEach(t => { speechText += t.text + ". "; });
             }
 
-            // Ablageorte filtern (nur aus den letzten 2 Tagen & nur WICHTIGE Gegenstände)
             const now = new Date();
             const todayStr = now.toISOString().split('T')[0];
             const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
             const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-            // Liste von wichtigen Wörtern, die beim Verlassen unbedingt wichtig sind
             const importantKeywords = ["schlüssel", "schluessel", "geldbeutel", "portemonnaie", "handy", "smartphone", "brille", "ausweis", "papiere", "karte", "tasche"];
 
             let recentImportantMemories = [];
@@ -647,7 +643,7 @@
 
             if (recentImportantMemories.length > 0) {
                 speechText += " Und vergiss nicht: ";
-                recentImportantMemories.instances = recentImportantMemories.forEach(m => {
+                recentImportantMemories.forEach(m => {
                     speechText += `Dein ${m.key} liegt ${m.location}. `;
                 });
             }
@@ -740,7 +736,15 @@
                 if (foundLocation) {
                     const currentUserName = userMemories["mein name"] ? (userMemories["mein name"].location || userMemories["mein name"]) : "";
                     const namePrefix = currentUserName ? `${currentUserName}, ` : "";
-                    const reply = `${namePrefix}dein ${queryItem} ist ${foundLocation}.`;
+                    
+                    // Grammatik-Korrektur für Ablageorte (fügt automatisch "auf der", "im" etc. ein, falls der Ort ohne Artikel gespeichert wurde)
+                    let locText = foundLocation.trim();
+                    const lowerLoc = locText.toLowerCase();
+                    if (!lowerLoc.startsWith("auf") && !lowerLoc.startsWith("in") && !lowerLoc.startsWith("unter") && !lowerLoc.startsWith("neben") && !lowerLoc.startsWith("an") && !lowerLoc.startsWith("im") && !lowerLoc.startsWith("am")) {
+                        locText = "auf der " + locText;
+                    }
+
+                    const reply = `${namePrefix}dein ${queryItem} ist ${locText}.`;
                     appendChatBubble(reply, 'assistant');
                     const st = document.getElementById('status');
                     if (st) st.innerText = 'Bereit.';
@@ -768,7 +772,7 @@
                     "1. Kalender-Termin (\"action\": \"calendar\") NUR bei expliziter Uhrzeit.\n" +
                     "2. To-Do (\"action\": \"todo\") bei Aufgaben ohne Uhrzeit.\n" +
                     "3. Name speichern (\"action\": \"store_memory\") bei \"ich heiße...\" oder \"nenn mich...\".\n" +
-                    "4. Ablageort speichern (\"action\": \"store_memory\") wenn der Nutzer sagt, wo etwas liegt (z.B. \"Ich lege meine Zigaretten in den Kühlschrank\"). Extrahiere Gegenstand als memory_key und Ort als memory_value.\n\n" +
+                    "4. Ablageort speichern (\"action\": \"store_memory\") wenn der Nutzer sagt, wo etwas liegt (z.B. \"Ich lege meinen Apfel auf die Fensterbank\"). Extrahiere Gegenstand als memory_key und Ort als memory_value (z.B. \"Fensterbank\" oder \"Kühlschrank\").\n\n" +
                     "Antworte AUSSCHLIESSLICH im JSON-Format mit den Feldern: action, calendar_text, todo_text, memory_key, memory_value, reply.";
 
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -789,299 +793,4 @@
                 if (content.includes("```json")) {
                     content = content.split("```json")[1].split("```")[0].trim();
                 } else if (content.includes("```")) {
-                    content = content.split("```")[1].split("```")[0].trim();
-                }
-
-                const parsed = JSON.parse(content);
-                const currentUserName = userMemories["mein name"] ? (userMemories["mein name"].location || userMemories["mein name"]) : "";
-
-                if (parsed.action === "calendar") {
-                    if (!accessToken) {
-                        const reply = currentUserName ? `${currentUserName}, bitte melde dich zuerst über den Google-Button an.` : `Bitte melde dich zuerst über den Google-Button an.`;
-                        appendChatBubble(reply, 'assistant');
-                        speakTextOut(reply);
-                        triggerLogin();
-                        return;
-                    }
-                    parseAndCreateEvent(userText);
-                } 
-                else if (parsed.action === "get_calendar") {
-                    speakSummary();
-                }
-                else if (parsed.action === "get_todos") {
-                    speakSummary();
-                }
-                else if (parsed.action === "todo") {
-                    const todoText = parsed.todo_text || userText;
-                    todos.push({ text: todoText, completed: false });
-                    saveTodos();
-                    const namePrefix = currentUserName ? `, ${currentUserName}` : "";
-                    const reply = `Ich habe "${todoText}" auf deine To-Do-Liste geschrieben${namePrefix}!`;
-                    appendChatBubble(reply, 'assistant');
-                    const st = document.getElementById('status');
-                    if (st) st.innerText = 'Bereit.';
-                    speakTextOut(reply);
-                } 
-                else if (parsed.action === "store_memory") {
-                    const todayDateStr = new Date().toISOString().split('T')[0];
-                    userMemories[parsed.memory_key.toLowerCase()] = {
-                        location: parsed.memory_value,
-                        date: todayDateStr
-                    };
-                    localStorage.setItem('omas_memories', JSON.stringify(userMemories));
-                    
-                    let reply = parsed.reply;
-                    if (!reply) {
-                        if (parsed.memory_key.toLowerCase().includes("name")) {
-                            reply = `Alles klar, ich nenne dich ab jetzt ${parsed.memory_value}!`;
-                        } else {
-                            reply = `Ich habe mir gemerkt: Dein ${parsed.memory_key} ist ${parsed.memory_value}.`;
-                        }
-                    }
-                    appendChatBubble(reply, 'assistant');
-                    const st = document.getElementById('status');
-                    if (st) st.innerText = 'Bereit.';
-                    speakTextOut(reply);
-                } 
-                else {
-                    appendChatBubble(parsed.reply, 'assistant');
-                    const st = document.getElementById('status');
-                    if (st) st.innerText = 'Bereit.';
-                    speakTextOut(parsed.reply);
-                }
-
-            } catch (err) {
-                fallbackChat(userText, apiKey);
-            }
-        }
-
-        async function fallbackChat(userText, apiKey) {
-            try {
-                const now = new Date();
-                const currentTimeStr = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-                let promptMemories = {};
-                for(let [k,v] of Object.entries(userMemories)) {
-                    promptMemories[k] = typeof v === 'object' ? v.location : v;
-                }
-                const prompt = "Du bist ein treuer Sprach-Assistent. Gedächtnis: " + JSON.stringify(promptMemories) + ". Uhrzeit: " + currentTimeStr + ". Antworte auf Deutsch: \"" + userText + "\"";
-                
-                const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${apiKey.trim()}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        model: "openai/gpt-oss-120b",
-                        messages: [{ role: "user", content: prompt }],
-                        temperature: 0.7
-                    })
-                });
-
-                const data = await response.json();
-                const aiReply = data.choices[0].message.content;
-                appendChatBubble(aiReply, 'assistant');
-                const st = document.getElementById('status');
-                if (st) st.innerText = 'Bereit.';
-                speakTextOut(aiReply);
-            } catch (e) {
-                const st = document.getElementById('status');
-                if (st) st.innerText = '⚠️ Fehler.';
-                speakTextOut("Entschuldigung, das habe ich nicht ganz verstanden.");
-            }
-        }
-
-        async function parseAndCreateEvent(text) {
-            const st = document.getElementById('status');
-            if (st) st.innerText = 'Erstelle Termin...';
-            const apiKey = localStorage.getItem('omas_groq_key');
-            
-            try {
-                const prompt = "Extrahiere einen Kalender-Termin als JSON mit \"summary\" und \"startDateTime\" (ISO YYYY-MM-DDTHH:mm:ss, Jahr 2026). Satz: \"" + text + "\"";
-                
-                const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${apiKey.trim()}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        model: "openai/gpt-oss-120b",
-                        messages: [{ role: "user", content: prompt }],
-                        temperature: 0.1
-                    })
-                });
-
-                const data = await res.json();
-                let content = data.choices[0].message.content;
-                if (content.includes("```json")) {
-                    content = content.split("```json")[1].split("```")[0].trim();
-                } else if (content.includes("```")) {
-                    content = content.split("```")[1].split("```")[0].trim();
-                }
-
-                const parsed = JSON.parse(content);
-                const startDate = new Date(parsed.startDateTime);
-                const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-
-                const eventResource = {
-                    summary: parsed.summary,
-                    start: { dateTime: startDate.toISOString() },
-                    end: { dateTime: endDate.toISOString() }
-                };
-
-                const calRes = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer ' + accessToken,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(eventResource)
-                });
-
-                const currentUserName = userMemories["mein name"] ? (userMemories["mein name"].location || userMemories["mein name"]) : "";
-                const nameSuffix = currentUserName ? `, ${currentUserName}` : "";
-
-                if (calRes.ok) {
-                    const reply = `Termin "${parsed.summary}" wurde eingetragen${nameSuffix}!`;
-                    appendChatBubble(reply, 'assistant');
-                    speakTextOut(reply);
-                    fetchUpcomingEvents();
-                } else {
-                    throw new Error("Fehler");
-                }
-            } catch (e) {
-                const reply = "Entschuldigung, ich konnte den Termin nicht verstehen.";
-                appendChatBubble(reply, 'assistant');
-                speakTextOut(reply);
-            }
-            const stFinal = document.getElementById('status');
-            if (stFinal) stFinal.innerText = 'Bereit.';
-        }
-
-        function appendChatBubble(text, sender) {
-            const history = document.getElementById('chatHistory');
-            if (!history) return;
-            const bubble = document.createElement('div');
-            bubble.className = `chat-bubble ${sender}`;
-            bubble.innerText = text;
-            history.appendChild(bubble);
-            history.scrollTop = history.scrollHeight;
-        }
-
-        function fetchUpcomingEvents() {
-            if (!accessToken) {
-                const evCont = document.getElementById('eventsContainer');
-                if (evCont) evCont.innerHTML = 'Nicht angemeldet.';
-                const lb = document.getElementById('loginBtn');
-                if (lb) lb.style.display = 'block';
-                return;
-            }
-            
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const now = today.toISOString();
-
-            fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now}&maxResults=30&singleEvents=true&orderBy=startTime`, {
-                headers: { 'Authorization': 'Bearer ' + accessToken }
-            })
-            .then(res => res.json())
-            .then(data => {
-                const container = document.getElementById('eventsContainer');
-                if (!container) return;
-                container.innerHTML = '';
-                
-                if (!data.items || data.items.length === 0) {
-                    container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine anstehenden Termine.</div>';
-                    latestEventsSpeechText = `Es sind keine anstehenden Termine eingetragen.`;
-                    return;
-                }
-
-                const filteredItems = data.items.filter(item => {
-                    const summary = (item.summary || "").toLowerCase();
-                    if (summary.includes("geburtstag") || summary.includes("birthday")) return false;
-                    if (summary.includes("feiertag") || summary.includes("holiday")) return false;
-                    if (summary.includes("jahrestag")) return false;
-                    return true;
-                });
-
-                if (filteredItems.length === 0) {
-                    container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine wichtigen Termine.</div>';
-                    latestEventsSpeechText = `Es sind keine wichtigen Termine anstehend.`;
-                    return;
-                }
-
-                let speechParts = [];
-                const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
-
-                filteredItems.forEach((item) => {
-                    let d;
-                    let timeStr = "";
-                    if (item.start && item.start.dateTime) {
-                        d = new Date(item.start.dateTime);
-                        timeStr = ` um ${d.getHours()} Uhr`;
-                        speechParts.push(`${item.summary}, am ${d.getDate()}. ${monthNames[d.getMonth()]}${timeStr}`);
-                    } else if (item.start && item.start.date) {
-                        d = new Date(item.start.date);
-                        speechParts.push(`${item.summary}, am ${d.getDate()}. ${monthNames[d.getMonth()]}`);
-                    } else {
-                        return;
-                    }
-
-                    const div = document.createElement('div');
-                    div.className = 'event-item';
-                    div.innerHTML = `<span><strong>${item.summary}</strong><br><span style="color:#555; font-size:13px;">📅 ${d.toLocaleDateString('de-DE')}${timeStr}</span></span>`;
-                    const del = document.createElement('button');
-                    del.className = 'event-delete-btn';
-                    del.innerHTML = '🗑️';
-                    del.onclick = () => deleteCalendarEvent(item.id);
-                    div.appendChild(del);
-                    container.appendChild(div);
-                });
-                
-                latestEventsSpeechText = `Deine nächsten Termine sind: ` + speechParts.join(". ");
-            }).catch(err => {
-                latestEventsSpeechText = `Ich konnte die Termine gerade nicht abrufen.`;
-            });
-        }
-
-        function deleteCalendarEvent(id) {
-            if (!confirm("Termin wirklich löschen?")) return;
-            fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': 'Bearer ' + accessToken }
-            }).then(() => fetchUpcomingEvents());
-        }
-
-        function renderTodos() {
-            const container = document.getElementById('todosContainer');
-            if (!container) return;
-            container.innerHTML = '';
-            if (todos.length === 0) {
-                container.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">Keine Notizen.</div>';
-                return;
-            }
-            todos.todos = todos.forEach((t, i) => {
-                const div = document.createElement('div');
-                div.className = 'event-item' + (t.completed ? ' completed' : '');
-                div.style.background = t.completed ? '#f8f9fa' : '#f1f8f5';
-                div.style.borderLeftColor = t.completed ? '#ccc' : '#198754';
-                div.innerHTML = `<span style="${t.completed ? 'text-decoration: line-through; color: #888;' : ''}">${t.text}</span>`;
-                const del = document.createElement('button');
-                del.className = 'event-delete-btn';
-                del.style.background = '#dc3545';
-                del.innerHTML = '🗑️';
-                del.onclick = (e) => { e.stopPropagation(); todos.splice(i, 1); saveTodos(); };
-                div.appendChild(del);
-                div.onclick = () => { todos[i].completed = !todos[i].completed; saveTodos(); };
-                container.appendChild(div);
-            });
-        }
-
-        function saveTodos() {
-            localStorage.setItem('omas_todos', JSON.stringify(todos));
-            renderTodos();
-        }
-    </script>
-</body>
-</html>
+                    content = content.split("
